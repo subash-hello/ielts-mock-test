@@ -40,6 +40,7 @@ export const SuperAdminPortal: React.FC<SuperAdminPortalProps> = ({
     name: string;
     branch: string;
     adminEmail: string;
+    adminPassword?: string;
     phone: string;
     accessCode: string;
     branchCode: string;
@@ -51,6 +52,7 @@ export const SuperAdminPortal: React.FC<SuperAdminPortalProps> = ({
     name: '',
     branch: '',
     adminEmail: '',
+    adminPassword: '1234',
     phone: '',
     accessCode: '',
     branchCode: '',
@@ -70,6 +72,7 @@ export const SuperAdminPortal: React.FC<SuperAdminPortalProps> = ({
       name: '',
       branch: '',
       adminEmail: '',
+      adminPassword: '1234',
       phone: '',
       accessCode: randomCode,
       branchCode: randomCode,
@@ -88,6 +91,7 @@ export const SuperAdminPortal: React.FC<SuperAdminPortalProps> = ({
       name: c.name,
       branch: c.branch,
       adminEmail: c.adminEmail,
+      adminPassword: c.adminPassword || c.examPassword || '1234',
       phone: c.phone,
       accessCode: c.accessCode,
       branchCode: c.branchCode || c.accessCode,
@@ -103,17 +107,35 @@ export const SuperAdminPortal: React.FC<SuperAdminPortalProps> = ({
     e.preventDefault();
     if (!formData.name.trim()) return;
 
+    const cleanName = formData.name.trim();
+    const cleanEmail = formData.adminEmail.trim().toLowerCase();
+    const cleanExamPass = (formData.examPassword || '1234').trim();
+    const cleanAdminPass = (formData.adminPassword || cleanExamPass || '1234').trim();
+    const cleanBranchCode = (formData.branchCode || formData.accessCode).trim().toUpperCase();
+
     if (editingConsultancy) {
       const updated: Consultancy = {
         ...editingConsultancy,
-        ...formData
+        ...formData,
+        name: cleanName,
+        adminEmail: cleanEmail,
+        adminPassword: cleanAdminPass,
+        examPassword: cleanExamPass,
+        branchCode: cleanBranchCode,
+        accessCode: cleanBranchCode
       };
       ConsultancyService.saveConsultancy(updated);
     } else {
-      const id = formData.name.toLowerCase().replace(/[^a-z0-9]+/g, '-') + '-' + Date.now().toString(36).slice(-4);
+      const id = cleanName.toLowerCase().replace(/[^a-z0-9]+/g, '-') + '-' + Date.now().toString(36).slice(-4);
       const newConsultancy: Consultancy = {
         id,
         ...formData,
+        name: cleanName,
+        adminEmail: cleanEmail,
+        adminPassword: cleanAdminPass,
+        examPassword: cleanExamPass,
+        branchCode: cleanBranchCode,
+        accessCode: cleanBranchCode,
         creditsUsed: 0,
         createdAt: new Date().toISOString(),
         validUntil: new Date(Date.now() + 365 * 24 * 3600 * 1000).toISOString()
@@ -339,6 +361,7 @@ export const SuperAdminPortal: React.FC<SuperAdminPortalProps> = ({
                 {/* Contact info */}
                 <div className="text-xs text-slate-600 flex flex-wrap items-center gap-x-4 gap-y-1">
                   <span>✉ {c.adminEmail}</span>
+                  <span>🔑 Admin Pass: <strong className="font-mono text-slate-800">{c.adminPassword || c.examPassword || '1234'}</strong></span>
                   <span>📞 {c.phone}</span>
                 </div>
               </div>
@@ -441,21 +464,39 @@ export const SuperAdminPortal: React.FC<SuperAdminPortalProps> = ({
                 </div>
               </div>
 
-              <div>
-                <label className="text-slate-700 font-semibold block mb-1">
-                  Candidate Examination Password *
-                </label>
-                <input
-                  type="text"
-                  required
-                  value={formData.examPassword}
-                  onChange={(e) => setFormData({ ...formData, examPassword: e.target.value })}
-                  placeholder="e.g. 1234"
-                  className="w-full bg-white border border-slate-300 focus:border-blue-600 focus:ring-1 focus:ring-blue-600 font-mono font-bold text-slate-900 p-2.5 rounded-lg outline-none"
-                />
-                <p className="text-[11px] text-slate-500 mt-1">
-                  Students only enter this password, their PC Number, and Branch Code to begin the mock test.
-                </p>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-slate-700 font-semibold block mb-1">
+                    Candidate Exam Password *
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={formData.examPassword}
+                    onChange={(e) => setFormData({ ...formData, examPassword: e.target.value })}
+                    placeholder="e.g. 1234"
+                    className="w-full bg-white border border-slate-300 focus:border-blue-600 focus:ring-1 focus:ring-blue-600 font-mono font-bold text-slate-900 p-2.5 rounded-lg outline-none"
+                  />
+                  <p className="text-[10px] text-slate-500 mt-1">
+                    For students at PC workstations.
+                  </p>
+                </div>
+                <div>
+                  <label className="text-slate-700 font-semibold block mb-1">
+                    Admin Login Password *
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={formData.adminPassword || ''}
+                    onChange={(e) => setFormData({ ...formData, adminPassword: e.target.value })}
+                    placeholder="e.g. 1234 or admin123"
+                    className="w-full bg-white border border-slate-300 focus:border-blue-600 focus:ring-1 focus:ring-blue-600 font-mono font-bold text-slate-900 p-2.5 rounded-lg outline-none"
+                  />
+                  <p className="text-[10px] text-slate-500 mt-1">
+                    For director / teacher login.
+                  </p>
+                </div>
               </div>
 
               <div className="grid grid-cols-2 gap-3">

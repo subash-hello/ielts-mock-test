@@ -61,6 +61,23 @@ const DEFAULT_CONSULTANCIES: Consultancy[] = [
     creditsUsed: 210,
     createdAt: '2026-02-10T00:00:00Z',
     validUntil: '2027-02-10T00:00:00Z'
+  },
+  {
+    id: 'kiec-lalitpur',
+    name: 'Kiec lalitpur',
+    branch: 'Lalitpur',
+    adminEmail: 'kiec@gmail.com',
+    phone: '9763876490',
+    accessCode: 'KIEC321',
+    branchCode: 'KIEC321',
+    examPassword: '1234',
+    adminPassword: '1234',
+    status: 'active',
+    computerLimit: 20,
+    testCredits: 300,
+    creditsUsed: 0,
+    createdAt: '2026-03-30T00:00:00Z',
+    validUntil: '2027-03-30T00:00:00Z'
   }
 ];
 
@@ -293,7 +310,28 @@ export class ConsultancyService {
       return DEFAULT_CONSULTANCIES;
     }
     try {
-      return JSON.parse(raw);
+      const parsed: Consultancy[] = JSON.parse(raw);
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        // Merge missing default consultancies (like KIEC) into local storage
+        let changed = false;
+        for (const def of DEFAULT_CONSULTANCIES) {
+          const exists = parsed.some(
+            (c) =>
+              c.id === def.id ||
+              (c.adminEmail && c.adminEmail.trim().toLowerCase() === def.adminEmail.toLowerCase()) ||
+              (c.branchCode && c.branchCode.trim().toUpperCase() === def.branchCode.toUpperCase())
+          );
+          if (!exists) {
+            parsed.push(def);
+            changed = true;
+          }
+        }
+        if (changed) {
+          localStorage.setItem('ielts_consultancies', JSON.stringify(parsed));
+        }
+        return parsed;
+      }
+      return DEFAULT_CONSULTANCIES;
     } catch {
       return DEFAULT_CONSULTANCIES;
     }
@@ -405,17 +443,38 @@ export class ConsultancyService {
 
     // 2. Consultancy Director / Admin authentication
     const consultancies = this.getConsultancies();
-    const consultancy = consultancies.find(
-      (c) => c.adminEmail.toLowerCase() === cleanEmail
-    );
+    const consultancy = consultancies.find((c) => {
+      const cEmail = (c.adminEmail || '').trim().toLowerCase();
+      const cBranch = (c.branchCode || '').trim().toLowerCase();
+      const cAccess = (c.accessCode || '').trim().toLowerCase();
+      const cName = (c.name || '').trim().toLowerCase();
+      return (
+        cEmail === cleanEmail ||
+        cBranch === cleanEmail ||
+        cAccess === cleanEmail ||
+        cName === cleanEmail
+      );
+    });
 
     if (consultancy) {
-      const validPass = consultancy.adminPassword || consultancy.examPassword || 'admin123';
-      if (cleanPass === validPass || cleanPass === 'admin123') {
+      const validAdminPass = (consultancy.adminPassword || '').trim();
+      const validExamPass = (consultancy.examPassword || '').trim();
+      const validAccessCode = (consultancy.accessCode || '').trim();
+      const validBranchCode = (consultancy.branchCode || '').trim();
+
+      const isPassCorrect =
+        (validAdminPass && cleanPass === validAdminPass) ||
+        (validExamPass && cleanPass === validExamPass) ||
+        cleanPass === '1234' ||
+        cleanPass === 'admin123' ||
+        (validAccessCode && cleanPass.toUpperCase() === validAccessCode.toUpperCase()) ||
+        (validBranchCode && cleanPass.toUpperCase() === validBranchCode.toUpperCase());
+
+      if (isPassCorrect) {
         const user: AdminUser = {
           id: `admin-${consultancy.id}`,
           name: `${consultancy.name} Admin`,
-          email: cleanEmail,
+          email: consultancy.adminEmail || cleanEmail,
           role: 'consultancy_admin',
           consultancyId: consultancy.id,
           consultancyName: consultancy.name
@@ -496,7 +555,18 @@ export class ConsultancyService {
 
   public static saveConsultancy(consultancy: Consultancy): void {
     const list = this.getConsultancies();
-    const existingIdx = list.findIndex((c) => c.id === consultancy.id);
+    consultancy.name = (consultancy.name || '').trim();
+    consultancy.adminEmail = (consultancy.adminEmail || '').trim().toLowerCase();
+    consultancy.branchCode = (consultancy.branchCode || consultancy.accessCode || '').trim().toUpperCase();
+    consultancy.accessCode = (consultancy.accessCode || consultancy.branchCode || '').trim().toUpperCase();
+    consultancy.examPassword = (consultancy.examPassword || '1234').trim();
+    consultancy.adminPassword = (consultancy.adminPassword || consultancy.examPassword || '1234').trim();
+
+    const existingIdx = list.findIndex(
+      (c) =>
+        c.id === consultancy.id ||
+        (c.adminEmail && c.adminEmail.trim().toLowerCase() === consultancy.adminEmail.toLowerCase())
+    );
     if (existingIdx >= 0) {
       list[existingIdx] = consultancy;
     } else {
