@@ -17,6 +17,7 @@ export interface Consultancy {
   logoUrl?: string;
   createdAt: string;
   validUntil: string;
+  assignedTestIds?: string[]; // Test IDs the consultancy has enabled for students
 }
 
 export interface AdminUser {

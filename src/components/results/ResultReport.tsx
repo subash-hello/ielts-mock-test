@@ -1,26 +1,53 @@
 import React, { useState } from 'react';
-import { CheckCircle2, Clock, ArrowLeft, RotateCcw, BookOpen, Sparkles, Building2, User } from 'lucide-react';
+import { CheckCircle2, Clock, ArrowLeft, RotateCcw, BookOpen, Sparkles, Building2, User, Headphones, Layers } from 'lucide-react';
 import type { IELTSMockTest, TestResult } from '../../types/ielts';
 import { evaluateTestAnswers } from '../../utils/scoring';
 import { AIDiagnosticReportModal } from './AIDiagnosticReportModal';
+
+export interface FullMockReportDetails {
+  fullMockTitle: string;
+  overallBand: number;
+  listeningResult: TestResult;
+  readingResult: TestResult;
+  listeningTest: IELTSMockTest;
+  readingTest: IELTSMockTest;
+}
 
 interface ResultReportProps {
   test: IELTSMockTest;
   result: TestResult;
   onReturnHub: () => void;
   onRetakeTest: () => void;
+  fullMockDetails?: FullMockReportDetails;
 }
 
 export const ResultReport: React.FC<ResultReportProps> = ({
   test,
   result,
   onReturnHub,
-  onRetakeTest
+  onRetakeTest,
+  fullMockDetails
 }) => {
   const [filterMode, setFilterMode] = useState<'all' | 'incorrect' | 'correct'>('all');
   const [showDiagnosticModal, setShowDiagnosticModal] = useState<boolean>(false);
+  const [activeReviewModule, setActiveReviewModule] = useState<'listening' | 'reading'>(() => {
+    return fullMockDetails ? 'listening' : test.module;
+  });
 
-  const allQuestions = test.sections.flatMap((s) => s.questionGroups.flatMap((g) => g.questions));
+  // Current active test and result being reviewed
+  const activeTest = fullMockDetails
+    ? activeReviewModule === 'listening'
+      ? fullMockDetails.listeningTest
+      : fullMockDetails.readingTest
+    : test;
+
+  const activeResult = fullMockDetails
+    ? activeReviewModule === 'listening'
+      ? fullMockDetails.listeningResult
+      : fullMockDetails.readingResult
+    : result;
+
+  const allQuestions = activeTest.sections.flatMap((s) => s.questionGroups.flatMap((g) => g.questions));
 
   // Determine band performance descriptor
   const getBandDescriptor = (band: number) => {
@@ -31,7 +58,7 @@ export const ResultReport: React.FC<ResultReportProps> = ({
     return 'Limited User';
   };
 
-  const { questionResults } = evaluateTestAnswers(test, result.answers);
+  const { questionResults } = evaluateTestAnswers(activeTest, activeResult.answers);
 
   const filteredQuestions = allQuestions.filter((q) => {
     const isCorrect = !!questionResults[q.questionNumber];
@@ -86,7 +113,7 @@ export const ResultReport: React.FC<ResultReportProps> = ({
               <img src="/images/masterieltsai-logo.png" alt="MasterIELTS AI" className="h-5 object-contain mr-1" />
               <span className="text-slate-300">•</span>
               <span className="text-xs uppercase font-bold text-red-600 tracking-wider">
-                Official Diagnostic Report
+                {fullMockDetails ? 'Full Mock Examination Report' : 'Official Diagnostic Report'}
               </span>
               <span className="text-slate-300">•</span>
               <div className="inline-flex items-center gap-1.5 text-xs font-bold text-slate-800 bg-slate-100 px-2.5 py-0.5 rounded-full">
@@ -99,7 +126,7 @@ export const ResultReport: React.FC<ResultReportProps> = ({
             </div>
 
             <h2 className="text-2xl sm:text-3xl font-extrabold text-slate-900">
-              {test.title}
+              {fullMockDetails ? fullMockDetails.fullMockTitle : test.title}
             </h2>
             
             {result.consultancyName && (
@@ -109,32 +136,70 @@ export const ResultReport: React.FC<ResultReportProps> = ({
               </div>
             )}
 
-            <div className="flex flex-wrap items-center gap-4 pt-3 text-xs font-medium text-slate-700">
-              <div className="flex items-center gap-1.5 bg-slate-100 px-3 py-1.5 rounded-lg">
-                <CheckCircle2 className="w-4 h-4 text-emerald-600" />
-                <span>Raw Score: <strong>{result.correctCount} / {result.totalQuestions}</strong></span>
+            {fullMockDetails ? (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-3">
+                <div className={`p-3 rounded-xl border transition ${
+                  activeReviewModule === 'listening' ? 'bg-purple-50/70 border-purple-300' : 'bg-slate-50 border-slate-200'
+                }`}>
+                  <div className="flex items-center justify-between text-xs mb-1">
+                    <span className="font-bold flex items-center gap-1.5 text-purple-900">
+                      <Headphones className="w-3.5 h-3.5 text-purple-600" />
+                      Listening Module
+                    </span>
+                    <span className="font-black text-sm text-purple-700">Band {fullMockDetails.listeningResult.bandScore.toFixed(1)}</span>
+                  </div>
+                  <div className="text-[11px] text-slate-500 flex items-center gap-3">
+                    <span>{fullMockDetails.listeningResult.correctCount}/40 correct</span>
+                    <span>•</span>
+                    <span>{Math.floor(fullMockDetails.listeningResult.timeTakenSeconds / 60)} mins</span>
+                  </div>
+                </div>
+
+                <div className={`p-3 rounded-xl border transition ${
+                  activeReviewModule === 'reading' ? 'bg-blue-50/70 border-blue-300' : 'bg-slate-50 border-slate-200'
+                }`}>
+                  <div className="flex items-center justify-between text-xs mb-1">
+                    <span className="font-bold flex items-center gap-1.5 text-blue-900">
+                      <BookOpen className="w-3.5 h-3.5 text-blue-600" />
+                      Reading Module
+                    </span>
+                    <span className="font-black text-sm text-blue-700">Band {fullMockDetails.readingResult.bandScore.toFixed(1)}</span>
+                  </div>
+                  <div className="text-[11px] text-slate-500 flex items-center gap-3">
+                    <span>{fullMockDetails.readingResult.correctCount}/40 correct</span>
+                    <span>•</span>
+                    <span>{Math.floor(fullMockDetails.readingResult.timeTakenSeconds / 60)} mins</span>
+                  </div>
+                </div>
               </div>
-              <div className="flex items-center gap-1.5 bg-slate-100 px-3 py-1.5 rounded-lg">
-                <Clock className="w-4 h-4 text-slate-500" />
-                <span>Time Taken: <strong>{Math.floor(result.timeTakenSeconds / 60)} mins</strong></span>
+            ) : (
+              <div className="flex flex-wrap items-center gap-4 pt-3 text-xs font-medium text-slate-700">
+                <div className="flex items-center gap-1.5 bg-slate-100 px-3 py-1.5 rounded-lg">
+                  <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                  <span>Raw Score: <strong>{result.correctCount} / {result.totalQuestions}</strong></span>
+                </div>
+                <div className="flex items-center gap-1.5 bg-slate-100 px-3 py-1.5 rounded-lg">
+                  <Clock className="w-4 h-4 text-slate-500" />
+                  <span>Time Taken: <strong>{Math.floor(result.timeTakenSeconds / 60)} mins</strong></span>
+                </div>
+                <div className="flex items-center gap-1.5 bg-slate-100 px-3 py-1.5 rounded-lg">
+                  <BookOpen className="w-4 h-4 text-blue-600" />
+                  <span>Accuracy: <strong>{((result.correctCount / result.totalQuestions) * 100).toFixed(1)}%</strong></span>
+                </div>
               </div>
-              <div className="flex items-center gap-1.5 bg-slate-100 px-3 py-1.5 rounded-lg">
-                <BookOpen className="w-4 h-4 text-blue-600" />
-                <span>Accuracy: <strong>{((result.correctCount / result.totalQuestions) * 100).toFixed(1)}%</strong></span>
-              </div>
-            </div>
+            )}
           </div>
 
           {/* Band Score Pill */}
           <div className="bg-gradient-to-br from-red-600 to-rose-700 text-white rounded-2xl p-6 text-center shadow-lg min-w-44 flex-shrink-0">
             <span className="text-xs uppercase tracking-wider text-red-200 font-semibold block">
-              Estimated IELTS Band
+              {fullMockDetails ? 'Overall IELTS Band' : 'Estimated IELTS Band'}
             </span>
             <div className="text-5xl font-black tracking-tight my-1">
-              {result.bandScore.toFixed(1)}
+              {(fullMockDetails ? fullMockDetails.overallBand : result.bandScore).toFixed(1)}
             </div>
             <span className="text-[11px] bg-white/20 px-2 py-0.5 rounded-full font-medium">
-              {getBandDescriptor(result.bandScore)}
+              {getBandDescriptor(fullMockDetails ? fullMockDetails.overallBand : result.bandScore)}
             </span>
           </div>
         </div>
@@ -155,7 +220,8 @@ export const ResultReport: React.FC<ResultReportProps> = ({
               { range: '23-26', band: '6.0' },
               { range: '19-22', band: '5.5' },
             ].map((scale) => {
-              const isUserBand = result.bandScore.toFixed(1) === scale.band;
+              const currentBandVal = fullMockDetails ? fullMockDetails.overallBand : result.bandScore;
+              const isUserBand = currentBandVal.toFixed(1) === scale.band;
 
               return (
                 <div
@@ -178,6 +244,47 @@ export const ResultReport: React.FC<ResultReportProps> = ({
             })}
           </div>
         </div>
+
+        {/* Full Mock Module Review Selector */}
+        {fullMockDetails && (
+          <div className="bg-white border border-slate-200 rounded-2xl p-4 sm:p-5 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div>
+              <h3 className="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
+                <Layers className="w-3.5 h-3.5 text-indigo-600" />
+                Select Module for Question Review
+              </h3>
+              <p className="text-xs text-slate-600 mt-0.5">
+                Currently reviewing: <strong>{activeReviewModule === 'listening' ? 'Listening Module' : 'Reading Module'}</strong>
+              </p>
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setActiveReviewModule('listening')}
+                className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition cursor-pointer ${
+                  activeReviewModule === 'listening'
+                    ? 'bg-purple-600 text-white shadow-xs'
+                    : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
+                }`}
+              >
+                <Headphones className="w-3.5 h-3.5" />
+                <span>Listening (Band {fullMockDetails.listeningResult.bandScore.toFixed(1)})</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setActiveReviewModule('reading')}
+                className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition cursor-pointer ${
+                  activeReviewModule === 'reading'
+                    ? 'bg-blue-600 text-white shadow-xs'
+                    : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
+                }`}
+              >
+                <BookOpen className="w-3.5 h-3.5" />
+                <span>Reading (Band {fullMockDetails.readingResult.bandScore.toFixed(1)})</span>
+              </button>
+            </div>
+          </div>
+        )}
 
         {/* Question-by-Question Review with Evidence */}
         <div className="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
@@ -207,7 +314,7 @@ export const ResultReport: React.FC<ResultReportProps> = ({
                   filterMode === 'incorrect' ? 'bg-white text-red-600 shadow-xs' : 'text-slate-600 hover:text-slate-900'
                 }`}
               >
-                Incorrect ({allQuestions.length - result.correctCount})
+                Incorrect ({allQuestions.length - activeResult.correctCount})
               </button>
               <button
                 onClick={() => setFilterMode('correct')}
@@ -215,14 +322,14 @@ export const ResultReport: React.FC<ResultReportProps> = ({
                   filterMode === 'correct' ? 'bg-white text-emerald-600 shadow-xs' : 'text-slate-600 hover:text-slate-900'
                 }`}
               >
-                Correct ({result.correctCount})
+                Correct ({activeResult.correctCount})
               </button>
             </div>
           </div>
 
           <div className="divide-y divide-slate-100 text-xs">
             {filteredQuestions.map((q) => {
-              const userAns = result.answers[q.questionNumber];
+              const userAns = activeResult.answers[q.questionNumber];
               const isCorrect = !!questionResults[q.questionNumber];
               const displayUser = Array.isArray(userAns) ? userAns.join(', ') : (userAns || 'No Answer Provided');
               const displayCorrect = Array.isArray(q.correctAnswer) ? q.correctAnswer.join(', ') : q.correctAnswer;
@@ -301,13 +408,13 @@ export const ResultReport: React.FC<ResultReportProps> = ({
       {showDiagnosticModal && (
         <AIDiagnosticReportModal
           reportData={{
-            studentName: result.candidateName || 'Candidate',
-            bandScore: result.bandScore,
-            module: result.module,
-            testTitle: test.title,
-            correctCount: result.correctCount,
-            totalQuestions: result.totalQuestions,
-            timeTakenSeconds: result.timeTakenSeconds
+            studentName: activeResult.candidateName || result.candidateName || 'Candidate',
+            bandScore: activeResult.bandScore,
+            module: activeResult.module,
+            testTitle: activeTest.title,
+            correctCount: activeResult.correctCount,
+            totalQuestions: activeResult.totalQuestions,
+            timeTakenSeconds: activeResult.timeTakenSeconds
           }}
           consultancyName={result.consultancyName || 'IELTS Partner Consultancy'}
           branchName="Academic Department"

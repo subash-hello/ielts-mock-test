@@ -98,3 +98,14 @@ export interface ExamSettings {
   contrast: 'standard' | 'inverted' | 'yellow-on-black';
   showTimer: boolean;
 }
+
+// A full mock test bundles a reading + listening test pair from the same Cambridge book & test number
+export interface FullMockTest {
+  id: string; // e.g. "cambridge-19-test-1-full"
+  book: number;
+  testNumber: number;
+  title: string; // e.g. "Cambridge 19 Test 1 — Full Mock"
+  readingTest: IELTSMockTest;
+  listeningTest: IELTSMockTest;
+  totalDurationMinutes: number; // 60 + 35 = 95
+}

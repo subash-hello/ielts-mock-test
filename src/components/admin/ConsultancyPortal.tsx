@@ -23,7 +23,8 @@ import {
   BookOpen,
   Headphones,
   CheckCircle2,
-  Eye
+  Eye,
+  Library
 } from 'lucide-react';
 import type {
   Consultancy,
@@ -34,6 +35,7 @@ import type {
 import type { IELTSMockTest, TestResult } from '../../types/ielts';
 import { ConsultancyService } from '../../services/consultancyService';
 import { AIDiagnosticReportModal } from '../results/AIDiagnosticReportModal';
+import { allFullMockTests } from '../../data/mockTests';
 
 interface ConsultancyPortalProps {
   consultancyId: string;
@@ -66,7 +68,7 @@ export const ConsultancyPortal: React.FC<ConsultancyPortalProps> = ({
     ConsultancyService.getResults(consultancyId)
   );
 
-  const [activeTab, setActiveTab] = useState<'results' | 'monitor' | 'students' | 'ai-reports' | 'terminals'>('results');
+  const [activeTab, setActiveTab] = useState<'results' | 'monitor' | 'students' | 'ai-reports' | 'terminals' | 'test-library'>('results');
   const [copiedLink, setCopiedLink] = useState(false);
   const [searchStudent, setSearchStudent] = useState('');
   const [searchResult, setSearchResult] = useState('');
@@ -111,6 +113,11 @@ export const ConsultancyPortal: React.FC<ConsultancyPortalProps> = ({
     timeTakenSeconds: number;
   } | null>(null);
 
+  // Test Library state
+  const [assignedTestIds, setAssignedTestIds] = useState<string[]>(() =>
+    ConsultancyService.getAssignedTestIds(consultancyId)
+  );
+
   // Reload local state from service
   const reloadAll = () => {
     setConsultancy(ConsultancyService.getConsultancyById(consultancyId));
@@ -118,6 +125,7 @@ export const ConsultancyPortal: React.FC<ConsultancyPortalProps> = ({
     setStudents(ConsultancyService.getStudents(consultancyId));
     setAiReports(ConsultancyService.getReports(consultancyId));
     setTestResults(ConsultancyService.getResults(consultancyId));
+    setAssignedTestIds(ConsultancyService.getAssignedTestIds(consultancyId));
   };
 
   // Real-time telemetry subscription
@@ -420,6 +428,21 @@ export const ConsultancyPortal: React.FC<ConsultancyPortalProps> = ({
           >
             <Sparkles className="w-4 h-4 text-amber-500" />
             <span>AI Diagnostic Reports</span>
+          </button>
+
+          <button
+            onClick={() => setActiveTab('test-library')}
+            className={`px-3.5 py-2 font-semibold rounded-lg transition flex items-center gap-2 cursor-pointer ${
+              activeTab === 'test-library'
+                ? 'bg-slate-900 text-white shadow-xs'
+                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+            }`}
+          >
+            <Library className="w-4 h-4 text-indigo-500" />
+            <span>Test Library</span>
+            {assignedTestIds.length > 0 && (
+              <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-indigo-100 text-indigo-700">{assignedTestIds.length}</span>
+            )}
           </button>
         </div>
 
@@ -1312,6 +1335,221 @@ export const ConsultancyPortal: React.FC<ConsultancyPortalProps> = ({
                     </button>
                   </div>
                 ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* ================= TAB 5: TEST LIBRARY ================= */}
+        {activeTab === 'test-library' && (
+          <div className="space-y-6">
+            <div className="bg-white border border-slate-200 p-6 rounded-2xl shadow-xs space-y-4">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div>
+                  <h2 className="text-lg font-bold text-slate-900 flex items-center gap-2">
+                    <Library className="w-5 h-5 text-indigo-600" />
+                    Test Library — Assign Tests for Students
+                  </h2>
+                  <p className="text-xs text-slate-500 mt-1 leading-relaxed max-w-xl">
+                    Select which Cambridge tests your students will see in their terminal. Only the tests you enable here will appear when students log in. Each full mock test includes <strong>1 Reading (60 min)</strong> + <strong>1 Listening (35 min)</strong>.
+                  </p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-semibold text-slate-600">
+                    {assignedTestIds.length} / {tests.length} tests assigned
+                  </span>
+                  <button
+                    onClick={() => {
+                      if (assignedTestIds.length === tests.length) {
+                        ConsultancyService.setAssignedTestIds(consultancyId, []);
+                        setAssignedTestIds([]);
+                      } else {
+                        const allIds = tests.map(t => t.id);
+                        ConsultancyService.setAssignedTestIds(consultancyId, allIds);
+                        setAssignedTestIds(allIds);
+                      }
+                    }}
+                    className="px-3 py-1.5 text-xs font-semibold rounded-lg border border-slate-300 bg-white hover:bg-slate-50 text-slate-700 cursor-pointer transition"
+                  >
+                    {assignedTestIds.length === tests.length ? 'Deselect All' : 'Select All'}
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {/* Full Mock Tests (paired reading + listening) */}
+            <div className="space-y-4">
+              <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
+                <BookOpen className="w-4 h-4 text-blue-600" />
+                Full Mock Tests (Reading + Listening Paired)
+              </h3>
+              <p className="text-xs text-slate-500 -mt-2">
+                Selecting a full mock test enables both the reading and listening modules for that test. Students can take them as a combined real-like exam.
+              </p>
+
+              {[18, 19, 20, 21].map((book) => {
+                const bookFullTests = allFullMockTests.filter(f => f.book === book);
+                const bookTestIds = bookFullTests.flatMap(f => [f.readingTest.id, f.listeningTest.id]);
+                const allBookSelected = bookTestIds.every(id => assignedTestIds.includes(id));
+                const someBookSelected = bookTestIds.some(id => assignedTestIds.includes(id));
+
+                return (
+                  <div key={book} className="bg-white border border-slate-200 rounded-xl shadow-xs overflow-hidden">
+                    {/* Book Header */}
+                    <div className="flex items-center justify-between px-4 py-3 bg-slate-50 border-b border-slate-200">
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs font-black text-slate-900 uppercase tracking-wide">
+                          Cambridge {book}
+                        </span>
+                        <span className="text-[10px] font-medium px-1.5 py-0.5 rounded-full bg-slate-200 text-slate-600">
+                          {bookFullTests.length} Tests
+                        </span>
+                      </div>
+                      <button
+                        onClick={() => {
+                          let newIds = [...assignedTestIds];
+                          if (allBookSelected) {
+                            // Remove all book tests
+                            newIds = newIds.filter(id => !bookTestIds.includes(id));
+                          } else {
+                            // Add all book tests
+                            for (const id of bookTestIds) {
+                              if (!newIds.includes(id)) newIds.push(id);
+                            }
+                          }
+                          ConsultancyService.setAssignedTestIds(consultancyId, newIds);
+                          setAssignedTestIds(newIds);
+                        }}
+                        className={`px-2.5 py-1 text-[11px] font-semibold rounded-lg border cursor-pointer transition ${
+                          allBookSelected
+                            ? 'bg-indigo-50 border-indigo-200 text-indigo-700'
+                            : 'bg-white border-slate-300 text-slate-600 hover:bg-slate-50'
+                        }`}
+                      >
+                        {allBookSelected ? 'Deselect Book' : 'Select All'}
+                      </button>
+                    </div>
+
+                    {/* Test rows */}
+                    <div className="divide-y divide-slate-100">
+                      {bookFullTests.map((fullTest) => {
+                        const readingSelected = assignedTestIds.includes(fullTest.readingTest.id);
+                        const listeningSelected = assignedTestIds.includes(fullTest.listeningTest.id);
+                        const bothSelected = readingSelected && listeningSelected;
+
+                        return (
+                          <div
+                            key={fullTest.id}
+                            className={`flex items-center justify-between px-4 py-3 transition ${
+                              bothSelected ? 'bg-indigo-50/50' : 'hover:bg-slate-50'
+                            }`}
+                          >
+                            <div className="flex items-center gap-3">
+                              <div
+                                onClick={() => {
+                                  let newIds = [...assignedTestIds];
+                                  if (bothSelected) {
+                                    newIds = newIds.filter(id => id !== fullTest.readingTest.id && id !== fullTest.listeningTest.id);
+                                  } else {
+                                    if (!newIds.includes(fullTest.readingTest.id)) newIds.push(fullTest.readingTest.id);
+                                    if (!newIds.includes(fullTest.listeningTest.id)) newIds.push(fullTest.listeningTest.id);
+                                  }
+                                  ConsultancyService.setAssignedTestIds(consultancyId, newIds);
+                                  setAssignedTestIds(newIds);
+                                }}
+                                className={`w-5 h-5 rounded border-2 flex items-center justify-center cursor-pointer transition ${
+                                  bothSelected
+                                    ? 'bg-indigo-600 border-indigo-600'
+                                    : someBookSelected && (readingSelected || listeningSelected)
+                                    ? 'bg-indigo-200 border-indigo-400'
+                                    : 'border-slate-300 hover:border-indigo-400'
+                                }`}
+                              >
+                                {bothSelected && <Check className="w-3 h-3 text-white" />}
+                              </div>
+                              <div>
+                                <div className="text-xs font-bold text-slate-900">
+                                  Test {fullTest.testNumber}
+                                </div>
+                                <div className="text-[11px] text-slate-500">
+                                  {fullTest.totalDurationMinutes} min total
+                                </div>
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  let newIds = [...assignedTestIds];
+                                  if (readingSelected) {
+                                    newIds = newIds.filter(id => id !== fullTest.readingTest.id);
+                                  } else {
+                                    newIds.push(fullTest.readingTest.id);
+                                  }
+                                  ConsultancyService.setAssignedTestIds(consultancyId, newIds);
+                                  setAssignedTestIds(newIds);
+                                }}
+                                className={`inline-flex items-center gap-1 text-[11px] font-semibold px-2.5 py-1 rounded-full border cursor-pointer transition ${
+                                  readingSelected
+                                    ? 'bg-blue-50 text-blue-700 border-blue-300 font-bold shadow-2xs'
+                                    : 'bg-slate-50 text-slate-400 border-slate-200 hover:border-slate-300'
+                                }`}
+                                title="Click to toggle Reading module"
+                              >
+                                <BookOpen className="w-3 h-3" />
+                                <span>Reading (60m)</span>
+                                {readingSelected && <Check className="w-2.5 h-2.5 ml-0.5 text-blue-700" />}
+                              </button>
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  let newIds = [...assignedTestIds];
+                                  if (listeningSelected) {
+                                    newIds = newIds.filter(id => id !== fullTest.listeningTest.id);
+                                  } else {
+                                    newIds.push(fullTest.listeningTest.id);
+                                  }
+                                  ConsultancyService.setAssignedTestIds(consultancyId, newIds);
+                                  setAssignedTestIds(newIds);
+                                }}
+                                className={`inline-flex items-center gap-1 text-[11px] font-semibold px-2.5 py-1 rounded-full border cursor-pointer transition ${
+                                  listeningSelected
+                                    ? 'bg-purple-50 text-purple-700 border-purple-300 font-bold shadow-2xs'
+                                    : 'bg-slate-50 text-slate-400 border-slate-200 hover:border-slate-300'
+                                }`}
+                                title="Click to toggle Listening module"
+                              >
+                                <Headphones className="w-3 h-3" />
+                                <span>Listening (35m)</span>
+                                {listeningSelected && <Check className="w-2.5 h-2.5 ml-0.5 text-purple-700" />}
+                              </button>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Save confirmation */}
+            {assignedTestIds.length > 0 && (
+              <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-4 flex items-center justify-between">
+                <div className="flex items-center gap-2 text-xs text-emerald-700">
+                  <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                  <span className="font-semibold">{assignedTestIds.length} tests assigned.</span>
+                  <span className="text-emerald-600">Students will only see these tests in their terminal.</span>
+                </div>
+              </div>
+            )}
+            {assignedTestIds.length === 0 && (
+              <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 flex items-center gap-2 text-xs text-amber-700">
+                <Sparkles className="w-4 h-4 text-amber-500" />
+                <span className="font-semibold">No tests assigned yet.</span>
+                <span>Students will see all available tests until you assign specific ones.</span>
               </div>
             )}
           </div>

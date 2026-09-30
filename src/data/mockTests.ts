@@ -1,4 +1,4 @@
-import type { IELTSMockTest } from '../types/ielts';
+import type { IELTSMockTest, FullMockTest } from '../types/ielts';
 
 import {
   cambridge18Test1Reading, cambridge18Test1Listening,
@@ -81,3 +81,36 @@ export function getMockTestById(id: string): IELTSMockTest | undefined {
 export function getTestsByBookAndModule(book: number, module?: 'reading' | 'listening'): IELTSMockTest[] {
   return allMockTests.filter((t) => t.book === book && (!module || t.module === module));
 }
+
+// Build full mock test bundles (reading + listening from same book/test number)
+export function buildFullMockTests(testsPool: IELTSMockTest[] = allMockTests): FullMockTest[] {
+  const fullTests: FullMockTest[] = [];
+  const books = [...new Set(testsPool.map((t) => t.book))].sort();
+
+  for (const book of books) {
+    const bookTests = testsPool.filter((t) => t.book === book);
+    const testNumbers = [...new Set(bookTests.map((t) => t.testNumber))].sort();
+
+    for (const testNum of testNumbers) {
+      const reading = bookTests.find((t) => t.testNumber === testNum && t.module === 'reading');
+      const listening = bookTests.find((t) => t.testNumber === testNum && t.module === 'listening');
+
+      if (reading && listening) {
+        fullTests.push({
+          id: `cambridge-${book}-test-${testNum}-full`,
+          book,
+          testNumber: testNum,
+          title: `Cambridge ${book} Test ${testNum} — Full Mock`,
+          readingTest: reading,
+          listeningTest: listening,
+          totalDurationMinutes: reading.durationMinutes + listening.durationMinutes,
+        });
+      }
+    }
+  }
+
+  return fullTests;
+}
+
+export const allFullMockTests: FullMockTest[] = buildFullMockTests();
+

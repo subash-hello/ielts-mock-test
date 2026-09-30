@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import type { IELTSMockTest, CandidateAnswers, ReviewStatus, ExamSettings, TestResult } from './types/ielts';
+import type { IELTSMockTest, CandidateAnswers, ReviewStatus, ExamSettings, TestResult, FullMockTest } from './types/ielts';
 import type { AdminUser, CandidateSession } from './types/consultancy';
 import { LandingPage } from './components/landing/LandingPage';
 import { CDHeader } from './components/exam/CDHeader';
@@ -15,7 +15,7 @@ import { ConsultancyService } from './services/consultancyService';
 import { calculateBandScore, evaluateTestAnswers } from './utils/scoring';
 import { saveTestResultToSupabase, fetchMockTestsFromSupabase } from './lib/supabase';
 import { allMockTests } from './data/mockTests';
-import { Pause } from 'lucide-react';
+import { Pause, CheckCircle2, Clock, ArrowRight, BookOpen } from 'lucide-react';
 
 export const App: React.FC = () => {
   // Candidate session state
@@ -88,6 +88,17 @@ export const App: React.FC = () => {
       return [];
     }
   });
+
+  // Full Mock Test Sequence state (Listening -> 60s Break/Intermission -> Reading -> Combined Result)
+  const [activeFullMock, setActiveFullMock] = useState<{
+    fullMock: FullMockTest;
+    currentStep: 'listening' | 'reading';
+    listeningResult?: TestResult;
+    readingResult?: TestResult;
+    overallBand?: number;
+  } | null>(null);
+  const [showFullMockIntermission, setShowFullMockIntermission] = useState<boolean>(false);
+  const [intermissionCountdown, setIntermissionCountdown] = useState<number>(60);
 
   // Keep ref to answers and remainingSeconds for callbacks
   const answersRef = useRef(answers);
@@ -207,6 +218,40 @@ export const App: React.FC = () => {
     return () => clearInterval(timer);
   }, [activeScreen, currentTest, answers, isExamPausedByTeacher]);
 
+  // Advance from Listening to Reading section in Full Mock Test
+  const handleProceedToReading = () => {
+    if (!activeFullMock) return;
+    setShowFullMockIntermission(false);
+    const readingTest = activeFullMock.fullMock.readingTest;
+    setCurrentTest(readingTest);
+    setCurrentQuestion(1);
+    setActiveSectionIndex(0);
+    setAnswers({});
+    setReviewStatus({});
+    setRemainingSeconds(readingTest.durationMinutes * 60);
+    setActiveFullMock((prev) => (prev ? { ...prev, currentStep: 'reading' } : null));
+    setIsExamPausedByTeacher(false);
+    setActiveScreen('exam');
+  };
+
+  // Full Mock Intermission Countdown Timer (60s break before Reading)
+  useEffect(() => {
+    if (!showFullMockIntermission) return;
+
+    const timer = setInterval(() => {
+      setIntermissionCountdown((prev) => {
+        if (prev <= 1) {
+          clearInterval(timer);
+          handleProceedToReading();
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, [showFullMockIntermission, activeFullMock]);
+
   // Lab invigilator remote command listener
   useEffect(() => {
     if (activeScreen !== 'exam' || !activeCandidateInfo?.stationName) return;
@@ -294,8 +339,19 @@ export const App: React.FC = () => {
       consultancyName?: string;
       phone?: string;
       email?: string;
-    }
+    },
+    fullMock?: FullMockTest
   ) => {
+    if (fullMock) {
+      setActiveFullMock({
+        fullMock,
+        currentStep: fullMock.listeningTest.id === test.id ? 'listening' : 'reading'
+      });
+    } else {
+      setActiveFullMock(null);
+    }
+    setShowFullMockIntermission(false);
+
     if (candidate) {
       const targetCid = candidate.consultancyId || selectedConsultancyId || 'apex-global';
       const consultancyObj = ConsultancyService.getConsultancyById(targetCid);
@@ -498,6 +554,24 @@ export const App: React.FC = () => {
       );
     }
 
+    // Check if candidate is running a Full Mock Test and finished Listening (Section 1)
+    if (activeFullMock && activeFullMock.currentStep === 'listening') {
+      setActiveFullMock((prev) => (prev ? { ...prev, listeningResult: newResult } : null));
+      setShowFullMockIntermission(true);
+      setIntermissionCountdown(60);
+      return; // Transition to 60s intermission before Section 2 (Reading)
+    }
+
+    // If candidate finished Reading (Section 2) of Full Mock Test
+    if (activeFullMock && activeFullMock.currentStep === 'reading') {
+      const listResult = activeFullMock.listeningResult;
+      const listBand = listResult ? listResult.bandScore : newResult.bandScore;
+      const readBand = newResult.bandScore;
+      const rawAvg = (listBand + readBand) / 2;
+      const overallBand = Math.round(rawAvg * 2) / 2;
+      setActiveFullMock((prev) => (prev ? { ...prev, readingResult: newResult, overallBand } : null));
+    }
+
     setActiveScreen('results');
   };
 
@@ -562,8 +636,8 @@ export const App: React.FC = () => {
       {activeScreen === 'landing' && (
         <LandingPage
           tests={tests}
-          onStartTest={(test, candidate) => {
-            startTest(test, candidate);
+          onStartTest={(test, candidate, fullMock) => {
+            startTest(test, candidate, fullMock);
           }}
           pastResults={pastResults}
           onViewResults={(res) => {
@@ -636,7 +710,7 @@ export const App: React.FC = () => {
           initialStationName={terminalStationName}
           initialConsultancyId={selectedConsultancyId}
           tests={tests}
-          onStartExam={(test, candidate) => {
+          onStartExam={(test, candidate, fullMock) => {
             const cleanStation = candidate.stationName || terminalStationName || 'PC-01';
             const cleanCid = candidate.consultancyId || selectedConsultancyId || 'apex-global';
             setTerminalStationName(cleanStation);
@@ -660,7 +734,7 @@ export const App: React.FC = () => {
               stationName: cleanStation,
               consultancyId: cleanCid
             });
-            startTest(test);
+            startTest(test, undefined, fullMock);
           }}
           onExitTerminal={() => {
             if (!candidateSession && !adminUser) {
@@ -765,19 +839,96 @@ export const App: React.FC = () => {
         </div>
       )}
 
+      {/* FULL MOCK EXAM INTERMISSION MODAL (Real IELTS 60s transition from Listening to Reading) */}
+      {showFullMockIntermission && activeFullMock && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl border border-slate-200 shadow-2xl max-w-lg w-full p-6 sm:p-8 space-y-5 text-center animate-in fade-in">
+            <div className="w-16 h-16 rounded-2xl bg-emerald-50 border border-emerald-200 flex items-center justify-center mx-auto shadow-xs">
+              <CheckCircle2 className="w-8 h-8 text-emerald-600" />
+            </div>
+
+            <div className="space-y-1.5">
+              <span className="text-[11px] uppercase tracking-wider font-extrabold text-emerald-700 bg-emerald-100 px-3 py-1 rounded-full inline-block">
+                Section 1 of 2 Complete
+              </span>
+              <h2 className="text-xl sm:text-2xl font-black text-slate-900">
+                Listening Test Submitted!
+              </h2>
+              <p className="text-xs text-slate-600 leading-relaxed">
+                Your 40 listening responses have been recorded. In official Computer-Delivered IELTS, candidates have a 1-minute transition window before the <strong>Academic Reading Test</strong> begins.
+              </p>
+            </div>
+
+            {/* Step Progress Visualizer */}
+            <div className="grid grid-cols-2 gap-3 p-3.5 bg-slate-50 border border-slate-200 rounded-xl text-xs">
+              <div className="text-left bg-white p-2.5 rounded-lg border border-slate-200">
+                <span className="text-[10px] text-emerald-700 font-bold uppercase block flex items-center gap-1">
+                  <CheckCircle2 className="w-3 h-3 text-emerald-600" /> Completed
+                </span>
+                <span className="font-bold text-slate-900 block mt-0.5">Listening Test</span>
+                <span className="text-slate-500 text-[11px]">40 Questions</span>
+              </div>
+              <div className="text-left bg-indigo-50/50 p-2.5 rounded-lg border border-indigo-200">
+                <span className="text-[10px] text-indigo-700 font-bold uppercase block flex items-center gap-1">
+                  <BookOpen className="w-3 h-3 text-indigo-600" /> Next Section
+                </span>
+                <span className="font-bold text-slate-900 block mt-0.5">Academic Reading</span>
+                <span className="text-slate-500 text-[11px]">60 Mins • 40 Questions</span>
+              </div>
+            </div>
+
+            {/* Countdown notice */}
+            <div className="text-xs font-semibold text-slate-600 flex items-center justify-center gap-2">
+              <Clock className="w-4 h-4 text-indigo-600 animate-pulse" />
+              <span>
+                Starting automatically in <strong className="text-indigo-700 font-mono text-sm">{intermissionCountdown}s</strong>
+              </span>
+            </div>
+
+            {/* Immediate Action Button */}
+            <button
+              onClick={handleProceedToReading}
+              className="w-full py-3.5 bg-blue-600 hover:bg-blue-700 text-white font-bold text-sm rounded-xl transition cursor-pointer shadow-md flex items-center justify-center gap-2"
+            >
+              <span>Begin Academic Reading Test Now</span>
+              <ArrowRight className="w-4 h-4" />
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* SCREEN 7: DIAGNOSTIC RESULTS REPORT */}
       {activeScreen === 'results' && activeResult && currentTest && (
         <ResultReport
           test={currentTest}
           result={activeResult}
+          fullMockDetails={
+            activeFullMock && activeFullMock.listeningResult && activeFullMock.readingResult
+              ? {
+                  fullMockTitle: activeFullMock.fullMock.title,
+                  overallBand: activeFullMock.overallBand || 7.5,
+                  listeningResult: activeFullMock.listeningResult,
+                  readingResult: activeFullMock.readingResult,
+                  listeningTest: activeFullMock.fullMock.listeningTest,
+                  readingTest: activeFullMock.fullMock.readingTest
+                }
+              : undefined
+          }
           onReturnHub={() => {
+            setActiveFullMock(null);
             if (activeCandidateInfo?.stationName) {
               setActiveScreen('terminal');
             } else {
               setActiveScreen('landing');
             }
           }}
-          onRetakeTest={() => startTest(currentTest)}
+          onRetakeTest={() => {
+            if (activeFullMock) {
+              startTest(activeFullMock.fullMock.listeningTest, undefined, activeFullMock.fullMock);
+            } else {
+              startTest(currentTest);
+            }
+          }}
         />
       )}
     </div>

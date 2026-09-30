@@ -29,10 +29,11 @@ import {
   Menu,
   X
 } from 'lucide-react';
-import type { IELTSMockTest, IELTSModule, TestResult } from '../../types/ielts';
+import type { IELTSMockTest, IELTSModule, TestResult, FullMockTest } from '../../types/ielts';
 import type { CandidateSession, AdminUser } from '../../types/consultancy';
-import { allMockTests } from '../../data/mockTests';
+import { allMockTests, buildFullMockTests } from '../../data/mockTests';
 import { CandidateCheckInModal } from '../exam/CandidateCheckInModal';
+import { ConsultancyService } from '../../services/consultancyService';
 
 interface LandingPageProps {
   tests?: IELTSMockTest[];
@@ -46,7 +47,8 @@ interface LandingPageProps {
       consultancyName: string;
       phone?: string;
       email?: string;
-    }
+    },
+    fullMockTest?: FullMockTest
   ) => void;
   pastResults: TestResult[];
   onViewResults: (result: TestResult) => void;
@@ -71,7 +73,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
   onLogout
 }) => {
   const [selectedBook, setSelectedBook] = useState<number>(19);
-  const [moduleFilter, setModuleFilter] = useState<'all' | IELTSModule>('all');
+  const [moduleFilter, setModuleFilter] = useState<'all' | 'full' | IELTSModule>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [isSoundTesting, setIsSoundTesting] = useState(false);
   const [openFaqIndex, setOpenFaqIndex] = useState<number | null>(null);
@@ -79,10 +81,35 @@ export const LandingPage: React.FC<LandingPageProps> = ({
 
   // Candidate Name Check-In Modal state when clicking ANY test
   const [selectedTestForModal, setSelectedTestForModal] = useState<IELTSMockTest | null>(null);
+  const [selectedFullMockForModal, setSelectedFullMockForModal] = useState<FullMockTest | null>(null);
   const [isCheckInModalOpen, setIsCheckInModalOpen] = useState(false);
+
+  // Filter tests by consultancy assignment if candidate is logged in under a consultancy
+  const consultancyAssignedIds = useMemo(() => {
+    if (!candidateSession?.consultancyId) return [];
+    return ConsultancyService.getAssignedTestIds(candidateSession.consultancyId);
+  }, [candidateSession?.consultancyId]);
+
+  const candidateAvailableTests = useMemo(() => {
+    if (consultancyAssignedIds.length > 0) {
+      return tests.filter((t) => consultancyAssignedIds.includes(t.id));
+    }
+    return tests;
+  }, [tests, consultancyAssignedIds]);
+
+  const candidateFullMocks = useMemo(() => {
+    return buildFullMockTests(candidateAvailableTests);
+  }, [candidateAvailableTests]);
 
   const handleTestClick = (test: IELTSMockTest) => {
     setSelectedTestForModal(test);
+    setSelectedFullMockForModal(null);
+    setIsCheckInModalOpen(true);
+  };
+
+  const handleFullMockClick = (fullMock: FullMockTest) => {
+    setSelectedTestForModal(fullMock.listeningTest);
+    setSelectedFullMockForModal(fullMock);
     setIsCheckInModalOpen(true);
   };
 
@@ -97,14 +124,15 @@ export const LandingPage: React.FC<LandingPageProps> = ({
   }) => {
     setIsCheckInModalOpen(false);
     if (selectedTestForModal) {
-      onStartTest(selectedTestForModal, candidate);
+      onStartTest(selectedTestForModal, candidate, selectedFullMockForModal || undefined);
     }
   };
 
   const books = [18, 19, 20, 21];
 
   const filteredTests = useMemo(() => {
-    return tests.filter((test) => {
+    if (moduleFilter === 'full') return [];
+    return candidateAvailableTests.filter((test) => {
       if (test.book !== selectedBook) return false;
       if (moduleFilter !== 'all' && test.module !== moduleFilter) return false;
       if (searchQuery.trim()) {
@@ -115,7 +143,18 @@ export const LandingPage: React.FC<LandingPageProps> = ({
       }
       return true;
     });
-  }, [tests, selectedBook, moduleFilter, searchQuery]);
+  }, [candidateAvailableTests, selectedBook, moduleFilter, searchQuery]);
+
+  const filteredFullMocks = useMemo(() => {
+    return candidateFullMocks.filter((fm) => {
+      if (fm.book !== selectedBook) return false;
+      if (searchQuery.trim()) {
+        const query = searchQuery.toLowerCase();
+        return fm.title.toLowerCase().includes(query);
+      }
+      return true;
+    });
+  }, [candidateFullMocks, selectedBook, searchQuery]);
 
   // Audio Test Tone generator (440Hz standard)
   const testAudio = () => {
@@ -651,6 +690,17 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                 All Papers
               </button>
               <button
+                onClick={() => setModuleFilter('full')}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition cursor-pointer shrink-0 ${
+                  moduleFilter === 'full'
+                    ? 'bg-indigo-600 text-white shadow-xs'
+                    : 'text-slate-600 hover:text-slate-900 bg-white border border-slate-300'
+                }`}
+              >
+                <Layers className="w-3.5 h-3.5" />
+                <span>Full Mock Tests (95m)</span>
+              </button>
+              <button
                 onClick={() => setModuleFilter('reading')}
                 className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition cursor-pointer shrink-0 ${
                   moduleFilter === 'reading'
@@ -675,8 +725,90 @@ export const LandingPage: React.FC<LandingPageProps> = ({
             </div>
           </div>
 
-          {/* Test Cards Grid */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-5">
+          {/* Consultancy Curated Notice Banner */}
+          {candidateSession && consultancyAssignedIds.length > 0 && (
+            <div className="bg-indigo-50 border border-indigo-200 rounded-xl p-3 sm:p-4 flex items-center justify-between gap-3 text-xs">
+              <div className="flex items-center gap-2 text-indigo-900 font-semibold">
+                <CheckCircle className="w-4 h-4 text-indigo-600 shrink-0" />
+                <span>Showing tests assigned by <strong>{candidateSession.consultancyName}</strong> ({candidateAvailableTests.length} tests active)</span>
+              </div>
+              <span className="text-[11px] font-bold text-indigo-700 bg-indigo-100 px-2.5 py-0.5 rounded-full shrink-0">
+                Only Assigned Tests Visible
+              </span>
+            </div>
+          )}
+
+          {/* FULL MOCK TESTS VIEW */}
+          {moduleFilter === 'full' ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5">
+              {filteredFullMocks.map((fullMock) => (
+                <div
+                  key={fullMock.id}
+                  onClick={() => handleFullMockClick(fullMock)}
+                  className="rounded-2xl p-5 border border-indigo-200 bg-gradient-to-br from-white to-indigo-50/30 hover:border-indigo-500 hover:shadow-lg transition-all duration-200 flex flex-col justify-between group cursor-pointer hover:-translate-y-0.5 relative shadow-xs"
+                >
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[10px] font-extrabold uppercase px-2 py-0.5 rounded bg-indigo-100 text-indigo-800 font-mono border border-indigo-200">
+                        BOOK {fullMock.book}
+                      </span>
+                      <span className="text-[10px] font-bold uppercase px-2 py-0.5 rounded-md flex items-center gap-1 bg-indigo-600 text-white shadow-2xs">
+                        <Layers className="w-3 h-3" />
+                        <span>Full Mock Test</span>
+                      </span>
+                    </div>
+
+                    <h3 className="text-base font-extrabold text-slate-900 group-hover:text-indigo-600 transition-colors">
+                      {fullMock.title}
+                    </h3>
+
+                    <div className="p-3 bg-white/80 border border-indigo-100 rounded-xl space-y-1.5 text-[11px]">
+                      <div className="flex items-center justify-between text-slate-600">
+                        <span className="flex items-center gap-1.5 font-semibold text-purple-700">
+                          <Headphones className="w-3.5 h-3.5" /> Listening Section
+                        </span>
+                        <span className="font-mono font-medium">35 Mins • 40 Qs</span>
+                      </div>
+                      <div className="flex items-center justify-between text-slate-600">
+                        <span className="flex items-center gap-1.5 font-semibold text-blue-700">
+                          <BookOpen className="w-3.5 h-3.5" /> Reading Section
+                        </span>
+                        <span className="font-mono font-medium">60 Mins • 40 Qs</span>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-2 text-[11px] text-slate-500">
+                      <span className="flex items-center gap-1">
+                        <Clock className="w-3.5 h-3.5 text-slate-400" />
+                        <span>{fullMock.totalDurationMinutes} Mins Total</span>
+                      </span>
+                      <span>•</span>
+                      <span className="text-emerald-700 font-semibold">80 Questions</span>
+                    </div>
+                  </div>
+
+                  <div className="pt-3 mt-4 border-t border-indigo-100 flex items-center justify-between">
+                    <span className="text-[11px] text-indigo-700 font-semibold">Real Exam Simulation</span>
+                    <button
+                      type="button"
+                      className="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold flex items-center gap-1.5 shadow-sm transition-all cursor-pointer"
+                    >
+                      <span>Start Full Mock</span>
+                      <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
+                    </button>
+                  </div>
+                </div>
+              ))}
+              {filteredFullMocks.length === 0 && (
+                <div className="col-span-full py-12 text-center bg-white rounded-2xl border border-slate-200">
+                  <p className="text-sm font-bold text-slate-700">No Full Mock Tests found for Book {selectedBook}</p>
+                  <p className="text-xs text-slate-500 mt-1">Try selecting another Cambridge book or individual papers.</p>
+                </div>
+              )}
+            </div>
+          ) : (
+            /* Test Cards Grid */
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-5">
             {filteredTests.map((test) => {
               const isReading = test.module === 'reading';
               const totalQ = test.sections.reduce(
@@ -751,6 +883,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
               );
             })}
           </div>
+        )}
         </div>
       </section>
 

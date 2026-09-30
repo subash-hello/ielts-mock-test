@@ -582,6 +582,35 @@ export class ConsultancyService {
     this.broadcast('CONSULTANCY_DELETED', id);
   }
 
+  // --- ASSIGNED TEST MANAGEMENT ---
+  public static getAssignedTestIds(consultancyId: string): string[] {
+    const consultancy = this.getConsultancyById(consultancyId);
+    if (consultancy?.assignedTestIds && consultancy.assignedTestIds.length > 0) {
+      return consultancy.assignedTestIds;
+    }
+    // Also check localStorage for separately stored assignments
+    const raw = localStorage.getItem(`ielts_assigned_tests_${consultancyId}`);
+    if (raw) {
+      try {
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      } catch { /* ignore */ }
+    }
+    return []; // Empty = no tests assigned (consultancy needs to assign tests)
+  }
+
+  public static setAssignedTestIds(consultancyId: string, testIds: string[]): void {
+    // Save to consultancy object
+    const consultancy = this.getConsultancyById(consultancyId);
+    if (consultancy) {
+      consultancy.assignedTestIds = testIds;
+      this.saveConsultancy(consultancy);
+    }
+    // Also save separately for redundancy
+    localStorage.setItem(`ielts_assigned_tests_${consultancyId}`, JSON.stringify(testIds));
+    this.broadcast('ASSIGNED_TESTS_UPDATED', { consultancyId, testIds });
+  }
+
   // --- LAB STATIONS MANAGEMENT ---
   public static getStations(consultancyId: string): LabStation[] {
     const raw = localStorage.getItem(`ielts_stations_${consultancyId}`);
