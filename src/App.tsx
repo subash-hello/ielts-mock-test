@@ -152,15 +152,28 @@ export const App: React.FC = () => {
     }
   }, [pastResults]);
 
-  // Load mock tests dynamically from Supabase
+  // Load mock tests dynamically from Supabase if valid and complete
   useEffect(() => {
     fetchMockTestsFromSupabase().then((data) => {
       if (data && data.length > 0) {
-        setTests(data);
-        setCurrentTest((prev) => {
-          if (!prev) return null;
-          const fresh = data.find((t) => t.id === prev.id);
-          return fresh || prev;
+        setTests((prev) => {
+          const countQ = (t: IELTSMockTest) =>
+            t.sections.reduce(
+              (acc, s) =>
+                acc + s.questionGroups.reduce((gAcc, g) => gAcc + (g.questions?.length || 0), 0),
+              0
+            );
+
+          return prev.map((localTest) => {
+            const remote = data.find((r) => r.id === localTest.id);
+            if (!remote) return localTest;
+            const localCount = countQ(localTest);
+            const remoteCount = countQ(remote);
+            if (remoteCount >= 38 && remoteCount >= localCount) {
+              return remote;
+            }
+            return localTest;
+          });
         });
       }
     });

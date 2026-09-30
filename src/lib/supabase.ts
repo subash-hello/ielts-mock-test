@@ -17,22 +17,7 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey);
  * Fetch all mock tests from Supabase (from live Storage bucket or table)
  */
 export async function fetchMockTestsFromSupabase(): Promise<IELTSMockTest[] | null> {
-  // 1. Try loading from Supabase Public Storage (all-tests.json)
-  try {
-    const storageRes = await fetch(
-      `${supabaseUrl}/storage/v1/object/public/ielts-mock-tests/all-tests.json`
-    );
-    if (storageRes.ok) {
-      const data = await storageRes.json();
-      if (Array.isArray(data) && data.length > 0) {
-        return data as IELTSMockTest[];
-      }
-    }
-  } catch (storageErr) {
-    console.warn('Storage fetch fallback:', storageErr);
-  }
-
-  // 2. Try loading from Supabase Database Table
+  // Try loading from Supabase Database Table if configured
   try {
     const { data, error } = await supabase
       .from('ielts_mock_tests')

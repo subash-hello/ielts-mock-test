@@ -15,6 +15,7 @@ interface ListeningMapDiagramProps {
   selectedLetter?: string;
   onSelectLetter?: (letter: string) => void;
   answeredLetters?: Record<string, number>; // letter -> questionNumber
+  testId?: string;
 }
 
 export const ListeningMapDiagram: React.FC<ListeningMapDiagramProps> = ({
@@ -23,18 +24,25 @@ export const ListeningMapDiagram: React.FC<ListeningMapDiagramProps> = ({
   options,
   selectedLetter,
   onSelectLetter,
-  answeredLetters = {}
+  answeredLetters = {},
+  testId
 }) => {
   const [isZoomOpen, setIsZoomOpen] = useState(false);
   const [imageError, setImageError] = useState(false);
   const cleanTitle = (title || '').toLowerCase();
 
-  // Resolve official map configuration based on imageUrl or title
+  // Resolve official map configuration based on imageUrl, title, or testId
   let mapImage = imageUrl;
   let pins: PinCoord[] = [];
   let displayTitle = title || 'Map / Diagram Labelling';
 
-  if (mapImage?.includes('cam19') || cleanTitle.includes('farley')) {
+  if (
+    mapImage?.includes('cam19') ||
+    cleanTitle.includes('farley') ||
+    cleanTitle.includes('cambridge 19') ||
+    cleanTitle.includes('cam 19') ||
+    testId?.includes('cambridge-19-test-1')
+  ) {
     mapImage = mapImage || '/images/maps/cam19-test1-farley-house.jpg';
     displayTitle = 'Farley House and Grounds — Official Cambridge Map';
     pins = [

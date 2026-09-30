@@ -767,6 +767,7 @@ export const ListeningExamView: React.FC<ListeningExamViewProps> = ({
             onAnswerChange(currentQuestion, letter);
           }}
           answeredLetters={answeredLetters}
+          testId={test.id}
         />
 
         {/* Questions with Dropdowns & Quick Selectors */}
