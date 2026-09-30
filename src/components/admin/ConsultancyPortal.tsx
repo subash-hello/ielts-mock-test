@@ -17,7 +17,13 @@ import {
   Laptop,
   FileText,
   X,
-  LogOut
+  LogOut,
+  Award,
+  Clock,
+  BookOpen,
+  Headphones,
+  CheckCircle2,
+  Eye
 } from 'lucide-react';
 import type {
   Consultancy,
@@ -25,7 +31,7 @@ import type {
   ConsultancyStudent,
   SavedAIReport
 } from '../../types/consultancy';
-import type { IELTSMockTest } from '../../types/ielts';
+import type { IELTSMockTest, TestResult } from '../../types/ielts';
 import { ConsultancyService } from '../../services/consultancyService';
 import { AIDiagnosticReportModal } from '../results/AIDiagnosticReportModal';
 
@@ -56,10 +62,17 @@ export const ConsultancyPortal: React.FC<ConsultancyPortalProps> = ({
   const [aiReports, setAiReports] = useState<SavedAIReport[]>(
     ConsultancyService.getReports(consultancyId)
   );
+  const [testResults, setTestResults] = useState<TestResult[]>(() =>
+    ConsultancyService.getResults(consultancyId)
+  );
 
-  const [activeTab, setActiveTab] = useState<'monitor' | 'terminals' | 'students' | 'ai-reports'>('monitor');
+  const [activeTab, setActiveTab] = useState<'results' | 'monitor' | 'students' | 'ai-reports' | 'terminals'>('results');
   const [copiedLink, setCopiedLink] = useState(false);
   const [searchStudent, setSearchStudent] = useState('');
+  const [searchResult, setSearchResult] = useState('');
+  const [resultModuleFilter, setResultModuleFilter] = useState<'all' | 'reading' | 'listening'>('all');
+  const [resultBandFilter, setResultBandFilter] = useState<'all' | '7.5' | '6.5' | 'below'>('all');
+  const [scorecardModalResult, setScorecardModalResult] = useState<TestResult | null>(null);
 
   // Modals
   const [showAssignModal, setShowAssignModal] = useState(false);
@@ -104,6 +117,7 @@ export const ConsultancyPortal: React.FC<ConsultancyPortalProps> = ({
     setStations(ConsultancyService.getStations(consultancyId));
     setStudents(ConsultancyService.getStudents(consultancyId));
     setAiReports(ConsultancyService.getReports(consultancyId));
+    setTestResults(ConsultancyService.getResults(consultancyId));
   };
 
   // Real-time telemetry subscription
@@ -117,15 +131,22 @@ export const ConsultancyPortal: React.FC<ConsultancyPortalProps> = ({
         event.type === 'STATION_DELETED'
       ) {
         setStations(ConsultancyService.getStations(consultancyId));
-      } else if (event.type === 'REPORT_ADDED') {
+      } else if (
+        event.type === 'REPORT_ADDED' ||
+        event.type === 'RESULT_ADDED' ||
+        event.type === 'STUDENT_UPDATED'
+      ) {
         setAiReports(ConsultancyService.getReports(consultancyId));
         setStudents(ConsultancyService.getStudents(consultancyId));
+        setTestResults(ConsultancyService.getResults(consultancyId));
       }
     });
 
     const interval = setInterval(() => {
       setStations(ConsultancyService.getStations(consultancyId));
       setAiReports(ConsultancyService.getReports(consultancyId));
+      setStudents(ConsultancyService.getStudents(consultancyId));
+      setTestResults(ConsultancyService.getResults(consultancyId));
     }, 4000);
 
     return () => {
@@ -332,6 +353,18 @@ export const ConsultancyPortal: React.FC<ConsultancyPortalProps> = ({
       <div className="bg-white border-b border-slate-200 px-6 py-2 flex items-center justify-between text-xs select-none">
         <div className="flex items-center gap-1.5 overflow-x-auto">
           <button
+            onClick={() => setActiveTab('results')}
+            className={`px-3.5 py-2 font-semibold rounded-lg transition flex items-center gap-2 cursor-pointer ${
+              activeTab === 'results'
+                ? 'bg-slate-900 text-white shadow-xs'
+                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+            }`}
+          >
+            <Award className="w-4 h-4 text-emerald-400" />
+            <span>Student Test Results ({testResults.length})</span>
+          </button>
+
+          <button
             onClick={() => setActiveTab('monitor')}
             className={`px-3.5 py-2 font-semibold rounded-lg transition flex items-center gap-2 cursor-pointer ${
               activeTab === 'monitor'
@@ -397,6 +430,322 @@ export const ConsultancyPortal: React.FC<ConsultancyPortalProps> = ({
 
       {/* 3. Tab Contents */}
       <main className="flex-1 p-6 md:p-8 max-w-7xl w-full mx-auto space-y-6">
+        {/* ================= TAB 0: STUDENT TEST RESULTS ================= */}
+        {activeTab === 'results' && (
+          <div className="space-y-6">
+            {/* Header / Overview card */}
+            <div className="bg-white border border-slate-200 p-6 rounded-2xl shadow-xs space-y-4">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2">
+                    <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
+                    <span className="text-xs font-bold uppercase tracking-wider text-emerald-700">
+                      Live Candidate Results Center
+                    </span>
+                  </div>
+                  <h3 className="text-xl font-extrabold text-slate-900 tracking-tight">
+                    {consultancy.name} — Student Exam Submissions & Scorecards
+                  </h3>
+                  <p className="text-xs text-slate-500 max-w-2xl">
+                    Every candidate who chooses {consultancy.name} has their mock exam results, raw scores, time taken, and AI diagnostics automatically synchronized here.
+                  </p>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={reloadAll}
+                    className="flex items-center gap-1.5 px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-xl transition cursor-pointer"
+                    title="Refresh student results"
+                  >
+                    <RotateCcw className="w-3.5 h-3.5" />
+                    <span>Refresh</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Statistics Metrics Cards */}
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3 pt-2">
+                <div className="bg-slate-50 border border-slate-200/80 p-4 rounded-xl">
+                  <span className="text-[11px] text-slate-500 font-semibold block">Total Tests Taken</span>
+                  <div className="text-2xl font-black text-slate-900 mt-1">
+                    {testResults.length}
+                  </div>
+                  <span className="text-[10px] text-slate-400 mt-0.5 block">Across all Cambridge editions</span>
+                </div>
+
+                <div className="bg-blue-50/60 border border-blue-200/80 p-4 rounded-xl">
+                  <span className="text-[11px] text-blue-700 font-semibold block">Average Band Score</span>
+                  <div className="text-2xl font-black text-blue-900 mt-1">
+                    {testResults.length > 0
+                      ? (
+                          testResults.reduce((acc, r) => acc + (r.bandScore || 0), 0) / testResults.length
+                        ).toFixed(1)
+                      : '—'}
+                  </div>
+                  <span className="text-[10px] text-blue-600/80 mt-0.5 block">Target benchmark: Band 7.0</span>
+                </div>
+
+                <div className="bg-emerald-50/60 border border-emerald-200/80 p-4 rounded-xl">
+                  <span className="text-[11px] text-emerald-700 font-semibold block">Highest Band Achieved</span>
+                  <div className="text-2xl font-black text-emerald-900 mt-1">
+                    {testResults.length > 0
+                      ? `Band ${Math.max(...testResults.map((r) => r.bandScore || 0)).toFixed(1)}`
+                      : '—'}
+                  </div>
+                  <span className="text-[10px] text-emerald-600/80 mt-0.5 block">Top institutional score</span>
+                </div>
+
+                <div className="bg-amber-50/60 border border-amber-200/80 p-4 rounded-xl">
+                  <span className="text-[11px] text-amber-800 font-semibold block">High Band (7.0+) Rate</span>
+                  <div className="text-2xl font-black text-amber-900 mt-1">
+                    {testResults.length > 0
+                      ? `${Math.round(
+                          (testResults.filter((r) => r.bandScore >= 7.0).length / testResults.length) * 100
+                        )}%`
+                      : '0%'}
+                  </div>
+                  <span className="text-[10px] text-amber-700/80 mt-0.5 block">
+                    {testResults.filter((r) => r.bandScore >= 7.0).length} of {testResults.length} exams
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* Filter and Search Bar */}
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-white border border-slate-200 p-4 rounded-xl shadow-xs">
+              <div className="relative flex-1 max-w-md">
+                <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
+                <input
+                  type="text"
+                  value={searchResult}
+                  onChange={(e) => setSearchResult(e.target.value)}
+                  placeholder="Search by student name, candidate ID, test title..."
+                  className="w-full bg-slate-50 border border-slate-300 focus:border-blue-600 focus:bg-white text-slate-900 text-xs pl-10 pr-4 py-2 rounded-lg outline-none transition"
+                />
+              </div>
+
+              <div className="flex flex-wrap items-center gap-2">
+                {/* Module Filter */}
+                <div className="flex items-center bg-slate-100 p-1 rounded-lg text-xs font-semibold text-slate-700">
+                  <button
+                    onClick={() => setResultModuleFilter('all')}
+                    className={`px-2.5 py-1 rounded-md transition cursor-pointer ${
+                      resultModuleFilter === 'all' ? 'bg-white shadow-xs text-slate-900' : 'hover:text-slate-900'
+                    }`}
+                  >
+                    All Papers
+                  </button>
+                  <button
+                    onClick={() => setResultModuleFilter('reading')}
+                    className={`px-2.5 py-1 rounded-md transition cursor-pointer flex items-center gap-1 ${
+                      resultModuleFilter === 'reading' ? 'bg-white shadow-xs text-red-700' : 'hover:text-slate-900'
+                    }`}
+                  >
+                    <BookOpen className="w-3 h-3 text-red-600" />
+                    <span>Reading</span>
+                  </button>
+                  <button
+                    onClick={() => setResultModuleFilter('listening')}
+                    className={`px-2.5 py-1 rounded-md transition cursor-pointer flex items-center gap-1 ${
+                      resultModuleFilter === 'listening' ? 'bg-white shadow-xs text-blue-700' : 'hover:text-slate-900'
+                    }`}
+                  >
+                    <Headphones className="w-3 h-3 text-blue-600" />
+                    <span>Listening</span>
+                  </button>
+                </div>
+
+                {/* Band Score Filter */}
+                <select
+                  value={resultBandFilter}
+                  onChange={(e) => setResultBandFilter(e.target.value as any)}
+                  className="bg-white border border-slate-300 text-slate-700 text-xs px-2.5 py-1.5 rounded-lg outline-none font-semibold cursor-pointer"
+                >
+                  <option value="all">All Band Scores</option>
+                  <option value="7.5">Band 7.5+ (Very Good)</option>
+                  <option value="6.5">Band 6.5 - 7.0 (Competent)</option>
+                  <option value="below">Band Below 6.5</option>
+                </select>
+              </div>
+            </div>
+
+            {/* Results Table */}
+            {testResults.length === 0 ? (
+              <div className="bg-white border border-dashed border-slate-200 rounded-2xl p-12 text-center space-y-3">
+                <Award className="w-12 h-12 text-slate-300 mx-auto" />
+                <h4 className="font-bold text-slate-800 text-sm">No exam submissions yet</h4>
+                <p className="text-xs text-slate-500 max-w-md mx-auto">
+                  When a student clicks on any mock test and enters their name with <strong>{consultancy.name}</strong>, their test score, band evaluation, and complete report will appear here instantly.
+                </p>
+              </div>
+            ) : (
+              <div className="bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-xs">
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left text-xs">
+                    <thead className="bg-slate-50 text-slate-600 uppercase tracking-wider text-[10px] border-b border-slate-200">
+                      <tr>
+                        <th className="px-6 py-3 font-semibold">Candidate Student</th>
+                        <th className="px-6 py-3 font-semibold">Mock Exam Paper</th>
+                        <th className="px-6 py-3 font-semibold text-center">IELTS Band</th>
+                        <th className="px-6 py-3 font-semibold text-center">Score / Accuracy</th>
+                        <th className="px-6 py-3 font-semibold text-center">Time Spent</th>
+                        <th className="px-6 py-3 font-semibold">Completed Date</th>
+                        <th className="px-6 py-3 font-semibold text-right">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100">
+                      {testResults
+                        .filter((r) => {
+                          if (searchResult.trim()) {
+                            const query = searchResult.toLowerCase();
+                            const matchName = (r.candidateName || '').toLowerCase().includes(query);
+                            const matchId = (r.candidateId || '').includes(query);
+                            const matchTitle = (r.testId || '').toLowerCase().includes(query);
+                            if (!matchName && !matchId && !matchTitle) return false;
+                          }
+                          if (resultModuleFilter !== 'all' && r.module !== resultModuleFilter) return false;
+                          if (resultBandFilter === '7.5' && r.bandScore < 7.5) return false;
+                          if (resultBandFilter === '6.5' && (r.bandScore < 6.5 || r.bandScore >= 7.5)) return false;
+                          if (resultBandFilter === 'below' && r.bandScore >= 6.5) return false;
+                          return true;
+                        })
+                        .map((res, idx) => {
+                          const isReading = res.module === 'reading';
+                          const timeMins = Math.floor(res.timeTakenSeconds / 60);
+                          const timeSecs = res.timeTakenSeconds % 60;
+                          const accuracyPercent = res.totalQuestions
+                            ? Math.round((res.correctCount / res.totalQuestions) * 100)
+                            : 0;
+
+                          return (
+                            <tr key={idx} className="hover:bg-slate-50/80 transition">
+                              <td className="px-6 py-4">
+                                <div className="flex items-center gap-2">
+                                  <div className="w-8 h-8 rounded-full bg-slate-100 border border-slate-200 flex items-center justify-center font-bold text-slate-700 text-xs">
+                                    {(res.candidateName || 'C').charAt(0).toUpperCase()}
+                                  </div>
+                                  <div>
+                                    <div className="font-bold text-slate-900 text-sm">
+                                      {res.candidateName || 'Candidate'}
+                                    </div>
+                                    <div className="text-[11px] font-mono text-slate-500">
+                                      #{res.candidateId || '00' + (idx + 1000)}
+                                    </div>
+                                  </div>
+                                </div>
+                              </td>
+
+                              <td className="px-6 py-4">
+                                <div>
+                                  <div className="font-semibold text-slate-800">
+                                    Cambridge {res.book} Test {res.testNumber}
+                                  </div>
+                                  <span
+                                    className={`inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full mt-0.5 border ${
+                                      isReading
+                                        ? 'bg-red-50 text-red-700 border-red-200'
+                                        : 'bg-blue-50 text-blue-700 border-blue-200'
+                                    }`}
+                                  >
+                                    {isReading ? (
+                                      <BookOpen className="w-2.5 h-2.5" />
+                                    ) : (
+                                      <Headphones className="w-2.5 h-2.5" />
+                                    )}
+                                    <span>Academic {isReading ? 'Reading' : 'Listening'}</span>
+                                  </span>
+                                </div>
+                              </td>
+
+                              <td className="px-6 py-4 text-center">
+                                <span
+                                  className={`inline-flex items-center justify-center font-black text-sm px-3 py-1 rounded-xl shadow-xs border ${
+                                    res.bandScore >= 7.5
+                                      ? 'bg-emerald-50 text-emerald-800 border-emerald-300'
+                                      : res.bandScore >= 6.5
+                                      ? 'bg-blue-50 text-blue-800 border-blue-300'
+                                      : 'bg-amber-50 text-amber-800 border-amber-300'
+                                  }`}
+                                >
+                                  Band {res.bandScore.toFixed(1)}
+                                </span>
+                              </td>
+
+                              <td className="px-6 py-4 text-center">
+                                <div className="font-bold text-slate-900 text-xs">
+                                  {res.correctCount} / {res.totalQuestions || 40}
+                                </div>
+                                <div className="text-[10px] text-slate-500 font-medium">
+                                  {accuracyPercent}% Correct
+                                </div>
+                              </td>
+
+                              <td className="px-6 py-4 text-center font-mono text-slate-600 text-xs">
+                                <div className="flex items-center justify-center gap-1">
+                                  <Clock className="w-3 h-3 text-slate-400" />
+                                  <span>{timeMins}m {timeSecs}s</span>
+                                </div>
+                              </td>
+
+                              <td className="px-6 py-4 text-slate-600 text-xs">
+                                <div>
+                                  {new Date(res.completedAt).toLocaleDateString('en-US', {
+                                    month: 'short',
+                                    day: 'numeric',
+                                    year: 'numeric'
+                                  })}
+                                </div>
+                                <div className="text-[10px] text-slate-400">
+                                  {new Date(res.completedAt).toLocaleTimeString('en-US', {
+                                    hour: '2-digit',
+                                    minute: '2-digit'
+                                  })}
+                                </div>
+                              </td>
+
+                              <td className="px-6 py-4 text-right">
+                                <div className="flex items-center justify-end gap-1.5">
+                                  <button
+                                    onClick={() =>
+                                      setAiReportModalData({
+                                        visible: true,
+                                        studentName: res.candidateName || 'Candidate',
+                                        bandScore: res.bandScore,
+                                        module: res.module,
+                                        testTitle: `Cambridge ${res.book} Test ${res.testNumber} (${res.module === 'reading' ? 'Reading' : 'Listening'})`,
+                                        correctCount: res.correctCount,
+                                        totalQuestions: res.totalQuestions || 40,
+                                        timeTakenSeconds: res.timeTakenSeconds
+                                      })
+                                    }
+                                    className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-semibold shadow-xs transition cursor-pointer"
+                                    title="View AI Diagnostic Evaluation"
+                                  >
+                                    <Sparkles className="w-3 h-3 text-amber-300" />
+                                    <span>AI Report</span>
+                                  </button>
+
+                                  <button
+                                    onClick={() => setScorecardModalResult(res)}
+                                    className="inline-flex items-center gap-1 px-2.5 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-300 rounded-lg text-xs font-medium transition cursor-pointer"
+                                    title="View answers breakdown"
+                                  >
+                                    <Eye className="w-3.5 h-3.5" />
+                                    <span className="hidden sm:inline">Scorecard</span>
+                                  </button>
+                                </div>
+                              </td>
+                            </tr>
+                          );
+                        })}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
         {/* ================= TAB 1: LIVE LAB INVIGILATOR MONITOR ================= */}
         {activeTab === 'monitor' && (
           <div className="space-y-6">
@@ -582,6 +931,76 @@ export const ConsultancyPortal: React.FC<ConsultancyPortalProps> = ({
                   </div>
                 );
               })}
+            </div>
+
+            {/* Recent Exam Submissions in Live Monitor */}
+            <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-xs space-y-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <CheckCircle2 className="w-5 h-5 text-emerald-600" />
+                  <h4 className="font-bold text-sm text-slate-900">
+                    Recent Candidate Exam Submissions
+                  </h4>
+                </div>
+                <button
+                  onClick={() => setActiveTab('results')}
+                  className="text-xs font-semibold text-blue-600 hover:underline cursor-pointer"
+                >
+                  View All ({testResults.length}) →
+                </button>
+              </div>
+
+              {testResults.length === 0 ? (
+                <div className="py-6 text-center text-xs text-slate-400 italic bg-slate-50 rounded-xl border border-dashed border-slate-200">
+                  No tests submitted yet. When candidates finish exams, scores and reports stream here live.
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                  {testResults.slice(0, 3).map((res, i) => (
+                    <div
+                      key={i}
+                      className="bg-slate-50 border border-slate-200 p-4 rounded-xl flex flex-col justify-between space-y-3"
+                    >
+                      <div className="space-y-1">
+                        <div className="flex items-center justify-between">
+                          <span className="font-bold text-slate-900 text-xs">
+                            {res.candidateName || 'Candidate'}
+                          </span>
+                          <span className="text-[10px] font-mono text-slate-500">
+                            #{res.candidateId || '00' + (i + 1000)}
+                          </span>
+                        </div>
+                        <p className="text-[11px] text-slate-600 truncate">
+                          Cambridge {res.book} Test {res.testNumber} ({res.module})
+                        </p>
+                      </div>
+
+                      <div className="flex items-center justify-between pt-1 border-t border-slate-200/60 text-xs">
+                        <span className="font-black text-emerald-700 bg-emerald-100/70 px-2 py-0.5 rounded-md text-xs">
+                          Band {res.bandScore.toFixed(1)}
+                        </span>
+                        <button
+                          onClick={() =>
+                            setAiReportModalData({
+                              visible: true,
+                              studentName: res.candidateName || 'Candidate',
+                              bandScore: res.bandScore,
+                              module: res.module,
+                              testTitle: `Cambridge ${res.book} Test ${res.testNumber}`,
+                              correctCount: res.correctCount,
+                              totalQuestions: res.totalQuestions || 40,
+                              timeTakenSeconds: res.timeTakenSeconds
+                            })
+                          }
+                          className="text-[11px] font-semibold text-blue-600 hover:underline cursor-pointer"
+                        >
+                          View Report
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
         )}
@@ -1143,6 +1562,103 @@ export const ConsultancyPortal: React.FC<ConsultancyPortalProps> = ({
           consultancyName={consultancy.name}
           onClose={() => setAiReportModalData(null)}
         />
+      )}
+
+      {/* SCORECARD DETAILS MODAL */}
+      {scorecardModalResult && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-xs flex items-center justify-center z-50 p-4">
+          <div className="bg-white border border-slate-200 max-w-xl w-full rounded-2xl p-6 shadow-2xl space-y-4 animate-in fade-in max-h-[90vh] flex flex-col">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="font-bold text-slate-900 text-base">
+                    Candidate Examination Scorecard
+                  </span>
+                  <span className="text-xs font-mono bg-slate-100 px-2 py-0.5 rounded text-slate-600 font-bold">
+                    #{scorecardModalResult.candidateId || 'Candidate'}
+                  </span>
+                </div>
+                <p className="text-xs text-slate-500">
+                  {scorecardModalResult.candidateName} • Cambridge {scorecardModalResult.book} Test {scorecardModalResult.testNumber} ({scorecardModalResult.module})
+                </p>
+              </div>
+
+              <button
+                onClick={() => setScorecardModalResult(null)}
+                className="text-slate-400 hover:text-slate-700 cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="grid grid-cols-3 gap-3 text-center text-xs">
+              <div className="bg-slate-50 p-3 rounded-xl border border-slate-200">
+                <span className="text-slate-500 block text-[11px]">Estimated Band</span>
+                <span className="text-xl font-black text-slate-900">
+                  Band {scorecardModalResult.bandScore.toFixed(1)}
+                </span>
+              </div>
+              <div className="bg-slate-50 p-3 rounded-xl border border-slate-200">
+                <span className="text-slate-500 block text-[11px]">Raw Accuracy</span>
+                <span className="text-xl font-black text-emerald-600">
+                  {scorecardModalResult.correctCount} / {scorecardModalResult.totalQuestions || 40}
+                </span>
+              </div>
+              <div className="bg-slate-50 p-3 rounded-xl border border-slate-200">
+                <span className="text-slate-500 block text-[11px]">Time Spent</span>
+                <span className="text-xl font-black text-blue-600">
+                  {Math.floor(scorecardModalResult.timeTakenSeconds / 60)}m
+                </span>
+              </div>
+            </div>
+
+            {/* Answer Responses Preview */}
+            <div className="flex-1 overflow-y-auto space-y-2 border border-slate-200 rounded-xl p-3 bg-slate-50/50">
+              <span className="font-bold text-xs text-slate-700 block mb-2">
+                Recorded Candidate Answer Entries (40 Questions)
+              </span>
+
+              {scorecardModalResult.answers && Object.keys(scorecardModalResult.answers).length > 0 ? (
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
+                  {Array.from({ length: scorecardModalResult.totalQuestions || 40 }, (_, idx) => {
+                    const qNum = idx + 1;
+                    const ans = scorecardModalResult.answers[qNum];
+                    const ansDisplay = Array.isArray(ans) ? ans.join(', ') : ans || '—';
+                    return (
+                      <div
+                        key={qNum}
+                        className="bg-white border border-slate-200 p-2 rounded-lg text-xs"
+                      >
+                        <span className="font-mono text-slate-400 text-[10px] block">
+                          Q{qNum}:
+                        </span>
+                        <span className="font-semibold text-slate-800 truncate block">
+                          {ansDisplay}
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : (
+                <div className="text-center py-6 text-xs text-slate-400 italic">
+                  Answers recorded and evaluated in diagnostic report.
+                </div>
+              )}
+            </div>
+
+            <div className="pt-2 flex items-center justify-between border-t border-slate-100 text-xs">
+              <span className="text-slate-500">
+                Transmitted: {new Date(scorecardModalResult.completedAt).toLocaleString()}
+              </span>
+              <button
+                onClick={() => setScorecardModalResult(null)}
+                className="px-4 py-2 bg-slate-900 text-white rounded-lg font-semibold cursor-pointer"
+              >
+                Close Scorecard
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

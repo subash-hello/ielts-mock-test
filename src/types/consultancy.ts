@@ -106,6 +106,7 @@ export interface AIDiagnosticReport {
 }
 
 export interface SavedAIReport {
+  id?: string;
   studentName: string;
   candidateId: string;
   testTitle: string;
@@ -115,4 +116,7 @@ export interface SavedAIReport {
   totalQuestions: number;
   timeTakenSeconds: number;
   completedAt?: string;
+  testId?: string;
+  consultancyId?: string;
+  answers?: Record<number, string | string[]>;
 }

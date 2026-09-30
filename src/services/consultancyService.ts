@@ -743,10 +743,16 @@ export class ConsultancyService {
   public static recordStudentTestResult(
     consultancyId: string,
     candidateNumber: string,
-    result: TestResult
+    result: TestResult,
+    candidateName?: string
   ): void {
     const students = this.getStudents(consultancyId);
-    const student = students.find((s) => s.candidateNumber === candidateNumber);
+    const cleanName = candidateName?.trim() || result.candidateName?.trim() || 'Candidate';
+    let student = students.find(
+      (s) =>
+        s.candidateNumber === candidateNumber ||
+        (cleanName && s.fullName.toLowerCase() === cleanName.toLowerCase())
+    );
     if (student) {
       student.testsCompletedCount = (student.testsCompletedCount || 0) + 1;
       student.highestBand = Math.max(student.highestBand || 0, result.bandScore);
@@ -756,50 +762,144 @@ export class ConsultancyService {
       );
       student.latestResultId = result.testId;
       this.saveStudent(student);
+    } else {
+      const newStd: ConsultancyStudent = {
+        id: 'std-' + Date.now().toString(36) + '-' + Math.random().toString(36).substring(2, 5),
+        consultancyId,
+        candidateNumber: candidateNumber || '00' + Math.floor(1000 + Math.random() * 9000),
+        fullName: cleanName,
+        email: `${cleanName.toLowerCase().replace(/\s+/g, '')}@student.com`,
+        phone: '98' + Math.floor(10000000 + Math.random() * 90000000),
+        targetBand: result.targetBand || 7.5,
+        enrolledDate: new Date().toISOString().split('T')[0],
+        testsCompletedCount: 1,
+        highestBand: result.bandScore,
+        averageBand: result.bandScore,
+        latestResultId: result.testId
+      };
+      this.saveStudent(newStd);
     }
+    this.broadcast('STUDENT_UPDATED', { consultancyId, candidateNumber, result });
+  }
+
+  // --- CONSULTANCY ALL TEST RESULTS DIRECTORY ---
+  public static getResults(consultancyId: string): TestResult[] {
+    const raw = localStorage.getItem(`ielts_results_${consultancyId}`);
+    if (!raw) {
+      if (consultancyId === 'apex-global') {
+        const defaultResults: TestResult[] = [
+          {
+            testId: 'cambridge-19-test-1-reading',
+            book: 19,
+            testNumber: 1,
+            module: 'reading',
+            totalQuestions: 40,
+            correctCount: 34,
+            bandScore: 7.5,
+            timeTakenSeconds: 3120,
+            completedAt: new Date(Date.now() - 3600000).toISOString(),
+            answers: {},
+            candidateName: 'Rohan Sharma',
+            candidateId: '004128',
+            consultancyId: 'apex-global',
+            consultancyName: 'Apex Global Education'
+          },
+          {
+            testId: 'cambridge-18-test-2-reading',
+            book: 18,
+            testNumber: 2,
+            module: 'reading',
+            totalQuestions: 40,
+            correctCount: 28,
+            bandScore: 6.5,
+            timeTakenSeconds: 3480,
+            completedAt: new Date(Date.now() - 7200000).toISOString(),
+            answers: {},
+            candidateName: 'Bikash Adhikari',
+            candidateId: '004130',
+            consultancyId: 'apex-global',
+            consultancyName: 'Apex Global Education'
+          },
+          {
+            testId: 'cambridge-19-test-1-listening',
+            book: 19,
+            testNumber: 1,
+            module: 'listening',
+            totalQuestions: 40,
+            correctCount: 31,
+            bandScore: 7.0,
+            timeTakenSeconds: 1980,
+            completedAt: new Date(Date.now() - 10800000).toISOString(),
+            answers: {},
+            candidateName: 'Aayusha Thapa',
+            candidateId: '004129',
+            consultancyId: 'apex-global',
+            consultancyName: 'Apex Global Education'
+          }
+        ];
+        localStorage.setItem(`ielts_results_${consultancyId}`, JSON.stringify(defaultResults));
+        return defaultResults;
+      }
+      return [];
+    }
+    try {
+      return JSON.parse(raw);
+    } catch {
+      return [];
+    }
+  }
+
+  public static saveTestResult(consultancyId: string, result: TestResult): void {
+    const list = this.getResults(consultancyId);
+    list.unshift(result);
+    localStorage.setItem(`ielts_results_${consultancyId}`, JSON.stringify(list));
+    this.broadcast('RESULT_ADDED', { consultancyId, result });
   }
 
   // --- CONSULTANCY AI DIAGNOSTIC REPORTS DIRECTORY ---
   public static getReports(consultancyId: string): SavedAIReport[] {
     const raw = localStorage.getItem(`ielts_reports_${consultancyId}`);
     if (!raw) {
-      const defaultReports: SavedAIReport[] = [
-        {
-          studentName: 'Rohan Sharma',
-          candidateId: '004128',
-          testTitle: 'Academic Reading - Cam 19 Test 1',
-          module: 'reading',
-          bandScore: 7.5,
-          correctCount: 34,
-          totalQuestions: 40,
-          timeTakenSeconds: 3120,
-          completedAt: new Date(Date.now() - 3600000).toISOString()
-        },
-        {
-          studentName: 'Bikash Adhikari',
-          candidateId: '004130',
-          testTitle: 'Academic Reading - Cam 18 Test 2',
-          module: 'reading',
-          bandScore: 6.5,
-          correctCount: 28,
-          totalQuestions: 40,
-          timeTakenSeconds: 3480,
-          completedAt: new Date(Date.now() - 7200000).toISOString()
-        },
-        {
-          studentName: 'Aayusha Thapa',
-          candidateId: '004129',
-          testTitle: 'Academic Listening - Cam 19 Test 1',
-          module: 'listening',
-          bandScore: 7.0,
-          correctCount: 31,
-          totalQuestions: 40,
-          timeTakenSeconds: 1980,
-          completedAt: new Date(Date.now() - 10800000).toISOString()
-        }
-      ];
-      localStorage.setItem(`ielts_reports_${consultancyId}`, JSON.stringify(defaultReports));
-      return defaultReports;
+      if (consultancyId === 'apex-global') {
+        const defaultReports: SavedAIReport[] = [
+          {
+            studentName: 'Rohan Sharma',
+            candidateId: '004128',
+            testTitle: 'Academic Reading - Cam 19 Test 1',
+            module: 'reading',
+            bandScore: 7.5,
+            correctCount: 34,
+            totalQuestions: 40,
+            timeTakenSeconds: 3120,
+            completedAt: new Date(Date.now() - 3600000).toISOString()
+          },
+          {
+            studentName: 'Bikash Adhikari',
+            candidateId: '004130',
+            testTitle: 'Academic Reading - Cam 18 Test 2',
+            module: 'reading',
+            bandScore: 6.5,
+            correctCount: 28,
+            totalQuestions: 40,
+            timeTakenSeconds: 3480,
+            completedAt: new Date(Date.now() - 7200000).toISOString()
+          },
+          {
+            studentName: 'Aayusha Thapa',
+            candidateId: '004129',
+            testTitle: 'Academic Listening - Cam 19 Test 1',
+            module: 'listening',
+            bandScore: 7.0,
+            correctCount: 31,
+            totalQuestions: 40,
+            timeTakenSeconds: 1980,
+            completedAt: new Date(Date.now() - 10800000).toISOString()
+          }
+        ];
+        localStorage.setItem(`ielts_reports_${consultancyId}`, JSON.stringify(defaultReports));
+        return defaultReports;
+      }
+      return [];
     }
     try {
       return JSON.parse(raw);

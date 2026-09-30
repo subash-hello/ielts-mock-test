@@ -86,6 +86,11 @@ export interface TestResult {
   timeTakenSeconds: number;
   completedAt: string;
   answers: CandidateAnswers;
+  candidateName?: string;
+  candidateId?: string;
+  consultancyId?: string;
+  consultancyName?: string;
+  targetBand?: number;
 }
 
 export interface ExamSettings {

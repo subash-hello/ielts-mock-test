@@ -10,6 +10,9 @@ interface CDHeaderProps {
   onExitTest: () => void;
   audioVolume?: number;
   onVolumeChange?: (volume: number) => void;
+  candidateName?: string;
+  candidateId?: string;
+  consultancyName?: string;
 }
 
 export const CDHeader: React.FC<CDHeaderProps> = ({
@@ -19,7 +22,10 @@ export const CDHeader: React.FC<CDHeaderProps> = ({
   onUpdateSettings,
   onExitTest,
   audioVolume = 80,
-  onVolumeChange
+  onVolumeChange,
+  candidateName,
+  candidateId,
+  consultancyName
 }) => {
   const [showHelpModal, setShowHelpModal] = useState(false);
 
@@ -46,9 +52,17 @@ export const CDHeader: React.FC<CDHeaderProps> = ({
             </span>
             <span className="text-slate-400">|</span>
             <span className="text-slate-700 font-medium hidden md:inline">
-              Candidate: <strong>Subas Chandra (001428)</strong>
+              Candidate: <strong>{candidateName || 'Candidate'} ({candidateId || '001428'})</strong>
             </span>
-            <span className="text-slate-400 hidden md:inline">|</span>
+            {consultancyName && (
+              <>
+                <span className="text-slate-400 hidden lg:inline">|</span>
+                <span className="text-blue-700 font-medium hidden lg:inline">
+                  {consultancyName}
+                </span>
+              </>
+            )}
+            <span className="text-slate-400 hidden sm:inline">|</span>
             <span className="text-slate-600 hidden sm:inline">
               {test.title}
             </span>

@@ -5,7 +5,8 @@ import {
   ShieldCheck,
   ArrowRight,
   Building2,
-  Lock
+  Lock,
+  User
 } from 'lucide-react';
 import type { Consultancy, LabStation } from '../../types/consultancy';
 import type { IELTSMockTest } from '../../types/ielts';
@@ -35,6 +36,10 @@ export const StudentTerminalView: React.FC<StudentTerminalViewProps> = ({
   onStartExam,
   onExitTerminal
 }) => {
+  const [candidateNameInput, setCandidateNameInput] = useState<string>(() => {
+    return localStorage.getItem('ielts_candidate_name') || '';
+  });
+
   // Pre-load saved or URL parameters
   const [branchCode, setBranchCode] = useState<string>(() => {
     const urlParams = new URLSearchParams(window.location.search);
@@ -110,8 +115,12 @@ export const StudentTerminalView: React.FC<StudentTerminalViewProps> = ({
     const formattedPc = cleanPc.startsWith('PC-') ? cleanPc : `PC-${cleanPc.replace(/^PC/i, '')}`;
 
     // Candidate details are assigned automatically:
-    // If teacher pre-assigned candidate name in Consultancy Portal, preserve it; otherwise auto-label with PC#
-    const candidateName = currentStation?.currentCandidate?.name || `Candidate ${formattedPc}`;
+    // If student enters their name, use it; if teacher pre-assigned candidate name, preserve it; otherwise auto-label with PC#
+    const enteredName = candidateNameInput.trim();
+    const candidateName = enteredName || currentStation?.currentCandidate?.name || `Candidate ${formattedPc}`;
+    if (enteredName) {
+      localStorage.setItem('ielts_candidate_name', enteredName);
+    }
     const candidateId =
       currentStation?.currentCandidate?.candidateId ||
       '00' + Math.floor(1000 + Math.random() * 9000);
@@ -232,6 +241,26 @@ export const StudentTerminalView: React.FC<StudentTerminalViewProps> = ({
               </div>
               <p className="text-[11px] text-slate-500 mt-1">
                 {consultancy ? `Connected: ${consultancy.name}` : 'Enter code provided by your institute'}
+              </p>
+            </div>
+
+            {/* Candidate Full Name */}
+            <div>
+              <label className="text-slate-700 font-semibold block mb-1">
+                Candidate Full Name
+              </label>
+              <div className="relative">
+                <User className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                <input
+                  type="text"
+                  value={candidateNameInput}
+                  onChange={(e) => setCandidateNameInput(e.target.value)}
+                  placeholder="e.g. Sujan Sharma"
+                  className="w-full bg-white border border-slate-300 focus:border-blue-600 focus:ring-1 focus:ring-blue-600 font-semibold text-slate-900 pl-10 pr-4 py-2.5 rounded-lg outline-none text-xs"
+                />
+              </div>
+              <p className="text-[11px] text-slate-500 mt-1">
+                Your name will appear on the consultancy invigilator radar and test report
               </p>
             </div>
 

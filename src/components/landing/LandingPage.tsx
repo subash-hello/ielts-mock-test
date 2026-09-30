@@ -16,15 +16,28 @@ import {
   GraduationCap,
   Check,
   HelpCircle,
-  LogOut
+  LogOut,
+  User
 } from 'lucide-react';
 import type { IELTSMockTest, IELTSModule, TestResult } from '../../types/ielts';
 import type { CandidateSession, AdminUser } from '../../types/consultancy';
 import { allMockTests } from '../../data/mockTests';
+import { CandidateCheckInModal } from '../exam/CandidateCheckInModal';
 
 interface LandingPageProps {
   tests?: IELTSMockTest[];
-  onStartTest: (test: IELTSMockTest) => void;
+  onStartTest: (
+    test: IELTSMockTest,
+    candidate?: {
+      name: string;
+      candidateId: string;
+      targetBand: number;
+      consultancyId: string;
+      consultancyName: string;
+      phone?: string;
+      email?: string;
+    }
+  ) => void;
   pastResults: TestResult[];
   onViewResults: (result: TestResult) => void;
   onOpenSuperAdmin?: () => void;
@@ -51,6 +64,30 @@ export const LandingPage: React.FC<LandingPageProps> = ({
   const [moduleFilter, setModuleFilter] = useState<'all' | IELTSModule>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [isSoundTesting, setIsSoundTesting] = useState(false);
+
+  // Candidate Name Check-In Modal state when clicking ANY test
+  const [selectedTestForModal, setSelectedTestForModal] = useState<IELTSMockTest | null>(null);
+  const [isCheckInModalOpen, setIsCheckInModalOpen] = useState(false);
+
+  const handleTestClick = (test: IELTSMockTest) => {
+    setSelectedTestForModal(test);
+    setIsCheckInModalOpen(true);
+  };
+
+  const handleConfirmCandidate = (candidate: {
+    name: string;
+    candidateId: string;
+    targetBand: number;
+    consultancyId: string;
+    consultancyName: string;
+    phone?: string;
+    email?: string;
+  }) => {
+    setIsCheckInModalOpen(false);
+    if (selectedTestForModal) {
+      onStartTest(selectedTestForModal, candidate);
+    }
+  };
 
   const books = [18, 19, 20, 21];
 
@@ -146,14 +183,14 @@ export const LandingPage: React.FC<LandingPageProps> = ({
             </button>
 
             {/* Candidate Session Profile */}
-            {candidateSession && (
+            {candidateSession ? (
               <div className="hidden sm:flex items-center gap-2 bg-slate-100 border border-slate-200 px-3 py-1.5 rounded-lg text-xs">
-                <Laptop className="w-3.5 h-3.5 text-blue-600" />
-                <span className="font-bold text-slate-900">{candidateSession.stationName}</span>
+                <User className="w-3.5 h-3.5 text-blue-600" />
+                <span className="font-bold text-slate-900 truncate max-w-[130px]">{candidateSession.candidateName}</span>
                 <span className="text-slate-400">•</span>
-                <span className="text-slate-600 truncate max-w-[130px]">{candidateSession.consultancyName}</span>
+                <span className="text-slate-600 truncate max-w-[120px]">{candidateSession.consultancyName}</span>
               </div>
-            )}
+            ) : null}
 
             {/* Admin Session Profile */}
             {adminUser && (
@@ -172,6 +209,18 @@ export const LandingPage: React.FC<LandingPageProps> = ({
               >
                 <Building2 className="w-3.5 h-3.5" />
                 <span>Lab Portal</span>
+              </button>
+            )}
+
+            {/* Consultancy Staff / Admin Sign In Button if not logged in */}
+            {!adminUser && !candidateSession && onOpenConsultancy && (
+              <button
+                onClick={onOpenConsultancy}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-900 hover:bg-black text-white shadow-xs transition cursor-pointer"
+                title="Consultancy Director & Invigilator Portal Login"
+              >
+                <Building2 className="w-3.5 h-3.5" />
+                <span>Consultancy Login</span>
               </button>
             )}
 
@@ -618,7 +667,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                     {/* Launch Exam CTA */}
                     <div className="p-4 bg-slate-50 border-t border-slate-100">
                       <button
-                        onClick={() => onStartTest(test)}
+                        onClick={() => handleTestClick(test)}
                         className={`w-full py-2.5 rounded-xl text-xs font-bold shadow-xs transition flex items-center justify-center gap-2 cursor-pointer ${
                           isReading
                             ? 'bg-red-600 hover:bg-red-700 text-white'
@@ -804,6 +853,18 @@ export const LandingPage: React.FC<LandingPageProps> = ({
           </div>
         </div>
       </footer>
+
+      {/* Candidate Name Check-In Modal when clicking ANY test */}
+      {isCheckInModalOpen && selectedTestForModal && (
+        <CandidateCheckInModal
+          isOpen={isCheckInModalOpen}
+          test={selectedTestForModal}
+          initialCandidateName={candidateSession?.candidateName}
+          initialConsultancyId={candidateSession?.consultancyId}
+          onClose={() => setIsCheckInModalOpen(false)}
+          onConfirm={handleConfirmCandidate}
+        />
+      )}
     </div>
   );
 };

@@ -70,6 +70,7 @@ export async function saveTestResultToSupabase(result: TestResult): Promise<bool
         book: result.book,
         test_number: result.testNumber,
         module: result.module,
+        candidate_name: result.candidateName || 'Candidate',
         total_questions: result.totalQuestions,
         correct_count: result.correctCount,
         band_score: result.bandScore,

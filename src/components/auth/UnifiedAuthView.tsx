@@ -10,7 +10,8 @@ import {
   Eye,
   EyeOff,
   Monitor,
-  AlertCircle
+  AlertCircle,
+  User
 } from 'lucide-react';
 import type { AdminUser, CandidateSession } from '../../types/consultancy';
 import { ConsultancyService } from '../../services/consultancyService';
@@ -34,7 +35,10 @@ export const UnifiedAuthView: React.FC<UnifiedAuthViewProps> = ({
 }) => {
   const [activeTab, setActiveTab] = useState<'candidate' | 'admin'>(initialTab);
 
-  // Candidate fields (No name required!)
+  // Candidate fields
+  const [candidateFullName, setCandidateFullName] = useState<string>(() => {
+    return localStorage.getItem('ielts_candidate_name') || '';
+  });
   const [branchCode, setBranchCode] = useState(initialBranchCode);
   const [pcNumber, setPcNumber] = useState(initialPcNumber);
   const [examPassword, setExamPassword] = useState('');
@@ -69,9 +73,13 @@ export const UnifiedAuthView: React.FC<UnifiedAuthViewProps> = ({
       // Check if station already has pre-assigned candidate
       const stations = ConsultancyService.getStations(res.consultancy.id);
       const matched = stations.find((s) => s.name.toUpperCase() === res.stationName?.toUpperCase());
-      const candidateName = matched?.currentCandidate?.name || `Candidate ${res.stationName}`;
+      const candidateName = candidateFullName.trim() || matched?.currentCandidate?.name || `Candidate ${res.stationName}`;
       const candidateId = matched?.currentCandidate?.candidateId || '00' + Math.floor(1000 + Math.random() * 9000);
       const targetBand = matched?.currentCandidate?.targetBand || 7.5;
+
+      if (candidateFullName.trim()) {
+        localStorage.setItem('ielts_candidate_name', candidateFullName.trim());
+      }
 
       const session: CandidateSession = {
         stationName: res.stationName,
@@ -199,6 +207,23 @@ export const UnifiedAuthView: React.FC<UnifiedAuthViewProps> = ({
               <div className="bg-blue-50/60 border border-blue-200/80 rounded-xl p-3 text-slate-700 text-xs leading-relaxed">
                 <span className="font-semibold text-blue-900 block mb-0.5">Lab Station Check-In:</span>
                 Students do not need an account. Enter the <strong>Branch Code</strong>, your desk <strong>PC Number</strong>, and the <strong>Session Password</strong> provided by your teacher.
+              </div>
+
+              {/* 0. Candidate Full Name */}
+              <div>
+                <label className="text-slate-700 font-semibold block mb-1">
+                  Candidate Full Name (Optional / Check-in)
+                </label>
+                <div className="relative">
+                  <User className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                  <input
+                    type="text"
+                    value={candidateFullName}
+                    onChange={(e) => setCandidateFullName(e.target.value)}
+                    placeholder="e.g. Sujan Sharma"
+                    className="w-full bg-white border border-slate-300 focus:border-red-600 focus:ring-1 focus:ring-red-600 font-semibold text-slate-900 pl-10 pr-4 py-2.5 rounded-lg outline-none text-xs"
+                  />
+                </div>
               </div>
 
               {/* 1. Branch Code */}

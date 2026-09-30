@@ -33,15 +33,7 @@ export const App: React.FC = () => {
 
   const [activeScreen, setActiveScreen] = useState<
     'landing' | 'exam' | 'results' | 'super-admin' | 'consultancy' | 'terminal' | 'auth'
-  >(() => {
-    const hasCandidate = !!ConsultancyService.getCurrentCandidateSession();
-    const hasAdmin = !!ConsultancyService.getCurrentAdmin();
-    // User cannot access without login: default to 'auth' if not authenticated!
-    if (!hasCandidate && !hasAdmin) {
-      return 'auth';
-    }
-    return 'landing';
-  });
+  >('landing');
 
   const [selectedConsultancyId, setSelectedConsultancyId] = useState<string>(() => {
     const saved = ConsultancyService.getCurrentCandidateSession();
@@ -143,11 +135,6 @@ export const App: React.FC = () => {
           setActiveScreen('terminal');
         } else {
           setInitialAuthTab('candidate');
-          setActiveScreen('auth');
-        }
-      } else {
-        // Enforce: User cannot access without login
-        if (!loggedCandidate && !loggedAdmin) {
           setActiveScreen('auth');
         }
       }
@@ -284,13 +271,61 @@ export const App: React.FC = () => {
   ]);
 
   // Start a new test
-  const startTest = (test: IELTSMockTest) => {
-    if (!candidateSession && !adminUser) {
-      setInitialAuthTab('candidate');
-      setAuthMessage('Please sign in before starting an examination.');
-      setActiveScreen('auth');
-      return;
+  const startTest = (
+    test: IELTSMockTest,
+    candidate?: {
+      name: string;
+      candidateId: string;
+      targetBand?: number;
+      consultancyId?: string;
+      consultancyName?: string;
+      phone?: string;
+      email?: string;
     }
+  ) => {
+    if (candidate) {
+      const targetCid = candidate.consultancyId || selectedConsultancyId || 'apex-global';
+      const consultancyObj = ConsultancyService.getConsultancyById(targetCid);
+      const sess: CandidateSession = {
+        stationName: terminalStationName || 'PC-01',
+        branchCode: consultancyObj?.branchCode || consultancyObj?.accessCode || targetCid,
+        consultancyId: targetCid,
+        consultancyName: candidate.consultancyName || consultancyObj?.name || 'IELTS Partner',
+        candidateName: candidate.name,
+        candidateId: candidate.candidateId,
+        targetBand: candidate.targetBand || 7.5,
+        loggedInAt: new Date().toISOString()
+      };
+      ConsultancyService.setCurrentCandidateSession(sess);
+      setCandidateSession(sess);
+      setSelectedConsultancyId(targetCid);
+      setActiveCandidateInfo({
+        name: candidate.name,
+        candidateId: candidate.candidateId,
+        targetBand: candidate.targetBand,
+        stationName: terminalStationName,
+        consultancyId: targetCid
+      });
+    } else if (candidateSession) {
+      setActiveCandidateInfo({
+        name: candidateSession.candidateName,
+        candidateId: candidateSession.candidateId,
+        targetBand: candidateSession.targetBand,
+        stationName: candidateSession.stationName,
+        consultancyId: candidateSession.consultancyId
+      });
+    } else {
+      const fallbackName = localStorage.getItem('ielts_candidate_name') || 'Candidate';
+      const fallbackId = '00' + Math.floor(1000 + Math.random() * 9000);
+      setActiveCandidateInfo({
+        name: fallbackName,
+        candidateId: fallbackId,
+        targetBand: 7.5,
+        stationName: terminalStationName,
+        consultancyId: selectedConsultancyId || 'apex-global'
+      });
+    }
+
     setCurrentTest(test);
     setCurrentQuestion(1);
     setActiveSectionIndex(0);
@@ -372,6 +407,23 @@ export const App: React.FC = () => {
     const bandScore = calculateBandScore(activeTest.module, correctCount);
     const timeTaken = activeTest.durationMinutes * 60 - curRemaining;
 
+    const studentName =
+      activeCandidateInfo?.name?.trim() ||
+      candidateSession?.candidateName?.trim() ||
+      localStorage.getItem('ielts_candidate_name')?.trim() ||
+      'Candidate';
+    const candId =
+      activeCandidateInfo?.candidateId ||
+      candidateSession?.candidateId ||
+      '00' + Math.floor(1000 + Math.random() * 9000);
+    const cid =
+      activeCandidateInfo?.consultancyId ||
+      candidateSession?.consultancyId ||
+      selectedConsultancyId ||
+      'apex-global';
+    const consultancy = ConsultancyService.getConsultancyById(cid);
+    const consultancyName = consultancy?.name || candidateSession?.consultancyName || 'IELTS Partner';
+
     const newResult: TestResult = {
       testId: activeTest.id,
       book: activeTest.book,
@@ -382,44 +434,61 @@ export const App: React.FC = () => {
       bandScore,
       timeTakenSeconds: Math.max(1, timeTaken),
       completedAt: new Date().toISOString(),
-      answers: curAnswers
+      answers: curAnswers,
+      candidateName: studentName,
+      candidateId: candId,
+      consultancyId: cid,
+      consultancyName: consultancyName,
+      targetBand: activeCandidateInfo?.targetBand || candidateSession?.targetBand || 7.5
     };
 
     setActiveResult(newResult);
     setPastResults((prev) => [newResult, ...prev.filter((p) => p.testId !== newResult.testId)]);
     saveTestResultToSupabase(newResult);
 
-    // If candidate took test in a consultancy lab station
-    if (activeCandidateInfo?.consultancyId && activeCandidateInfo?.stationName) {
+    // 1. Record in student's consultancy results directory
+    ConsultancyService.saveTestResult(cid, newResult);
+
+    // 2. Record student statistics & update registry in consultancy
+    ConsultancyService.recordStudentTestResult(
+      cid,
+      candId,
+      newResult,
+      studentName
+    );
+
+    // 3. Save AI diagnostic report in consultancy archive
+    ConsultancyService.saveReport(cid, {
+      studentName,
+      candidateId: candId,
+      testTitle: activeTest.title,
+      module: activeTest.module,
+      bandScore,
+      correctCount,
+      totalQuestions,
+      timeTakenSeconds: Math.max(1, timeTaken),
+      completedAt: newResult.completedAt,
+      consultancyId: cid,
+      testId: activeTest.id,
+      answers: curAnswers
+    });
+
+    // 4. If candidate took test in a consultancy lab station, update station
+    if (activeCandidateInfo?.stationName) {
       ConsultancyService.updateStationHeartbeat(
-        activeCandidateInfo.consultancyId,
+        cid,
         activeCandidateInfo.stationName,
         {
           status: 'submitted',
           remainingSeconds: 0,
-          answeredCount: Object.keys(curAnswers).length
+          answeredCount: Object.keys(curAnswers).length,
+          currentCandidate: {
+            candidateId: candId,
+            name: studentName,
+            targetBand: activeCandidateInfo.targetBand
+          }
         }
       );
-
-      // Record student statistics
-      ConsultancyService.recordStudentTestResult(
-        activeCandidateInfo.consultancyId,
-        activeCandidateInfo.candidateId,
-        newResult
-      );
-
-      // Save AI diagnostic report in consultancy archive
-      ConsultancyService.saveReport(activeCandidateInfo.consultancyId, {
-        studentName: activeCandidateInfo.name,
-        candidateId: activeCandidateInfo.candidateId,
-        testTitle: activeTest.title,
-        module: activeTest.module,
-        bandScore,
-        correctCount,
-        totalQuestions,
-        timeTakenSeconds: Math.max(1, timeTaken),
-        completedAt: newResult.completedAt
-      });
     }
 
     setActiveScreen('results');
@@ -485,17 +554,8 @@ export const App: React.FC = () => {
       {activeScreen === 'landing' && (
         <LandingPage
           tests={tests}
-          onStartTest={(test) => {
-            if (candidateSession) {
-              setActiveCandidateInfo({
-                name: candidateSession.candidateName,
-                candidateId: candidateSession.candidateId,
-                targetBand: candidateSession.targetBand,
-                stationName: candidateSession.stationName,
-                consultancyId: candidateSession.consultancyId
-              });
-            }
-            startTest(test);
+          onStartTest={(test, candidate) => {
+            startTest(test, candidate);
           }}
           pastResults={pastResults}
           onViewResults={(res) => {
@@ -647,6 +707,12 @@ export const App: React.FC = () => {
             }}
             audioVolume={audioVolume}
             onVolumeChange={setAudioVolume}
+            candidateName={activeCandidateInfo?.name || candidateSession?.candidateName}
+            candidateId={activeCandidateInfo?.candidateId || candidateSession?.candidateId}
+            consultancyName={
+              ConsultancyService.getConsultancyById(activeCandidateInfo?.consultancyId || candidateSession?.consultancyId || selectedConsultancyId)?.name ||
+              candidateSession?.consultancyName
+            }
           />
 
           {/* Reading or Listening View */}
