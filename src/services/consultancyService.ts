@@ -26,7 +26,15 @@ const DEFAULT_CONSULTANCIES: Consultancy[] = [
     testCredits: 500,
     creditsUsed: 142,
     createdAt: '2026-01-15T00:00:00Z',
-    validUntil: '2027-01-15T00:00:00Z'
+    validUntil: '2027-01-15T00:00:00Z',
+    assignedTestIds: [
+      'cambridge-19-test-1-reading',
+      'cambridge-19-test-1-listening',
+      'cambridge-19-test-2-reading',
+      'cambridge-19-test-2-listening',
+      'cambridge-18-test-1-reading',
+      'cambridge-18-test-1-listening'
+    ]
   },
   {
     id: 'edwise-overseas',
@@ -43,7 +51,13 @@ const DEFAULT_CONSULTANCIES: Consultancy[] = [
     testCredits: 300,
     creditsUsed: 89,
     createdAt: '2026-02-01T00:00:00Z',
-    validUntil: '2027-02-01T00:00:00Z'
+    validUntil: '2027-02-01T00:00:00Z',
+    assignedTestIds: [
+      'cambridge-19-test-1-reading',
+      'cambridge-19-test-1-listening',
+      'cambridge-20-test-1-reading',
+      'cambridge-20-test-1-listening'
+    ]
   },
   {
     id: 'kangaroo-studies',
@@ -60,7 +74,13 @@ const DEFAULT_CONSULTANCIES: Consultancy[] = [
     testCredits: 400,
     creditsUsed: 210,
     createdAt: '2026-02-10T00:00:00Z',
-    validUntil: '2027-02-10T00:00:00Z'
+    validUntil: '2027-02-10T00:00:00Z',
+    assignedTestIds: [
+      'cambridge-18-test-2-reading',
+      'cambridge-18-test-2-listening',
+      'cambridge-19-test-1-reading',
+      'cambridge-19-test-1-listening'
+    ]
   },
   {
     id: 'kiec-lalitpur',
@@ -77,7 +97,11 @@ const DEFAULT_CONSULTANCIES: Consultancy[] = [
     testCredits: 300,
     creditsUsed: 0,
     createdAt: '2026-03-30T00:00:00Z',
-    validUntil: '2027-03-30T00:00:00Z'
+    validUntil: '2027-03-30T00:00:00Z',
+    assignedTestIds: [
+      'cambridge-19-test-1-reading',
+      'cambridge-19-test-1-listening'
+    ]
   }
 ];
 
@@ -596,7 +620,11 @@ export class ConsultancyService {
         if (Array.isArray(parsed) && parsed.length > 0) return parsed;
       } catch { /* ignore */ }
     }
-    return []; // Empty = no tests assigned (consultancy needs to assign tests)
+    const def = DEFAULT_CONSULTANCIES.find((d) => d.id === consultancyId);
+    if (def?.assignedTestIds && def.assignedTestIds.length > 0) {
+      return def.assignedTestIds;
+    }
+    return []; // Empty = no tests assigned
   }
 
   public static setAssignedTestIds(consultancyId: string, testIds: string[]): void {
@@ -831,7 +859,9 @@ export class ConsultancyService {
             candidateName: 'Rohan Sharma',
             candidateId: '004128',
             consultancyId: 'apex-global',
-            consultancyName: 'Apex Global Education'
+            consultancyName: 'Apex Global Education',
+            isPublished: true,
+            publishedAt: new Date(Date.now() - 3500000).toISOString()
           },
           {
             testId: 'cambridge-18-test-2-reading',
@@ -847,7 +877,9 @@ export class ConsultancyService {
             candidateName: 'Bikash Adhikari',
             candidateId: '004130',
             consultancyId: 'apex-global',
-            consultancyName: 'Apex Global Education'
+            consultancyName: 'Apex Global Education',
+            isPublished: true,
+            publishedAt: new Date(Date.now() - 7100000).toISOString()
           },
           {
             testId: 'cambridge-19-test-1-listening',
@@ -863,7 +895,9 @@ export class ConsultancyService {
             candidateName: 'Aayusha Thapa',
             candidateId: '004129',
             consultancyId: 'apex-global',
-            consultancyName: 'Apex Global Education'
+            consultancyName: 'Apex Global Education',
+            isPublished: true,
+            publishedAt: new Date(Date.now() - 10700000).toISOString()
           }
         ];
         localStorage.setItem(`ielts_results_${consultancyId}`, JSON.stringify(defaultResults));
@@ -880,9 +914,134 @@ export class ConsultancyService {
 
   public static saveTestResult(consultancyId: string, result: TestResult): void {
     const list = this.getResults(consultancyId);
-    list.unshift(result);
+    if (result.isPublished === undefined) {
+      result.isPublished = false;
+    }
+    const existingIdx = list.findIndex(
+      (r) =>
+        r.testId === result.testId &&
+        r.candidateId === result.candidateId &&
+        r.completedAt === result.completedAt
+    );
+    if (existingIdx >= 0) {
+      list[existingIdx] = result;
+    } else {
+      list.unshift(result);
+    }
     localStorage.setItem(`ielts_results_${consultancyId}`, JSON.stringify(list));
     this.broadcast('RESULT_ADDED', { consultancyId, result });
+  }
+
+  // --- PUBLISH / RELEASE TEST RESULTS (CONSULTANCY ADMIN) ---
+  public static publishTestResult(consultancyId: string, testId: string, candidateId?: string, completedAt?: string): void {
+    const list = this.getResults(consultancyId);
+    let updated = false;
+    const now = new Date().toISOString();
+
+    for (const item of list) {
+      const matchTest = item.testId === testId;
+      const matchCand = !candidateId || item.candidateId === candidateId;
+      const matchTime = !completedAt || item.completedAt === completedAt;
+      if (matchTest && matchCand && matchTime) {
+        item.isPublished = true;
+        item.publishedAt = now;
+        updated = true;
+      }
+    }
+
+    if (updated) {
+      localStorage.setItem(`ielts_results_${consultancyId}`, JSON.stringify(list));
+      this.broadcast('RESULT_PUBLISHED', { consultancyId, testId, candidateId });
+    }
+  }
+
+  public static unpublishTestResult(consultancyId: string, testId: string, candidateId?: string, completedAt?: string): void {
+    const list = this.getResults(consultancyId);
+    let updated = false;
+
+    for (const item of list) {
+      const matchTest = item.testId === testId;
+      const matchCand = !candidateId || item.candidateId === candidateId;
+      const matchTime = !completedAt || item.completedAt === completedAt;
+      if (matchTest && matchCand && matchTime) {
+        item.isPublished = false;
+        item.publishedAt = undefined;
+        updated = true;
+      }
+    }
+
+    if (updated) {
+      localStorage.setItem(`ielts_results_${consultancyId}`, JSON.stringify(list));
+      this.broadcast('RESULT_UNPUBLISHED', { consultancyId, testId, candidateId });
+    }
+  }
+
+  public static publishAllResults(consultancyId: string): void {
+    const list = this.getResults(consultancyId);
+    const now = new Date().toISOString();
+    for (const item of list) {
+      item.isPublished = true;
+      if (!item.publishedAt) {
+        item.publishedAt = now;
+      }
+    }
+    localStorage.setItem(`ielts_results_${consultancyId}`, JSON.stringify(list));
+    this.broadcast('ALL_RESULTS_PUBLISHED', { consultancyId });
+  }
+
+  // Look up candidate results by Candidate Number (for verification portal)
+  public static getCandidateResults(candidateId: string, consultancyId?: string): {
+    found: boolean;
+    allResults: TestResult[];
+    publishedResults: TestResult[];
+    pendingResults: TestResult[];
+  } {
+    const cleanCandId = candidateId.trim().replace(/^#/, '');
+    if (!cleanCandId) {
+      return { found: false, allResults: [], publishedResults: [], pendingResults: [] };
+    }
+
+    const consultancies = this.getConsultancies();
+    let allMatching: TestResult[] = [];
+
+    const targetList = consultancyId
+      ? [this.getConsultancyById(consultancyId)].filter(Boolean)
+      : consultancies;
+
+    for (const c of targetList) {
+      if (!c) continue;
+      const cResults = this.getResults(c.id);
+      const matched = cResults.filter((r) => {
+        return (r.candidateId || '').trim().toLowerCase() === cleanCandId.toLowerCase();
+      });
+      allMatching = allMatching.concat(matched);
+    }
+
+    // Also check global past results
+    try {
+      const rawPast = localStorage.getItem('ielts_mock_past_results');
+      if (rawPast) {
+        const parsed: TestResult[] = JSON.parse(rawPast);
+        for (const pr of parsed) {
+          if (
+            (pr.candidateId || '').trim().toLowerCase() === cleanCandId.toLowerCase() &&
+            !allMatching.some((m) => m.testId === pr.testId && m.completedAt === pr.completedAt)
+          ) {
+            allMatching.push(pr);
+          }
+        }
+      }
+    } catch { /* ignore */ }
+
+    const publishedResults = allMatching.filter((r) => r.isPublished === true);
+    const pendingResults = allMatching.filter((r) => r.isPublished !== true);
+
+    return {
+      found: allMatching.length > 0,
+      allResults: allMatching,
+      publishedResults,
+      pendingResults
+    };
   }
 
   // --- CONSULTANCY AI DIAGNOSTIC REPORTS DIRECTORY ---

@@ -120,4 +120,6 @@ export interface SavedAIReport {
   testId?: string;
   consultancyId?: string;
   answers?: Record<number, string | string[]>;
+  isPublished?: boolean;
+  publishedAt?: string;
 }

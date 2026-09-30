@@ -91,6 +91,8 @@ export interface TestResult {
   consultancyId?: string;
   consultancyName?: string;
   targetBand?: number;
+  isPublished?: boolean; // When false, result is pending release by consultancy admin
+  publishedAt?: string; // Timestamp when consultancy admin published the result
 }
 
 export interface ExamSettings {

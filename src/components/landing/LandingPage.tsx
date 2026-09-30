@@ -55,6 +55,7 @@ interface LandingPageProps {
   onOpenSuperAdmin?: () => void;
   onOpenConsultancy?: () => void;
   onOpenTerminal?: () => void;
+  onOpenResultLookup?: () => void;
   candidateSession?: CandidateSession | null;
   adminUser?: AdminUser | null;
   onLogout?: () => void;
@@ -68,6 +69,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
   onOpenSuperAdmin,
   onOpenConsultancy,
   onOpenTerminal,
+  onOpenResultLookup,
   candidateSession,
   adminUser,
   onLogout
@@ -91,11 +93,14 @@ export const LandingPage: React.FC<LandingPageProps> = ({
   }, [candidateSession?.consultancyId]);
 
   const candidateAvailableTests = useMemo(() => {
-    if (consultancyAssignedIds.length > 0) {
-      return tests.filter((t) => consultancyAssignedIds.includes(t.id));
+    if (candidateSession?.consultancyId) {
+      if (consultancyAssignedIds.length > 0) {
+        return tests.filter((t) => consultancyAssignedIds.includes(t.id));
+      }
+      return []; // Only show tests assigned/accepted by their consultancy
     }
     return tests;
-  }, [tests, consultancyAssignedIds]);
+  }, [tests, candidateSession?.consultancyId, consultancyAssignedIds]);
 
   const candidateFullMocks = useMemo(() => {
     return buildFullMockTests(candidateAvailableTests);
@@ -326,6 +331,18 @@ export const LandingPage: React.FC<LandingPageProps> = ({
               </div>
             )}
 
+            {/* Check Results / TRF Lookup Button */}
+            {onOpenResultLookup && (
+              <button
+                onClick={onOpenResultLookup}
+                className="hidden md:flex items-center gap-1.5 px-3 py-1.5 sm:py-2 rounded-xl text-xs font-bold bg-white hover:bg-indigo-50 text-indigo-700 border border-indigo-200 shadow-xs transition cursor-pointer"
+                title="Verify Candidate Band Score & Official TRF"
+              >
+                <FileCheck className="w-3.5 h-3.5 text-indigo-600" />
+                <span>Check Results</span>
+              </button>
+            )}
+
             {/* Consultancy Portal Login */}
             {onOpenConsultancy && (
               <button
@@ -423,6 +440,18 @@ export const LandingPage: React.FC<LandingPageProps> = ({
             </div>
 
             <div className="pt-2 border-t border-slate-100 flex flex-wrap gap-2 text-xs">
+              {onOpenResultLookup && (
+                <button
+                  onClick={() => {
+                    setIsMobileMenuOpen(false);
+                    onOpenResultLookup();
+                  }}
+                  className="w-full py-2.5 px-3 rounded-lg bg-indigo-50 hover:bg-indigo-100 text-indigo-800 font-extrabold border border-indigo-200 text-center flex items-center justify-center gap-2"
+                >
+                  <FileCheck className="w-4 h-4 text-indigo-600" />
+                  <span>Check Results / Verify TRF</span>
+                </button>
+              )}
               {onOpenConsultancy && (
                 <button
                   onClick={() => {
@@ -726,16 +755,27 @@ export const LandingPage: React.FC<LandingPageProps> = ({
           </div>
 
           {/* Consultancy Curated Notice Banner */}
-          {candidateSession && consultancyAssignedIds.length > 0 && (
-            <div className="bg-indigo-50 border border-indigo-200 rounded-xl p-3 sm:p-4 flex items-center justify-between gap-3 text-xs">
-              <div className="flex items-center gap-2 text-indigo-900 font-semibold">
-                <CheckCircle className="w-4 h-4 text-indigo-600 shrink-0" />
-                <span>Showing tests assigned by <strong>{candidateSession.consultancyName}</strong> ({candidateAvailableTests.length} tests active)</span>
+          {candidateSession && (
+            consultancyAssignedIds.length > 0 ? (
+              <div className="bg-indigo-50 border border-indigo-200 rounded-xl p-3 sm:p-4 flex items-center justify-between gap-3 text-xs">
+                <div className="flex items-center gap-2 text-indigo-900 font-semibold">
+                  <CheckCircle className="w-4 h-4 text-indigo-600 shrink-0" />
+                  <span>Showing tests assigned by <strong>{candidateSession.consultancyName}</strong> ({candidateAvailableTests.length} tests active)</span>
+                </div>
+                <span className="text-[11px] font-bold text-indigo-700 bg-indigo-100 px-2.5 py-0.5 rounded-full shrink-0">
+                  Only Assigned Tests Visible
+                </span>
               </div>
-              <span className="text-[11px] font-bold text-indigo-700 bg-indigo-100 px-2.5 py-0.5 rounded-full shrink-0">
-                Only Assigned Tests Visible
-              </span>
-            </div>
+            ) : (
+              <div className="bg-amber-50 border border-amber-300 rounded-xl p-6 text-center space-y-2">
+                <h3 className="font-extrabold text-amber-900 text-sm">
+                  No Mock Tests Assigned by {candidateSession.consultancyName}
+                </h3>
+                <p className="text-xs text-amber-800 max-w-md mx-auto">
+                  Per test centre protocol, candidates only see mock tests that have been reviewed and accepted by their consultancy director. Please contact your test centre administrator.
+                </p>
+              </div>
+            )
           )}
 
           {/* FULL MOCK TESTS VIEW */}
@@ -860,11 +900,17 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                     </div>
 
                     {pastAttempt && (
-                      <div className="p-2 rounded-lg bg-emerald-50 border border-emerald-200 flex items-center justify-between text-xs">
-                        <span className="text-emerald-800 font-medium text-[11px]">Last Score</span>
-                        <span className="font-mono font-black text-emerald-700 text-xs">
-                          Band {pastAttempt.bandScore.toFixed(1)} ({pastAttempt.correctCount}/{pastAttempt.totalQuestions})
-                        </span>
+                      <div className="p-2 rounded-lg bg-slate-50 border border-slate-200 flex items-center justify-between text-xs">
+                        <span className="text-slate-600 font-medium text-[11px]">Last Attempt</span>
+                        {pastAttempt.isPublished !== false ? (
+                          <span className="font-mono font-black text-emerald-700 text-xs">
+                            Band {pastAttempt.bandScore.toFixed(1)} ({pastAttempt.correctCount}/{pastAttempt.totalQuestions})
+                          </span>
+                        ) : (
+                          <span className="font-mono font-bold text-amber-700 text-[10px] bg-amber-100 border border-amber-200 px-2 py-0.5 rounded">
+                            Pending Release
+                          </span>
+                        )}
                       </div>
                     )}
                   </div>

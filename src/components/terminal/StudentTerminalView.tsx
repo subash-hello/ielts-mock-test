@@ -10,7 +10,8 @@ import {
   Headphones,
   Clock,
   ArrowLeft,
-  Layers
+  Layers,
+  Search
 } from 'lucide-react';
 import type { Consultancy, LabStation } from '../../types/consultancy';
 import type { IELTSMockTest, FullMockTest } from '../../types/ielts';
@@ -33,6 +34,7 @@ interface StudentTerminalViewProps {
     fullMockTest?: FullMockTest
   ) => void;
   onExitTerminal: () => void;
+  onOpenLookup?: () => void;
 }
 
 export const StudentTerminalView: React.FC<StudentTerminalViewProps> = ({
@@ -40,7 +42,8 @@ export const StudentTerminalView: React.FC<StudentTerminalViewProps> = ({
   initialConsultancyId,
   tests,
   onStartExam,
-  onExitTerminal
+  onExitTerminal,
+  onOpenLookup
 }) => {
   const [candidateNameInput, setCandidateNameInput] = useState<string>(() => {
     return localStorage.getItem('ielts_candidate_name') || '';
@@ -131,12 +134,12 @@ export const StudentTerminalView: React.FC<StudentTerminalViewProps> = ({
   // Filter tests based on consultancy's assigned tests
   const computeAvailableTests = (cid: string) => {
     const assignedIds = ConsultancyService.getAssignedTestIds(cid);
-    let filtered: IELTSMockTest[];
+    let filtered: IELTSMockTest[] = [];
     if (assignedIds.length > 0) {
       filtered = tests.filter((t) => assignedIds.includes(t.id));
     } else {
-      // No assignments = show all (fallback)
-      filtered = tests;
+      // Consultancy has not assigned any test -> do NOT show other tests
+      filtered = [];
     }
     setAvailableTests(filtered);
     setAvailableFullMocks(buildFullMockTests(filtered));
@@ -235,12 +238,23 @@ export const StudentTerminalView: React.FC<StudentTerminalViewProps> = ({
           </div>
         </div>
 
-        <button
-          onClick={onExitTerminal}
-          className="px-3 py-1.5 bg-white hover:bg-slate-50 border border-slate-300 rounded-lg text-xs font-semibold text-slate-700 transition cursor-pointer shadow-xs"
-        >
-          Exit Kiosk
-        </button>
+        <div className="flex items-center gap-2">
+          {onOpenLookup && (
+            <button
+              onClick={onOpenLookup}
+              className="px-3 py-1.5 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 text-indigo-700 rounded-lg text-xs font-bold transition cursor-pointer shadow-xs flex items-center gap-1.5"
+            >
+              <Search className="w-3.5 h-3.5" />
+              <span>Check Results</span>
+            </button>
+          )}
+          <button
+            onClick={onExitTerminal}
+            className="px-3 py-1.5 bg-white hover:bg-slate-50 border border-slate-300 rounded-lg text-xs font-semibold text-slate-700 transition cursor-pointer shadow-xs"
+          >
+            Exit Kiosk
+          </button>
+        </div>
       </header>
 
       {/* PHASE 1: LOGIN */}

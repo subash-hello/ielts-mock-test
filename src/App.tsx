@@ -11,6 +11,8 @@ import { SuperAdminPortal } from './components/admin/SuperAdminPortal';
 import { ConsultancyPortal } from './components/admin/ConsultancyPortal';
 import { StudentTerminalView } from './components/terminal/StudentTerminalView';
 import { UnifiedAuthView } from './components/auth/UnifiedAuthView';
+import { SubmissionConfirmedView } from './components/exam/SubmissionConfirmedView';
+import { CandidateResultLookupModal } from './components/results/CandidateResultLookupModal';
 import { ConsultancyService } from './services/consultancyService';
 import { calculateBandScore, evaluateTestAnswers } from './utils/scoring';
 import { saveTestResultToSupabase, fetchMockTestsFromSupabase } from './lib/supabase';
@@ -32,8 +34,12 @@ export const App: React.FC = () => {
   const [initialAuthTab, setInitialAuthTab] = useState<'candidate' | 'admin'>('candidate');
 
   const [activeScreen, setActiveScreen] = useState<
-    'landing' | 'exam' | 'results' | 'super-admin' | 'consultancy' | 'terminal' | 'auth'
+    'landing' | 'exam' | 'submission-confirmed' | 'results' | 'super-admin' | 'consultancy' | 'terminal' | 'auth'
   >('landing');
+
+  // Candidate ID lookup modal state (to check published results)
+  const [isLookupModalOpen, setIsLookupModalOpen] = useState<boolean>(false);
+  const [lookupInitialCandidateId, setLookupInitialCandidateId] = useState<string>('');
 
   const [selectedConsultancyId, setSelectedConsultancyId] = useState<string>(() => {
     const saved = ConsultancyService.getCurrentCandidateSession();
@@ -502,14 +508,15 @@ export const App: React.FC = () => {
       candidateId: candId,
       consultancyId: cid,
       consultancyName: consultancyName,
-      targetBand: activeCandidateInfo?.targetBand || candidateSession?.targetBand || 7.5
+      targetBand: activeCandidateInfo?.targetBand || candidateSession?.targetBand || 7.5,
+      isPublished: false
     };
 
     setActiveResult(newResult);
     setPastResults((prev) => [newResult, ...prev.filter((p) => p.testId !== newResult.testId)]);
     saveTestResultToSupabase(newResult);
 
-    // 1. Record in student's consultancy results directory
+    // 1. Record in student's consultancy results directory (unreleased until admin publishes)
     ConsultancyService.saveTestResult(cid, newResult);
 
     // 2. Record student statistics & update registry in consultancy
@@ -533,7 +540,8 @@ export const App: React.FC = () => {
       completedAt: newResult.completedAt,
       consultancyId: cid,
       testId: activeTest.id,
-      answers: curAnswers
+      answers: curAnswers,
+      isPublished: false
     });
 
     // 4. If candidate took test in a consultancy lab station, update station
@@ -572,6 +580,29 @@ export const App: React.FC = () => {
       setActiveFullMock((prev) => (prev ? { ...prev, readingResult: newResult, overallBand } : null));
     }
 
+    // Official IELTS protocol: Band score is withheld at the terminal and sent to consultancy admin portal
+    setActiveScreen('submission-confirmed');
+  };
+
+  // Open Candidate ID result verification modal
+  const handleOpenLookup = (initialId?: string) => {
+    const defaultId =
+      initialId ||
+      activeCandidateInfo?.candidateId ||
+      candidateSession?.candidateId ||
+      activeResult?.candidateId ||
+      '';
+    setLookupInitialCandidateId(defaultId);
+    setIsLookupModalOpen(true);
+  };
+
+  // Callback when a published result is selected in lookup modal
+  const handleViewPublishedResult = (result: TestResult) => {
+    setActiveResult(result);
+    const foundTest = tests.find((t) => t.id === result.testId) || currentTest;
+    if (foundTest) {
+      setCurrentTest(foundTest);
+    }
     setActiveScreen('results');
   };
 
@@ -641,6 +672,10 @@ export const App: React.FC = () => {
           }}
           pastResults={pastResults}
           onViewResults={(res) => {
+            if (res.isPublished === false) {
+              handleOpenLookup(res.candidateId);
+              return;
+            }
             setActiveResult(res);
             const foundTest = tests.find((t) => t.id === res.testId) || currentTest;
             if (foundTest) {
@@ -648,6 +683,7 @@ export const App: React.FC = () => {
             }
             setActiveScreen('results');
           }}
+          onOpenResultLookup={() => handleOpenLookup()}
           onOpenSuperAdmin={() => {
             if (adminUser?.role === 'super_admin') {
               setActiveScreen('super-admin');
@@ -739,6 +775,31 @@ export const App: React.FC = () => {
           onExitTerminal={() => {
             if (!candidateSession && !adminUser) {
               setActiveScreen('auth');
+            } else {
+              setActiveScreen('landing');
+            }
+          }}
+          onOpenLookup={() => handleOpenLookup()}
+        />
+      )}
+
+      {/* SCREEN 5.5: SUBMISSION CONFIRMED / RESULT WITHHELD RECEIPT */}
+      {activeScreen === 'submission-confirmed' && activeResult && currentTest && (
+        <SubmissionConfirmedView
+          candidateInfo={{
+            name: activeResult.candidateName || activeCandidateInfo?.name || 'Candidate',
+            candidateId: activeResult.candidateId || activeCandidateInfo?.candidateId || '000000',
+            stationName: activeCandidateInfo?.stationName || terminalStationName || 'PC-01',
+            consultancyName: activeResult.consultancyName || 'Apex Global Education'
+          }}
+          test={currentTest}
+          fullMockTitle={activeFullMock?.fullMock?.title}
+          submittedResult={activeResult}
+          onOpenLookup={() => handleOpenLookup(activeResult.candidateId)}
+          onReturnToTerminalOrHub={() => {
+            setActiveFullMock(null);
+            if (activeCandidateInfo?.stationName) {
+              setActiveScreen('terminal');
             } else {
               setActiveScreen('landing');
             }
@@ -931,6 +992,15 @@ export const App: React.FC = () => {
           }}
         />
       )}
+
+      {/* CANDIDATE RESULT LOOKUP & VERIFICATION MODAL */}
+      <CandidateResultLookupModal
+        isOpen={isLookupModalOpen}
+        onClose={() => setIsLookupModalOpen(false)}
+        initialCandidateId={lookupInitialCandidateId}
+        consultancyId={selectedConsultancyId}
+        onViewResult={handleViewPublishedResult}
+      />
     </div>
   );
 };
