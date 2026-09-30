@@ -170,16 +170,20 @@ export const SuperAdminPortal: React.FC<SuperAdminPortalProps> = ({
       {/* Clean White Professional Header */}
       <header className="border-b border-slate-200 bg-white px-3 sm:px-6 py-3 sm:py-4 flex flex-wrap items-center justify-between sticky top-0 z-30 shadow-xs gap-3">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-blue-600 flex items-center justify-center text-white shadow-sm shrink-0">
-            <Building2 className="w-5 h-5 text-white" />
+          <div className="w-10 h-10 rounded-xl overflow-hidden flex items-center justify-center border border-slate-200 bg-white p-1 shadow-xs shrink-0">
+            <img
+              src="/images/masterieltsai-icon.png"
+              alt="Master IELTS AI"
+              className="w-full h-full object-contain"
+            />
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <h1 className="text-base sm:text-lg font-bold text-slate-900">
-                IELTS Platform Super Admin
+              <h1 className="text-base sm:text-lg font-black text-slate-900 tracking-tight uppercase">
+                MOCK TEST <span className="font-normal text-xs text-slate-500 lowercase">from</span> Master IELTS AI
               </h1>
-              <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 border border-blue-200">
-                Network Administration
+              <span className="text-[10px] sm:text-[11px] font-semibold px-2 py-0.5 rounded-full bg-purple-50 text-purple-700 border border-purple-200">
+                Super Admin
               </span>
             </div>
             <p className="text-xs text-slate-500">

@@ -85,7 +85,19 @@ export const AIDiagnosticReportModal: React.FC<AIDiagnosticReportModalProps> = (
         <div className="p-4 sm:p-8 md:p-10 space-y-5 sm:space-y-6 bg-white text-slate-900">
           {/* 1. Official Header */}
           <div className="border-b border-slate-200 pb-5 flex flex-col sm:flex-row items-start justify-between gap-3">
-            <div className="space-y-1">
+            <div className="space-y-1.5">
+              <div className="flex items-center gap-2 mb-1">
+                <div className="w-7 h-7 rounded-lg overflow-hidden flex items-center justify-center border border-slate-200 bg-white p-0.5 shadow-2xs">
+                  <img
+                    src="/images/masterieltsai-icon.png"
+                    alt="Master IELTS AI"
+                    className="w-full h-full object-contain"
+                  />
+                </div>
+                <span className="font-extrabold text-xs text-slate-900 uppercase tracking-tight">
+                  MOCK TEST <span className="font-normal text-slate-500 lowercase">from</span> Master IELTS AI
+                </span>
+              </div>
               <div className="flex items-center gap-2 text-blue-700 font-bold text-xs uppercase tracking-wider">
                 <Building2 className="w-4 h-4" />
                 <span>{consultancyName}</span>

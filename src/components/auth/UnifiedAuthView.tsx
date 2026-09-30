@@ -7,6 +7,7 @@ import {
   Key,
   ShieldCheck,
   ArrowRight,
+  ArrowLeft,
   Eye,
   EyeOff,
   Monitor,
@@ -22,6 +23,7 @@ interface UnifiedAuthViewProps {
   initialPcNumber?: string;
   onCandidateLogin: (session: CandidateSession) => void;
   onAdminLogin: (user: AdminUser) => void;
+  onBackToHub?: () => void;
   authMessage?: string | null;
 }
 
@@ -31,6 +33,7 @@ export const UnifiedAuthView: React.FC<UnifiedAuthViewProps> = ({
   initialPcNumber = 'PC-01',
   onCandidateLogin,
   onAdminLogin,
+  onBackToHub,
   authMessage
 }) => {
   const [activeTab, setActiveTab] = useState<'candidate' | 'admin'>(initialTab);
@@ -118,35 +121,85 @@ export const UnifiedAuthView: React.FC<UnifiedAuthViewProps> = ({
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 flex flex-col font-sans select-none">
-      {/* Top Banner */}
-      <header className="border-b border-slate-200 bg-white px-3 sm:px-6 py-2.5 sm:py-4 flex flex-wrap items-center justify-between shadow-xs gap-2">
+      {/* Top Banner with Master IELTS AI Logo */}
+      <header className="border-b border-slate-200 bg-white px-3 sm:px-6 py-2.5 sm:py-3.5 flex flex-wrap items-center justify-between shadow-xs gap-3">
         <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-xl bg-red-600 text-white font-black flex items-center justify-center text-sm shadow-xs shrink-0">
-            IELTS
+          <div className="w-10 h-10 rounded-xl overflow-hidden flex items-center justify-center border border-slate-200 bg-white p-1 shadow-xs shrink-0">
+            <img
+              src="/images/masterieltsai-icon.png"
+              alt="Master IELTS AI"
+              className="w-full h-full object-contain"
+            />
           </div>
           <div>
-            <h1 className="font-extrabold text-xs sm:text-sm text-slate-900">
-              Cambridge Academic Computer-Delivered System
-            </h1>
-            <p className="text-[11px] sm:text-xs text-slate-500">
-              Official Secure Authentication Gateway
+            <div className="flex items-center gap-2">
+              <h1 className="font-black text-sm text-slate-900 tracking-tight uppercase">
+                MOCK TEST
+              </h1>
+              <span className="text-[11px] text-slate-500 font-medium">
+                from{' '}
+                <a
+                  href="https://masterieltsai.com"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="text-indigo-600 font-bold hover:underline"
+                >
+                  Master IELTS AI
+                </a>
+              </span>
+            </div>
+            <p className="text-[11px] text-slate-500">
+              Cambridge Academic Computer-Delivered Examination Gateway
             </p>
           </div>
         </div>
 
-        <div className="flex items-center gap-2 text-xs font-semibold text-slate-600">
-          <ShieldCheck className="w-4 h-4 text-emerald-600" />
-          <span className="hidden sm:inline">Protected Examination Environment</span>
+        <div className="flex items-center gap-3">
+          <div className="hidden md:flex items-center gap-2 text-xs font-semibold text-slate-600">
+            <ShieldCheck className="w-4 h-4 text-emerald-600" />
+            <span>Protected Examination Environment</span>
+          </div>
+          {onBackToHub && (
+            <button
+              onClick={onBackToHub}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-300 bg-white hover:bg-slate-50 text-xs font-semibold text-slate-700 transition cursor-pointer shadow-xs"
+            >
+              <ArrowLeft className="w-3.5 h-3.5" />
+              <span>Back to Tests</span>
+            </button>
+          )}
         </div>
       </header>
 
       {/* Main Authentication Box */}
       <main className="flex-1 flex flex-col items-center justify-center p-3 sm:p-6">
         <div className="bg-white border border-slate-200 max-w-md w-full p-4 sm:p-8 rounded-2xl shadow-sm space-y-5 sm:space-y-6">
-          {/* Lock Icon & Title */}
-          <div className="text-center space-y-2">
-            <div className="w-12 h-12 bg-red-50 border border-red-200 rounded-2xl flex items-center justify-center mx-auto text-red-600 shadow-xs">
-              <Lock className="w-6 h-6" />
+          {/* Logo & Title */}
+          <div className="text-center space-y-2.5">
+            <div className="flex flex-col items-center justify-center">
+              <div className="w-14 h-14 rounded-2xl overflow-hidden flex items-center justify-center border border-slate-200 bg-white p-1.5 shadow-sm mb-2">
+                <img
+                  src="/images/masterieltsai-icon.png"
+                  alt="Master IELTS AI"
+                  className="w-full h-full object-contain"
+                />
+              </div>
+              <div className="flex items-center gap-1.5">
+                <span className="text-sm font-black text-slate-900 uppercase tracking-tight">
+                  MOCK TEST
+                </span>
+                <span className="text-xs text-slate-500 font-medium">
+                  from{' '}
+                  <a
+                    href="https://masterieltsai.com"
+                    target="_blank"
+                    rel="noreferrer"
+                    className="text-indigo-600 font-bold hover:underline"
+                  >
+                    Master IELTS AI
+                  </a>
+                </span>
+              </div>
             </div>
             <div>
               <h2 className="text-xl font-extrabold text-slate-900">
@@ -379,8 +432,16 @@ export const UnifiedAuthView: React.FC<UnifiedAuthViewProps> = ({
           )}
 
           {/* Footer note */}
-          <div className="text-center text-[11px] text-slate-400 pt-2 border-t border-slate-100">
-            Official Computer-Delivered IELTS Simulation Platform
+          <div className="text-center text-[11px] text-slate-500 pt-2 border-t border-slate-100">
+            MOCK TEST from Master IELTS AI •{' '}
+            <a
+              href="https://masterieltsai.com"
+              target="_blank"
+              rel="noreferrer"
+              className="text-indigo-600 font-semibold hover:underline"
+            >
+              masterieltsai.com
+            </a>
           </div>
         </div>
       </main>

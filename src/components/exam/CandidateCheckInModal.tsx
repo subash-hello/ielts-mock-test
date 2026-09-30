@@ -148,7 +148,19 @@ export const CandidateCheckInModal: React.FC<CandidateCheckInModalProps> = ({
       >
         {/* 1. Header with Test Identity */}
         <div className="bg-slate-900 text-white p-4 sm:p-5 flex items-start justify-between relative shrink-0">
-          <div className="space-y-1 pr-6">
+          <div className="space-y-1.5 pr-6">
+            <div className="flex items-center gap-2">
+              <div className="w-5 h-5 rounded-md overflow-hidden flex items-center justify-center bg-white p-0.5 shrink-0">
+                <img
+                  src="/images/masterieltsai-icon.png"
+                  alt="Master IELTS AI"
+                  className="w-full h-full object-contain"
+                />
+              </div>
+              <span className="text-[11px] font-extrabold text-slate-200 uppercase tracking-tight">
+                MOCK TEST <span className="font-normal text-slate-400 lowercase">from</span> Master IELTS AI
+              </span>
+            </div>
             <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-red-600/90 text-white text-[10px] font-bold uppercase tracking-wider">
               {isReading ? <BookOpen className="w-3 h-3" /> : <Headphones className="w-3 h-3" />}
               <span>Cambridge IELTS {test.book} • Test {test.testNumber}</span>

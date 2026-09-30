@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import {
   Monitor,
   Key,
-  ShieldCheck,
   ArrowRight,
   Building2,
   Lock,
@@ -179,21 +178,25 @@ export const StudentTerminalView: React.FC<StudentTerminalViewProps> = ({
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 flex flex-col font-sans select-none">
       {/* Top Header */}
-      <header className="border-b border-slate-200 bg-white px-6 py-3.5 flex items-center justify-between shadow-xs">
+      <header className="border-b border-slate-200 bg-white px-3 sm:px-6 py-2.5 sm:py-3.5 flex items-center justify-between shadow-xs">
         <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-lg bg-red-600 text-white font-black flex items-center justify-center text-sm shadow-xs">
-            IELTS
+          <div className="w-10 h-10 rounded-xl overflow-hidden flex items-center justify-center border border-slate-200 bg-white p-1 shadow-xs shrink-0">
+            <img
+              src="/images/masterieltsai-icon.png"
+              alt="Master IELTS AI"
+              className="w-full h-full object-contain"
+            />
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <span className="font-bold text-sm text-slate-900">
-                Official Computer-Delivered Examination Kiosk
+              <span className="font-black text-xs sm:text-sm text-slate-900 tracking-tight uppercase">
+                MOCK TEST <span className="font-normal text-[11px] text-slate-500 lowercase">from</span> Master IELTS AI
               </span>
-              <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 border border-blue-200">
+              <span className="text-[10px] sm:text-[11px] font-semibold px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 border border-blue-200">
                 Candidate Terminal
               </span>
             </div>
-            <p className="text-xs text-slate-500">
+            <p className="text-[11px] sm:text-xs text-slate-500">
               {consultancy ? `${consultancy.name} • ${consultancy.branch}` : 'Educational Consultancy Lab'}
             </p>
           </div>
@@ -201,7 +204,7 @@ export const StudentTerminalView: React.FC<StudentTerminalViewProps> = ({
 
         <button
           onClick={onExitTerminal}
-          className="px-3.5 py-1.5 bg-white hover:bg-slate-50 border border-slate-300 rounded-lg text-xs font-semibold text-slate-700 transition cursor-pointer shadow-xs"
+          className="px-3 py-1.5 bg-white hover:bg-slate-50 border border-slate-300 rounded-lg text-xs font-semibold text-slate-700 transition cursor-pointer shadow-xs"
         >
           Exit Kiosk
         </button>
@@ -210,11 +213,19 @@ export const StudentTerminalView: React.FC<StudentTerminalViewProps> = ({
       {/* Main Login Screen */}
       <main className="flex-1 flex items-center justify-center p-3 sm:p-6">
         <div className="bg-white border border-slate-200 max-w-md w-full p-5 sm:p-8 rounded-2xl shadow-sm space-y-5 sm:space-y-6">
-          <div className="text-center space-y-1.5">
-            <div className="w-12 h-12 bg-blue-50 border border-blue-200 rounded-xl flex items-center justify-center mx-auto text-blue-600 shadow-xs">
-              <ShieldCheck className="w-6 h-6" />
+          <div className="text-center space-y-2">
+            <div className="w-14 h-14 rounded-2xl overflow-hidden flex items-center justify-center border border-slate-200 bg-white p-1.5 shadow-sm mx-auto mb-1">
+              <img
+                src="/images/masterieltsai-icon.png"
+                alt="Master IELTS AI"
+                className="w-full h-full object-contain"
+              />
             </div>
-            <h2 className="text-xl font-bold text-slate-900">
+            <div className="flex items-center justify-center gap-1.5 text-xs text-slate-500 mb-0.5">
+              <span className="font-extrabold text-slate-900 uppercase tracking-tight">MOCK TEST</span>
+              <span>from <a href="https://masterieltsai.com" target="_blank" rel="noreferrer" className="text-indigo-600 font-bold hover:underline">Master IELTS AI</a></span>
+            </div>
+            <h2 className="text-xl font-extrabold text-slate-900">
               Candidate Terminal Login
             </h2>
             <p className="text-xs text-slate-500 leading-relaxed">

@@ -553,6 +553,7 @@ export const App: React.FC = () => {
           initialPcNumber={terminalStationName || 'PC-01'}
           onCandidateLogin={handleCandidateLogin}
           onAdminLogin={handleAdminLogin}
+          onBackToHub={() => setActiveScreen('landing')}
           authMessage={authMessage}
         />
       )}

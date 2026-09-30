@@ -2,8 +2,6 @@ import React, { useState } from 'react';
 import {
   Lock,
   Mail,
-  Building2,
-  ShieldCheck,
   ArrowRight,
   Eye,
   EyeOff
@@ -52,15 +50,24 @@ export const AdminLoginView: React.FC<AdminLoginViewProps> = ({
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 flex flex-col font-sans select-none">
       {/* Top Header */}
-      <header className="border-b border-slate-200 bg-white px-6 py-3.5 flex items-center justify-between shadow-xs">
+      <header className="border-b border-slate-200 bg-white px-3 sm:px-6 py-2.5 sm:py-3.5 flex items-center justify-between shadow-xs">
         <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-lg bg-blue-600 text-white font-black flex items-center justify-center text-sm shadow-xs">
-            <Building2 className="w-5 h-5 text-white" />
+          <div className="w-10 h-10 rounded-xl overflow-hidden flex items-center justify-center border border-slate-200 bg-white p-1 shadow-xs shrink-0">
+            <img
+              src="/images/masterieltsai-icon.png"
+              alt="Master IELTS AI"
+              className="w-full h-full object-contain"
+            />
           </div>
           <div>
-            <h1 className="font-bold text-sm text-slate-900">
-              IELTS Academic Consultancy Platform
-            </h1>
+            <div className="flex items-center gap-2">
+              <h1 className="font-black text-sm text-slate-900 tracking-tight uppercase">
+                MOCK TEST <span className="font-normal text-xs text-slate-500 lowercase">from</span> Master IELTS AI
+              </h1>
+              <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 border border-blue-200">
+                Admin Center
+              </span>
+            </div>
             <p className="text-xs text-slate-500">
               Administrative Control Center Authentication
             </p>
@@ -76,13 +83,21 @@ export const AdminLoginView: React.FC<AdminLoginViewProps> = ({
       </header>
 
       {/* Login Card Main Container */}
-      <main className="flex-1 flex flex-col items-center justify-center p-6">
-        <div className="bg-white border border-slate-200 max-w-md w-full p-8 rounded-2xl shadow-sm space-y-6">
-          <div className="text-center space-y-1.5">
-            <div className="w-12 h-12 bg-blue-50 border border-blue-200 rounded-xl flex items-center justify-center mx-auto text-blue-600 shadow-xs">
-              <ShieldCheck className="w-6 h-6" />
+      <main className="flex-1 flex flex-col items-center justify-center p-4 sm:p-6">
+        <div className="bg-white border border-slate-200 max-w-md w-full p-5 sm:p-8 rounded-2xl shadow-sm space-y-5 sm:space-y-6">
+          <div className="text-center space-y-2">
+            <div className="w-14 h-14 rounded-2xl overflow-hidden flex items-center justify-center border border-slate-200 bg-white p-1.5 shadow-sm mx-auto mb-1">
+              <img
+                src="/images/masterieltsai-icon.png"
+                alt="Master IELTS AI"
+                className="w-full h-full object-contain"
+              />
             </div>
-            <h2 className="text-xl font-bold text-slate-900">
+            <div className="flex items-center justify-center gap-1.5 text-xs text-slate-500 mb-0.5">
+              <span className="font-extrabold text-slate-900 uppercase tracking-tight">MOCK TEST</span>
+              <span>from <a href="https://masterieltsai.com" target="_blank" rel="noreferrer" className="text-indigo-600 font-bold hover:underline">Master IELTS AI</a></span>
+            </div>
+            <h2 className="text-xl font-extrabold text-slate-900">
               Admin Portal Sign In
             </h2>
             <p className="text-xs text-slate-500 leading-relaxed">
