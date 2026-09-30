@@ -142,8 +142,8 @@ export const ListeningMapDiagram: React.FC<ListeningMapDiagramProps> = ({
                 src={mapImage}
                 alt={displayTitle}
                 onError={() => setImageError(true)}
-                className="block w-auto max-h-[500px] object-contain mx-auto"
-                style={{ minHeight: '260px' }}
+                className="block w-full max-h-[500px] object-contain mx-auto"
+                style={{ minHeight: '180px' }}
               />
 
               {/* Interactive Hotspot Letter Markers Overlaid directly onto Official Map */}
@@ -189,7 +189,7 @@ export const ListeningMapDiagram: React.FC<ListeningMapDiagramProps> = ({
             </div>
           ) : (
             /* Fallback clean architectural schematic if image is missing */
-            <div className="w-[600px] h-[360px] bg-slate-100 flex flex-col items-center justify-center p-6 text-center">
+            <div className="w-full max-w-[600px] min-h-[220px] sm:min-h-[320px] bg-slate-100 flex flex-col items-center justify-center p-4 sm:p-6 text-center">
               <MapPin className="w-8 h-8 text-slate-400 mb-2" />
               <p className="font-bold text-slate-800 text-sm">{displayTitle}</p>
               <p className="text-xs text-slate-500 mt-1">

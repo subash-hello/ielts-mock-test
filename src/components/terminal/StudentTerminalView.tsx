@@ -208,8 +208,8 @@ export const StudentTerminalView: React.FC<StudentTerminalViewProps> = ({
       </header>
 
       {/* Main Login Screen */}
-      <main className="flex-1 flex items-center justify-center p-6">
-        <div className="bg-white border border-slate-200 max-w-md w-full p-8 rounded-2xl shadow-sm space-y-6">
+      <main className="flex-1 flex items-center justify-center p-3 sm:p-6">
+        <div className="bg-white border border-slate-200 max-w-md w-full p-5 sm:p-8 rounded-2xl shadow-sm space-y-5 sm:space-y-6">
           <div className="text-center space-y-1.5">
             <div className="w-12 h-12 bg-blue-50 border border-blue-200 rounded-xl flex items-center justify-center mx-auto text-blue-600 shadow-xs">
               <ShieldCheck className="w-6 h-6" />

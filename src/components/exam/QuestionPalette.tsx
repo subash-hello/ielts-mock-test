@@ -66,12 +66,12 @@ export const QuestionPalette: React.FC<QuestionPaletteProps> = ({
 
   return (
     <>
-      <footer className="bg-[#efefef] border-t border-[#cfcfcf] px-4 py-2 select-none cd-ielts-font shadow-lg z-30">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-2.5">
-          {/* Left: Section Navigator & Review Checkbox */}
-          <div className="flex items-center gap-2.5 flex-wrap">
+      <footer className="bg-[#efefef] border-t border-[#cfcfcf] px-2 sm:px-4 py-1.5 sm:py-2 select-none cd-ielts-font shadow-lg z-30">
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-1.5 sm:gap-2">
+          {/* Top row on mobile / Left group on desktop */}
+          <div className="flex items-center justify-between gap-1.5 sm:gap-2 overflow-x-auto scrollbar-none pb-0.5 lg:pb-0">
             {/* Section / Part Tabs */}
-            <div className="flex items-center bg-slate-200/80 p-0.5 rounded border border-slate-300 text-xs">
+            <div className="flex items-center bg-slate-200/80 p-0.5 rounded border border-slate-300 text-xs shrink-0">
               {sectionBounds.map((sec, idx) => {
                 const isActive = idx === activeSectionIndex && !viewAllSections;
                 return (
@@ -85,19 +85,21 @@ export const QuestionPalette: React.FC<QuestionPaletteProps> = ({
                         onSelectQuestion(sec.start);
                       }
                     }}
-                    className={`px-2.5 py-1 rounded font-bold transition cursor-pointer text-[11px] ${
+                    className={`px-2 sm:px-2.5 py-1 rounded font-bold transition cursor-pointer text-[10px] sm:text-[11px] whitespace-nowrap ${
                       isActive
                         ? 'bg-white text-slate-950 shadow-xs border-b-2 border-red-600'
                         : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
                     }`}
                   >
-                    {sec.name} <span className="font-normal opacity-70">({sec.start}–{sec.end})</span>
+                    <span className="hidden sm:inline">{sec.name}</span>
+                    <span className="sm:hidden">{sec.name.replace('Passage ', 'P').replace('Part ', 'P')}</span>{' '}
+                    <span className="font-normal opacity-70">({sec.start}–{sec.end})</span>
                   </button>
                 );
               })}
               <button
                 onClick={() => setViewAllSections(!viewAllSections)}
-                className={`px-2 py-1 rounded font-semibold text-[11px] transition cursor-pointer ${
+                className={`px-1.5 sm:px-2 py-1 rounded font-semibold text-[10px] sm:text-[11px] transition cursor-pointer shrink-0 ${
                   viewAllSections
                     ? 'bg-slate-900 text-white'
                     : 'text-slate-600 hover:text-slate-900'
@@ -108,27 +110,55 @@ export const QuestionPalette: React.FC<QuestionPaletteProps> = ({
               </button>
             </div>
 
-            {/* Review Checkbox for current question (Official CD-IELTS placement) */}
-            <label className="flex items-center gap-1.5 cursor-pointer text-xs font-semibold text-slate-800 bg-white px-2.5 py-1.5 rounded border border-slate-300 shadow-2xs hover:bg-slate-50 transition">
+            {/* Review Checkbox for current question */}
+            <label className="flex items-center gap-1 cursor-pointer text-[11px] sm:text-xs font-semibold text-slate-800 bg-white px-2 sm:px-2.5 py-1 sm:py-1.5 rounded border border-slate-300 shadow-2xs hover:bg-slate-50 transition shrink-0">
               <input
                 type="checkbox"
                 checked={isCurrentReviewed}
                 onChange={() => onToggleReview(currentQuestion)}
-                className="w-4 h-4 rounded text-amber-500 focus:ring-amber-400 accent-amber-500 cursor-pointer"
+                className="w-3.5 h-3.5 sm:w-4 sm:h-4 rounded text-amber-500 focus:ring-amber-400 accent-amber-500 cursor-pointer"
               />
               <span className="flex items-center gap-1 select-none">
                 <Flag
-                  className={`w-3.5 h-3.5 ${
+                  className={`w-3 h-3 sm:w-3.5 sm:h-3.5 ${
                     isCurrentReviewed ? 'text-amber-500 fill-amber-500' : 'text-slate-400'
                   }`}
                 />
-                <span>Review ({currentQuestion})</span>
+                <span>Review <span className="font-mono">({currentQuestion})</span></span>
               </span>
             </label>
+
+            {/* Navigation Controls on mobile (< lg) */}
+            <div className="flex items-center gap-1 lg:hidden shrink-0 ml-auto">
+              <button
+                onClick={() => onSelectQuestion(Math.max(1, currentQuestion - 1))}
+                disabled={currentQuestion === 1}
+                className="flex items-center gap-0.5 px-2 py-1 bg-white hover:bg-slate-100 border border-slate-300 rounded text-[11px] font-bold text-slate-700 disabled:opacity-40 disabled:cursor-not-allowed transition cursor-pointer shadow-2xs"
+                title="Previous Question"
+              >
+                <ChevronLeft className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline">Back</span>
+              </button>
+              <button
+                onClick={() => onSelectQuestion(Math.min(totalQuestions, currentQuestion + 1))}
+                disabled={currentQuestion === totalQuestions}
+                className="flex items-center gap-0.5 px-2 py-1 bg-white hover:bg-slate-100 border border-slate-300 rounded text-[11px] font-bold text-slate-700 disabled:opacity-40 disabled:cursor-not-allowed transition cursor-pointer shadow-2xs"
+                title="Next Question"
+              >
+                <span className="hidden sm:inline">Next</span>
+                <ChevronRight className="w-3.5 h-3.5" />
+              </button>
+              <button
+                onClick={() => setShowConfirmModal(true)}
+                className="px-2.5 py-1 bg-red-600 hover:bg-red-700 text-white rounded text-[11px] font-bold shadow-xs transition cursor-pointer whitespace-nowrap"
+              >
+                Finish
+              </button>
+            </div>
           </div>
 
           {/* Center: Question Palette Buttons */}
-          <div className="flex items-center gap-1.5 overflow-x-auto py-1 px-1 scrollbar-thin">
+          <div className="flex items-center gap-1 sm:gap-1.5 overflow-x-auto py-0.5 px-0.5 scrollbar-none flex-1 min-w-0">
             {displayedRange.map((qNum) => {
               const isActive = qNum === currentQuestion;
               const ansVal = answers[qNum];
@@ -138,11 +168,6 @@ export const QuestionPalette: React.FC<QuestionPaletteProps> = ({
                 (Array.isArray(ansVal) ? ansVal.length > 0 : ansVal.toString().trim() !== '');
               const isReviewed = !!reviewStatus[qNum];
 
-              // Authentic CD-IELTS styling:
-              // - Active: Red ring & dark background
-              // - Answered: Distinct solid bottom bar / dark font
-              // - Reviewed: Amber flag / circular ring
-              // - Unanswered: Crisp light background
               let btnClass = 'bg-white border-slate-300 text-slate-700 hover:bg-slate-100 hover:border-slate-400';
               if (isActive) {
                 btnClass = 'bg-slate-900 text-white ring-2 ring-red-600 font-extrabold shadow-xs';
@@ -156,7 +181,7 @@ export const QuestionPalette: React.FC<QuestionPaletteProps> = ({
                 <button
                   key={qNum}
                   onClick={() => onSelectQuestion(qNum)}
-                  className={`w-8 h-8 flex-shrink-0 flex items-center justify-center text-xs rounded transition relative cursor-pointer ${btnClass}`}
+                  className={`w-7 h-7 sm:w-8 sm:h-8 flex-shrink-0 flex items-center justify-center text-xs rounded transition relative cursor-pointer ${btnClass}`}
                   title={`Question ${qNum}${isAnswered ? ' (Answered)' : ' (Not answered)'}${
                     isReviewed ? ' - Marked for review' : ''
                   }`}
@@ -170,8 +195,8 @@ export const QuestionPalette: React.FC<QuestionPaletteProps> = ({
             })}
           </div>
 
-          {/* Right: Navigation Controls & Finish Exam */}
-          <div className="flex items-center gap-2">
+          {/* Right: Navigation Controls & Finish Exam (on desktop >= lg) */}
+          <div className="hidden lg:flex items-center gap-2 shrink-0">
             <button
               onClick={() => onSelectQuestion(Math.max(1, currentQuestion - 1))}
               disabled={currentQuestion === 1}

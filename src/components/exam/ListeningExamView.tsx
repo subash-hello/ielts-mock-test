@@ -420,13 +420,13 @@ export const ListeningExamView: React.FC<ListeningExamViewProps> = ({
               <span className="text-sm font-semibold text-slate-800 flex-1">
                 {q.prompt.replace(/\[\s*\d+\s*\]/, '').trim()}
               </span>
-              <div className="flex items-center gap-1.5">
+              <div className="flex items-center gap-1.5 w-full sm:w-auto">
                 <input
                   type="text"
                   value={val}
                   onChange={(e) => onAnswerChange(qNum, e.target.value)}
                   onFocus={() => onSelectQuestion(qNum)}
-                  className={`h-8 px-2.5 rounded-xs border text-sm text-slate-900 font-medium w-48 sm:w-60 outline-none ${
+                  className={`h-8 px-2.5 rounded-xs border text-sm text-slate-900 font-medium w-full sm:w-60 outline-none ${
                     isSelected
                       ? 'border-red-600 ring-1 ring-red-500 bg-white'
                       : 'border-slate-400 bg-white'
@@ -1002,8 +1002,8 @@ export const ListeningExamView: React.FC<ListeningExamViewProps> = ({
   return (
     <div className="flex-1 flex flex-col overflow-hidden cd-ielts-font bg-white">
       {/* 1. Official CD-IELTS Part Navigation Sub-Header (Full-Width) */}
-      <div className="bg-[#f2f2f2] border-b border-[#cfcfcf] px-6 py-2 flex items-center justify-between text-xs select-none">
-        <div className="flex items-center gap-2">
+      <div className="bg-[#f2f2f2] border-b border-[#cfcfcf] px-3 sm:px-6 py-1.5 sm:py-2 flex items-center justify-between text-xs select-none">
+        <div className="flex items-center gap-1.5 sm:gap-2 overflow-x-auto pb-0.5 scrollbar-none w-full md:w-auto">
           {test.sections.map((sec, idx) => {
             const isActive = idx === activePartIndex;
             const partQStart = idx * 10 + 1;
@@ -1013,7 +1013,7 @@ export const ListeningExamView: React.FC<ListeningExamViewProps> = ({
               <button
                 key={idx}
                 onClick={() => onSelectPart(idx)}
-                className={`px-5 py-2 font-bold transition rounded-t-md text-xs cursor-pointer ${
+                className={`px-3 sm:px-5 py-1.5 sm:py-2 font-bold transition rounded-t-md text-[11px] sm:text-xs cursor-pointer shrink-0 ${
                   isActive
                     ? 'bg-white text-slate-950 border-t-3 border-red-600 shadow-xs'
                     : 'text-slate-600 hover:text-black hover:bg-slate-200'
@@ -1025,13 +1025,13 @@ export const ListeningExamView: React.FC<ListeningExamViewProps> = ({
           })}
         </div>
 
-        <div className="text-[11px] text-slate-500 italic hidden md:block">
-          Official Computer-Delivered IELTS Listening Simulator
+        <div className="text-[11px] text-slate-500 italic hidden md:block shrink-0">
+          Official CD-IELTS Listening Simulator
         </div>
       </div>
 
       {/* 2. Official Audio Control Bar (Full-Width, Clean, Non-intrusive) */}
-      <div className="bg-[#fafafa] border-b border-[#e5e5e5] px-6 py-2 flex items-center justify-between text-xs select-none">
+      <div className="bg-[#fafafa] border-b border-[#e5e5e5] px-3 sm:px-6 py-2 flex flex-wrap items-center justify-between gap-2 text-xs select-none">
         <div className="flex items-center gap-4">
           {/* Play/Pause Button */}
           <button
@@ -1144,7 +1144,7 @@ export const ListeningExamView: React.FC<ListeningExamViewProps> = ({
       {/* 3. Main Full-Width Exam Workspace */}
       <div
         ref={mainPaneRef}
-        className="flex-1 overflow-y-auto px-6 md:px-14 py-8 bg-white"
+        className="flex-1 overflow-y-auto px-3 sm:px-6 md:px-14 py-4 sm:py-8 bg-white"
       >
         <div className="max-w-4xl space-y-8">
           {/* Part Header */}

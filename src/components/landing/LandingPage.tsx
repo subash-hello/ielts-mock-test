@@ -25,7 +25,9 @@ import {
   SlidersHorizontal,
   ExternalLink,
   ShieldCheck,
-  FileCheck
+  FileCheck,
+  Menu,
+  X
 } from 'lucide-react';
 import type { IELTSMockTest, IELTSModule, TestResult } from '../../types/ielts';
 import type { CandidateSession, AdminUser } from '../../types/consultancy';
@@ -73,6 +75,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
   const [searchQuery, setSearchQuery] = useState('');
   const [isSoundTesting, setIsSoundTesting] = useState(false);
   const [openFaqIndex, setOpenFaqIndex] = useState<number | null>(null);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   // Candidate Name Check-In Modal state when clicking ANY test
   const [selectedTestForModal, setSelectedTestForModal] = useState<IELTSMockTest | null>(null);
@@ -146,6 +149,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
     if (el) {
       el.scrollIntoView({ behavior: 'smooth' });
     }
+    setIsMobileMenuOpen(false);
   };
 
   const faqs = [
@@ -174,15 +178,15 @@ export const LandingPage: React.FC<LandingPageProps> = ({
   return (
     <div className="min-h-screen bg-white text-slate-900 flex flex-col font-sans selection:bg-indigo-100 selection:text-indigo-900 relative">
       {/* 1. Top Status Ribbon */}
-      <div className="bg-slate-100 border-b border-slate-200 text-xs text-slate-700 py-2 px-4 z-40 relative">
-        <div className="max-w-7xl mx-auto flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <span className="w-2 h-2 rounded-full bg-emerald-600 animate-pulse" />
-            <span>
+      <div className="bg-slate-100 border-b border-slate-200 text-xs text-slate-700 py-2 px-3 sm:px-4 z-40 relative">
+        <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-1.5 text-center sm:text-left">
+          <div className="flex items-center justify-center sm:justify-start gap-2">
+            <span className="w-2 h-2 rounded-full bg-emerald-600 animate-pulse shrink-0" />
+            <span className="text-[11px] sm:text-xs">
               Computer-Delivered IELTS (CD-IELTS) Simulator • <strong className="text-slate-900">Cambridge Academic 18–21</strong>
             </span>
           </div>
-          <div className="hidden sm:flex items-center gap-4 text-slate-600">
+          <div className="hidden sm:flex items-center gap-3 text-[11px] sm:text-xs text-slate-600">
             <a
               href="https://masterieltsai.com"
               target="_blank"
@@ -200,10 +204,10 @@ export const LandingPage: React.FC<LandingPageProps> = ({
 
       {/* 2. Top Navigation Bar */}
       <header className="bg-white/95 backdrop-blur-md border-b border-slate-200 sticky top-0 z-40 shadow-xs">
-        <nav className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
+        <nav className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 h-16 sm:h-20 flex items-center justify-between">
           {/* Brand: MOCK TEST from Master IELTS AI */}
-          <a href="/" className="flex items-center gap-3.5 group">
-            <div className="w-11 h-11 rounded-xl overflow-hidden flex items-center justify-center shadow-xs border border-slate-200 bg-white p-1 group-hover:border-indigo-400 transition">
+          <a href="/" className="flex items-center gap-2.5 sm:gap-3.5 group shrink-0">
+            <div className="w-9 h-9 sm:w-11 sm:h-11 rounded-xl overflow-hidden flex items-center justify-center shadow-xs border border-slate-200 bg-white p-1 group-hover:border-indigo-400 transition shrink-0">
               <img
                 src="/images/masterieltsai-icon.png"
                 alt="Master IELTS AI"
@@ -214,15 +218,15 @@ export const LandingPage: React.FC<LandingPageProps> = ({
               />
             </div>
             <div className="flex flex-col">
-              <div className="flex items-center gap-2">
-                <span className="text-xl font-black tracking-tight text-slate-900 uppercase">
+              <div className="flex items-center gap-1.5 sm:gap-2">
+                <span className="text-base sm:text-xl font-black tracking-tight text-slate-900 uppercase">
                   MOCK TEST
                 </span>
-                <span className="hidden sm:inline-flex text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-md bg-indigo-50 text-indigo-700 border border-indigo-200">
+                <span className="hidden sm:inline-flex text-[9px] sm:text-[10px] font-bold uppercase tracking-wider px-1.5 sm:px-2 py-0.5 rounded-md bg-indigo-50 text-indigo-700 border border-indigo-200">
                   Cambridge 18–21
                 </span>
               </div>
-              <span className="text-[11px] text-slate-500 font-medium leading-none mt-0.5">
+              <span className="text-[10px] sm:text-[11px] text-slate-500 font-medium leading-none mt-0.5">
                 from{' '}
                 <a
                   href="https://masterieltsai.com"
@@ -237,8 +241,8 @@ export const LandingPage: React.FC<LandingPageProps> = ({
             </div>
           </a>
 
-          {/* Navigation Links */}
-          <div className="hidden lg:flex items-center gap-7 text-xs font-bold text-slate-700">
+          {/* Desktop Navigation Links */}
+          <div className="hidden lg:flex items-center gap-6 xl:gap-8 text-xs font-bold text-slate-700">
             <a href="#test-catalog" className="text-slate-900 hover:text-indigo-600 transition flex items-center gap-1.5">
               <span>Mock Tests</span>
               <span className="px-1.5 py-0.2 rounded text-[10px] bg-red-600 text-white font-black">32 PAPERS</span>
@@ -250,36 +254,36 @@ export const LandingPage: React.FC<LandingPageProps> = ({
           </div>
 
           {/* Right Action Tools */}
-          <div className="flex items-center gap-2 sm:gap-3">
+          <div className="flex items-center gap-1.5 sm:gap-2.5">
             {/* Audio Check Button */}
             <button
               onClick={testAudio}
-              className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold border transition cursor-pointer ${
+              className={`flex items-center gap-1 px-2.5 sm:px-3 py-1.5 sm:py-2 rounded-xl text-xs font-semibold border transition cursor-pointer ${
                 isSoundTesting
                   ? 'bg-amber-50 text-amber-800 border-amber-300 animate-pulse'
                   : 'bg-slate-100 hover:bg-slate-200 text-slate-800 border-slate-300'
               }`}
               title="Test audio tone before the Listening exam"
             >
-              <Volume2 className="w-3.5 h-3.5 text-indigo-600" />
+              <Volume2 className="w-3.5 h-3.5 text-indigo-600 shrink-0" />
               <span className="hidden sm:inline">{isSoundTesting ? 'Playing 440Hz...' : 'Sound Test'}</span>
             </button>
 
             {/* Candidate Session Pill */}
             {candidateSession && (
-              <div className="hidden md:flex items-center gap-2 bg-indigo-50 border border-indigo-200 px-3 py-2 rounded-xl text-xs">
+              <div className="hidden xl:flex items-center gap-2 bg-indigo-50 border border-indigo-200 px-3 py-1.5 rounded-xl text-xs">
                 <User className="w-3.5 h-3.5 text-indigo-600" />
-                <span className="font-bold text-slate-900 truncate max-w-[120px]">{candidateSession.candidateName}</span>
+                <span className="font-bold text-slate-900 truncate max-w-[100px]">{candidateSession.candidateName}</span>
                 <span className="text-slate-400">•</span>
-                <span className="text-indigo-700 truncate max-w-[100px]">{candidateSession.consultancyName}</span>
+                <span className="text-indigo-700 truncate max-w-[90px]">{candidateSession.consultancyName}</span>
               </div>
             )}
 
             {/* Admin Session Pill */}
             {adminUser && (
-              <div className="hidden md:flex items-center gap-2 bg-blue-50 border border-blue-200 px-3 py-2 rounded-xl text-xs">
+              <div className="hidden xl:flex items-center gap-2 bg-blue-50 border border-blue-200 px-3 py-1.5 rounded-xl text-xs">
                 <Building2 className="w-3.5 h-3.5 text-blue-700" />
-                <span className="font-bold text-blue-900 truncate max-w-[120px]">{adminUser.name || adminUser.email}</span>
+                <span className="font-bold text-blue-900 truncate max-w-[100px]">{adminUser.name || adminUser.email}</span>
               </div>
             )}
 
@@ -287,12 +291,11 @@ export const LandingPage: React.FC<LandingPageProps> = ({
             {onOpenConsultancy && (
               <button
                 onClick={onOpenConsultancy}
-                className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold bg-white hover:bg-slate-50 text-slate-800 border border-slate-300 shadow-xs transition cursor-pointer"
+                className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 sm:py-2 rounded-xl text-xs font-bold bg-white hover:bg-slate-50 text-slate-800 border border-slate-300 shadow-xs transition cursor-pointer"
                 title="Consultancy Director & Lab Portal"
               >
                 <Building2 className="w-3.5 h-3.5 text-indigo-600" />
-                <span className="hidden sm:inline">Consultancy Portal</span>
-                <span className="sm:hidden">Portal</span>
+                <span>Portal</span>
               </button>
             )}
 
@@ -300,7 +303,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
             {adminUser?.role === 'super_admin' && onOpenSuperAdmin && (
               <button
                 onClick={onOpenSuperAdmin}
-                className="p-2 rounded-xl text-slate-700 hover:text-slate-900 bg-slate-100 hover:bg-slate-200 border border-slate-300 transition cursor-pointer"
+                className="p-1.5 sm:p-2 rounded-xl text-slate-700 hover:text-slate-900 bg-slate-100 hover:bg-slate-200 border border-slate-300 transition cursor-pointer"
                 title="Super Admin Dashboard"
               >
                 <Cpu className="w-4 h-4 text-purple-600" />
@@ -310,9 +313,9 @@ export const LandingPage: React.FC<LandingPageProps> = ({
             {/* Primary Action Button */}
             <button
               onClick={scrollToTests}
-              className="px-4 py-2 rounded-xl text-xs font-extrabold bg-indigo-600 hover:bg-indigo-700 text-white shadow-sm hover:-translate-y-0.5 transition-all flex items-center gap-1.5 cursor-pointer"
+              className="px-3 sm:px-4 py-1.5 sm:py-2 rounded-xl text-xs font-extrabold bg-indigo-600 hover:bg-indigo-700 text-white shadow-xs hover:-translate-y-0.5 transition-all flex items-center gap-1 cursor-pointer"
             >
-              <Sparkles className="w-3.5 h-3.5 text-amber-300" />
+              <Sparkles className="w-3.5 h-3.5 text-amber-300 shrink-0" />
               <span>Select Test</span>
             </button>
 
@@ -320,22 +323,100 @@ export const LandingPage: React.FC<LandingPageProps> = ({
             {(candidateSession || adminUser) && onLogout && (
               <button
                 onClick={onLogout}
-                className="p-2 rounded-xl text-red-600 hover:text-red-700 bg-red-50 hover:bg-red-100 border border-red-200 transition cursor-pointer"
+                className="p-1.5 sm:p-2 rounded-xl text-red-600 hover:text-red-700 bg-red-50 hover:bg-red-100 border border-red-200 transition cursor-pointer"
                 title="Sign Out"
               >
                 <LogOut className="w-4 h-4" />
               </button>
             )}
+
+            {/* Mobile Hamburger Toggle */}
+            <button
+              onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+              className="p-1.5 sm:p-2 rounded-xl text-slate-700 hover:text-slate-950 hover:bg-slate-100 border border-slate-300 lg:hidden transition cursor-pointer"
+              title="Toggle Menu"
+            >
+              {isMobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+            </button>
           </div>
         </nav>
+
+        {/* Mobile Navigation Drawer */}
+        {isMobileMenuOpen && (
+          <div className="lg:hidden border-t border-slate-200 bg-white px-4 py-4 space-y-3 shadow-lg animate-in slide-in-from-top-2">
+            <div className="grid grid-cols-2 gap-2 text-xs font-bold text-slate-700">
+              <a
+                href="#test-catalog"
+                onClick={() => setIsMobileMenuOpen(false)}
+                className="p-2.5 rounded-lg bg-slate-50 hover:bg-indigo-50 hover:text-indigo-600 flex items-center justify-between"
+              >
+                <span>Mock Tests</span>
+                <span className="px-1.5 py-0.2 rounded text-[9px] bg-red-600 text-white font-black">32</span>
+              </a>
+              <a
+                href="#cd-features"
+                onClick={() => setIsMobileMenuOpen(false)}
+                className="p-2.5 rounded-lg bg-slate-50 hover:bg-indigo-50 hover:text-indigo-600"
+              >
+                CD-IELTS Format
+              </a>
+              <a
+                href="#consultancy-lab"
+                onClick={() => setIsMobileMenuOpen(false)}
+                className="p-2.5 rounded-lg bg-slate-50 hover:bg-indigo-50 hover:text-indigo-600"
+              >
+                Consultancy Lab
+              </a>
+              <a
+                href="#creators"
+                onClick={() => setIsMobileMenuOpen(false)}
+                className="p-2.5 rounded-lg bg-slate-50 hover:bg-indigo-50 hover:text-indigo-600"
+              >
+                Meet Creators
+              </a>
+              <a
+                href="#faq"
+                onClick={() => setIsMobileMenuOpen(false)}
+                className="p-2.5 rounded-lg bg-slate-50 hover:bg-indigo-50 hover:text-indigo-600 col-span-2"
+              >
+                Frequently Asked Questions
+              </a>
+            </div>
+
+            <div className="pt-2 border-t border-slate-100 flex flex-wrap gap-2 text-xs">
+              {onOpenConsultancy && (
+                <button
+                  onClick={() => {
+                    setIsMobileMenuOpen(false);
+                    onOpenConsultancy();
+                  }}
+                  className="flex-1 py-2 px-3 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold border border-slate-200 text-center"
+                >
+                  Consultancy Portal Login
+                </button>
+              )}
+              {onOpenTerminal && (
+                <button
+                  onClick={() => {
+                    setIsMobileMenuOpen(false);
+                    onOpenTerminal();
+                  }}
+                  className="flex-1 py-2 px-3 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold border border-slate-200 text-center"
+                >
+                  Pair Student PC
+                </button>
+              )}
+            </div>
+          </div>
+        )}
       </header>
 
       {/* Active Candidate Session Banner */}
       {candidateSession && (
         <div className="bg-indigo-50 border-b border-indigo-200 px-4 py-2.5 text-xs z-30 relative text-slate-800">
-          <div className="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-3">
-            <div className="flex items-center gap-2 font-medium">
-              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+          <div className="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-2.5">
+            <div className="flex flex-wrap items-center gap-2 font-medium">
+              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse shrink-0" />
               <span>Connected Station: <strong className="text-slate-900">{candidateSession.stationName}</strong></span>
               <span className="text-slate-300">•</span>
               <span>Test Centre: <strong className="text-slate-900">{candidateSession.consultancyName}</strong></span>
@@ -357,32 +438,32 @@ export const LandingPage: React.FC<LandingPageProps> = ({
       )}
 
       {/* 3. Hero Section (Clean, High-Contrast White Background) */}
-      <section className="relative z-10 pt-12 pb-16 lg:pt-16 lg:pb-20 bg-white">
+      <section className="relative z-10 pt-8 pb-12 sm:pt-14 sm:pb-16 lg:pt-18 lg:pb-20 bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-8 items-center">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-8 items-center">
             {/* Left Column */}
-            <div className="lg:col-span-7 space-y-6 text-center lg:text-left">
+            <div className="lg:col-span-7 space-y-5 sm:space-y-6 text-center lg:text-left">
               <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-indigo-50 border border-indigo-200 text-indigo-700 text-xs font-bold tracking-wide">
-                <ShieldCheck className="w-4 h-4 text-indigo-600" />
+                <ShieldCheck className="w-4 h-4 text-indigo-600 shrink-0" />
                 <span>Official Cambridge Academic 18–21 Papers</span>
               </div>
 
-              <h1 className="text-4xl sm:text-5xl lg:text-6xl font-black tracking-tight leading-[1.1] text-slate-950">
+              <h1 className="text-3xl sm:text-5xl lg:text-6xl font-black tracking-tight leading-[1.1] text-slate-950">
                 Official IELTS Academic{' '}
                 <span className="gradient-text">
                   Mock Tests
                 </span>
               </h1>
 
-              <p className="text-base sm:text-lg text-slate-600 max-w-2xl mx-auto lg:mx-0 leading-relaxed font-normal">
+              <p className="text-sm sm:text-base lg:text-lg text-slate-600 max-w-2xl mx-auto lg:mx-0 leading-relaxed font-normal">
                 Take full-length Reading and Listening practice tests under authentic Computer-Delivered IELTS (CD-IELTS) exam conditions. Experience official timed sections, side-by-side reading passages, listening audio players, and instant band score calculation.
               </p>
 
               {/* Action Buttons */}
-              <div className="flex flex-col sm:flex-row gap-3.5 pt-2 justify-center lg:justify-start">
+              <div className="flex flex-col sm:flex-row gap-3 pt-2 justify-center lg:justify-start">
                 <button
                   onClick={scrollToTests}
-                  className="px-7 py-3.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-extrabold text-sm shadow-md hover:-translate-y-0.5 transition-all flex items-center justify-center gap-2.5 cursor-pointer"
+                  className="w-full sm:w-auto px-6 sm:px-7 py-3 sm:py-3.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-extrabold text-sm shadow-md hover:-translate-y-0.5 transition-all flex items-center justify-center gap-2 cursor-pointer"
                 >
                   <span>Browse All 32 Tests</span>
                   <ArrowRight className="w-4 h-4" />
@@ -391,7 +472,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                 {onOpenConsultancy && (
                   <button
                     onClick={onOpenConsultancy}
-                    className="px-6 py-3.5 rounded-xl bg-white hover:bg-slate-50 border border-slate-300 text-slate-900 font-bold text-sm shadow-xs transition-all flex items-center justify-center gap-2 cursor-pointer"
+                    className="w-full sm:w-auto px-5 sm:px-6 py-3 sm:py-3.5 rounded-xl bg-white hover:bg-slate-50 border border-slate-300 text-slate-900 font-bold text-sm shadow-xs transition-all flex items-center justify-center gap-2 cursor-pointer"
                   >
                     <Building2 className="w-4 h-4 text-indigo-600" />
                     <span>Consultancy Lab Portal</span>
@@ -400,7 +481,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
 
                 <button
                   onClick={testAudio}
-                  className="px-5 py-3.5 rounded-xl bg-slate-100 hover:bg-slate-200 border border-slate-300 text-slate-800 font-semibold text-sm transition-all flex items-center justify-center gap-2 cursor-pointer"
+                  className="w-full sm:w-auto px-4 sm:px-5 py-3 sm:py-3.5 rounded-xl bg-slate-100 hover:bg-slate-200 border border-slate-300 text-slate-800 font-semibold text-sm transition-all flex items-center justify-center gap-2 cursor-pointer"
                 >
                   <Volume2 className="w-4 h-4 text-indigo-600" />
                   <span>Check Audio</span>
@@ -408,59 +489,61 @@ export const LandingPage: React.FC<LandingPageProps> = ({
               </div>
 
               {/* Real Stats Grid */}
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 pt-6 border-t border-slate-200 text-left">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 pt-5 sm:pt-6 border-t border-slate-200 text-left">
                 <div>
                   <p className="text-xl sm:text-2xl font-black text-slate-900 font-mono">32 Papers</p>
-                  <p className="text-xs text-slate-500 mt-0.5 font-medium">Cambridge 18, 19, 20 &amp; 21</p>
+                  <p className="text-[11px] sm:text-xs text-slate-500 mt-0.5 font-medium">Cambridge 18, 19, 20 &amp; 21</p>
                 </div>
                 <div>
                   <p className="text-xl sm:text-2xl font-black text-slate-900 font-mono">CD-IELTS</p>
-                  <p className="text-xs text-slate-500 mt-0.5 font-medium">Official Exam Layout</p>
+                  <p className="text-[11px] sm:text-xs text-slate-500 mt-0.5 font-medium">Official Exam Layout</p>
                 </div>
                 <div>
                   <p className="text-xl sm:text-2xl font-black text-slate-900 font-mono">Band 9.0</p>
-                  <p className="text-xs text-slate-500 mt-0.5 font-medium">Official Raw Conversion</p>
+                  <p className="text-[11px] sm:text-xs text-slate-500 mt-0.5 font-medium">Official Raw Conversion</p>
                 </div>
                 <div>
                   <p className="text-xl sm:text-2xl font-black text-slate-900 font-mono">Live Sync</p>
-                  <p className="text-xs text-slate-500 mt-0.5 font-medium">Consultancy Telemetry</p>
+                  <p className="text-[11px] sm:text-xs text-slate-500 mt-0.5 font-medium">Consultancy Telemetry</p>
                 </div>
               </div>
             </div>
 
             {/* Right Column: Clean Exam Screen Preview Card */}
-            <div className="lg:col-span-5 flex justify-center">
-              <div className="w-full max-w-[460px] rounded-2xl border border-slate-200 bg-white p-5 shadow-xl space-y-4">
+            <div className="lg:col-span-5 flex justify-center w-full">
+              <div className="w-full max-w-[460px] rounded-2xl border border-slate-200 bg-white p-4 sm:p-5 shadow-xl space-y-3.5 sm:space-y-4">
                 <div className="flex items-center justify-between border-b border-slate-200 pb-3 text-xs">
                   <div className="flex items-center gap-2">
-                    <div className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
+                    <div className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse shrink-0" />
                     <span className="font-bold text-slate-900">IELTS Academic Reading</span>
                   </div>
                   <span className="font-mono text-indigo-700 font-bold">59:14 remaining</span>
                 </div>
 
                 {/* Simulated Screen Body */}
-                <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 space-y-3 text-xs">
+                <div className="rounded-xl border border-slate-200 bg-slate-50 p-3 sm:p-4 space-y-3 text-xs">
                   <div className="flex items-center justify-between text-[11px] text-slate-600 border-b border-slate-200 pb-2">
                     <span className="font-semibold">Cambridge 19 • Test 1</span>
-                    <span className="text-indigo-700 font-mono font-medium">Passage 1: How Tennis Rackets Have Changed</span>
+                    <span className="text-indigo-700 font-mono font-medium truncate max-w-[180px] sm:max-w-none">
+                      Passage 1: Tennis Rackets
+                    </span>
                   </div>
 
                   <div className="grid grid-cols-2 gap-2 text-[11px]">
-                    <div className="p-2.5 rounded-lg bg-white border border-slate-200 space-y-1">
-                      <span className="text-slate-500 block font-semibold">Reading Passage</span>
+                    <div className="p-2 sm:p-2.5 rounded-lg bg-white border border-slate-200 space-y-1">
+                      <span className="text-slate-500 block font-semibold text-[10px] sm:text-[11px]">Reading Passage</span>
                       <p className="text-slate-800 text-[10px] line-clamp-3 leading-relaxed">
                         In 1874, Major Walter Wingfield patented a game he called Sphairistike, which soon became lawn tennis...
                       </p>
                     </div>
-                    <div className="p-2.5 rounded-lg bg-white border border-slate-200 space-y-1">
-                      <span className="text-slate-500 block font-semibold">Questions 1–7</span>
+                    <div className="p-2 sm:p-2.5 rounded-lg bg-white border border-slate-200 space-y-1">
+                      <span className="text-slate-500 block font-semibold text-[10px] sm:text-[11px]">Questions 1–7</span>
                       <p className="text-indigo-700 text-[10px] font-mono font-bold">
                         TRUE / FALSE / NOT GIVEN
                       </p>
-                      <div className="flex gap-1 pt-1">
-                        <span className="px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-800 text-[9px] font-bold">Q1 Answered</span>
-                        <span className="px-1.5 py-0.5 rounded bg-amber-100 text-amber-800 text-[9px] font-bold">Q2 Flagged</span>
+                      <div className="flex flex-wrap gap-1 pt-0.5">
+                        <span className="px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-800 text-[8px] sm:text-[9px] font-bold">Q1 Done</span>
+                        <span className="px-1.5 py-0.5 rounded bg-amber-100 text-amber-800 text-[8px] sm:text-[9px] font-bold">Q2 Flag</span>
                       </div>
                     </div>
                   </div>
@@ -470,7 +553,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                     <span className="text-[10px] text-slate-600 uppercase tracking-wider block mb-1.5 font-bold">
                       Question Palette (40 Questions)
                     </span>
-                    <div className="grid grid-cols-10 gap-1 text-center font-mono text-[9px]">
+                    <div className="grid grid-cols-10 gap-0.5 sm:gap-1 text-center font-mono text-[8px] sm:text-[9px]">
                       {Array.from({ length: 20 }, (_, i) => (
                         <div
                           key={i}
@@ -493,9 +576,9 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                   <span className="text-slate-500 text-[11px]">Standard CD-IELTS Environment</span>
                   <button
                     onClick={scrollToTests}
-                    className="px-3.5 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs shadow-xs transition cursor-pointer"
+                    className="px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs shadow-xs transition cursor-pointer"
                   >
-                    Start Practice Paper →
+                    Start Paper →
                   </button>
                 </div>
               </div>
@@ -505,13 +588,13 @@ export const LandingPage: React.FC<LandingPageProps> = ({
       </section>
 
       {/* 4. Cambridge Academic Mock Test Catalog (#test-catalog) */}
-      <section id="test-catalog" className="relative z-10 py-16 bg-slate-50 border-t border-slate-200 scroll-mt-20">
+      <section id="test-catalog" className="relative z-10 py-12 sm:py-16 bg-slate-50 border-t border-slate-200 scroll-mt-20">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
           {/* Header */}
           <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 border-b border-slate-200 pb-5">
             <div>
               <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-50 border border-indigo-200 text-indigo-700 text-xs font-bold mb-2">
-                <FileCheck className="w-3.5 h-3.5 text-indigo-600" />
+                <FileCheck className="w-3.5 h-3.5 text-indigo-600 shrink-0" />
                 <span>Cambridge Academic Papers Catalog</span>
               </div>
               <h2 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
@@ -523,7 +606,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
             </div>
 
             {/* Search Input */}
-            <div className="relative min-w-[260px]">
+            <div className="relative w-full md:w-auto md:min-w-[280px]">
               <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
               <input
                 type="text"
@@ -536,15 +619,15 @@ export const LandingPage: React.FC<LandingPageProps> = ({
           </div>
 
           {/* Book & Module Selector Bar */}
-          <div className="flex flex-wrap items-center justify-between gap-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
             {/* Book Tabs */}
-            <div className="flex items-center gap-2 overflow-x-auto pb-1">
-              <span className="text-xs font-bold text-slate-500 uppercase tracking-wider mr-1">Book:</span>
+            <div className="flex items-center gap-1.5 sm:gap-2 overflow-x-auto pb-1 scrollbar-none w-full sm:w-auto">
+              <span className="text-xs font-bold text-slate-500 uppercase tracking-wider mr-1 shrink-0">Book:</span>
               {books.map((b) => (
                 <button
                   key={b}
                   onClick={() => setSelectedBook(b)}
-                  className={`px-4 py-2 rounded-xl text-xs font-extrabold transition-all cursor-pointer ${
+                  className={`px-3.5 sm:px-4 py-1.5 sm:py-2 rounded-xl text-xs font-extrabold transition-all cursor-pointer shrink-0 ${
                     selectedBook === b
                       ? 'bg-slate-900 text-white shadow-sm'
                       : 'bg-white hover:bg-slate-100 text-slate-700 border border-slate-300 shadow-xs'
@@ -556,10 +639,10 @@ export const LandingPage: React.FC<LandingPageProps> = ({
             </div>
 
             {/* Module Filter */}
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1.5 sm:gap-2 overflow-x-auto pb-1 scrollbar-none w-full sm:w-auto">
               <button
                 onClick={() => setModuleFilter('all')}
-                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition cursor-pointer ${
+                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition cursor-pointer shrink-0 ${
                   moduleFilter === 'all'
                     ? 'bg-slate-900 text-white shadow-xs'
                     : 'text-slate-600 hover:text-slate-900 bg-white border border-slate-300'
@@ -569,7 +652,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
               </button>
               <button
                 onClick={() => setModuleFilter('reading')}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition cursor-pointer ${
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition cursor-pointer shrink-0 ${
                   moduleFilter === 'reading'
                     ? 'bg-amber-600 text-white shadow-xs'
                     : 'text-slate-600 hover:text-slate-900 bg-white border border-slate-300'
@@ -580,7 +663,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
               </button>
               <button
                 onClick={() => setModuleFilter('listening')}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition cursor-pointer ${
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition cursor-pointer shrink-0 ${
                   moduleFilter === 'listening'
                     ? 'bg-emerald-600 text-white shadow-xs'
                     : 'text-slate-600 hover:text-slate-900 bg-white border border-slate-300'
@@ -593,7 +676,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
           </div>
 
           {/* Test Cards Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-5">
             {filteredTests.map((test) => {
               const isReading = test.module === 'reading';
               const totalQ = test.sections.reduce(
@@ -609,9 +692,9 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                 <div
                   key={test.id}
                   onClick={() => handleTestClick(test)}
-                  className="rounded-2xl p-5 border border-slate-200 bg-white hover:border-indigo-500 hover:shadow-md transition-all duration-200 flex flex-col justify-between group cursor-pointer hover:-translate-y-0.5 relative shadow-xs"
+                  className="rounded-2xl p-4 sm:p-5 border border-slate-200 bg-white hover:border-indigo-500 hover:shadow-md transition-all duration-200 flex flex-col justify-between group cursor-pointer hover:-translate-y-0.5 relative shadow-xs"
                 >
-                  <div className="space-y-3">
+                  <div className="space-y-2.5 sm:space-y-3">
                     <div className="flex items-center justify-between">
                       <span className="text-[10px] font-extrabold uppercase px-2 py-0.5 rounded bg-slate-100 text-slate-800 font-mono border border-slate-200">
                         BOOK {test.book}
@@ -672,23 +755,23 @@ export const LandingPage: React.FC<LandingPageProps> = ({
       </section>
 
       {/* 5. Authentic CD-IELTS Exam Features (#cd-features) */}
-      <section id="cd-features" className="relative z-10 py-20 bg-white border-t border-slate-200">
+      <section id="cd-features" className="relative z-10 py-14 sm:py-20 bg-white border-t border-slate-200">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-14">
+          <div className="text-center mb-10 sm:mb-14">
             <span className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-indigo-50 border border-indigo-200 text-indigo-700 text-xs font-bold uppercase tracking-widest mb-3">
-              <Monitor className="w-3.5 h-3.5 text-indigo-600" /> True-to-Life Testing Environment
+              <Monitor className="w-3.5 h-3.5 text-indigo-600 shrink-0" /> True-to-Life Testing Environment
             </span>
-            <h2 className="text-2xl sm:text-3xl lg:text-4xl font-black text-slate-950 tracking-tight mb-3">
+            <h2 className="text-2xl sm:text-3xl lg:text-4xl font-black text-slate-950 tracking-tight mb-2 sm:mb-3">
               Standard Computer-Delivered <span className="gradient-text">CD-IELTS Features</span>
             </h2>
-            <p className="text-slate-600 text-sm max-w-2xl mx-auto">
+            <p className="text-slate-600 text-xs sm:text-sm max-w-2xl mx-auto leading-relaxed">
               Our mock test engine is designed to mirror the exact test day experience at official British Council and IDP test centres.
             </p>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            <div className="rounded-2xl p-6 border border-slate-200 bg-slate-50/70 hover:bg-white hover:border-indigo-300 hover:shadow-sm transition space-y-3">
-              <div className="w-10 h-10 rounded-xl bg-violet-100 border border-violet-200 flex items-center justify-center text-violet-700">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
+            <div className="rounded-2xl p-5 sm:p-6 border border-slate-200 bg-slate-50/70 hover:bg-white hover:border-indigo-300 hover:shadow-sm transition space-y-2.5">
+              <div className="w-10 h-10 rounded-xl bg-violet-100 border border-violet-200 flex items-center justify-center text-violet-700 shrink-0">
                 <Layers className="w-5 h-5" />
               </div>
               <h3 className="text-base font-bold text-slate-900">Side-by-Side Reading View</h3>
@@ -697,8 +780,8 @@ export const LandingPage: React.FC<LandingPageProps> = ({
               </p>
             </div>
 
-            <div className="rounded-2xl p-6 border border-slate-200 bg-slate-50/70 hover:bg-white hover:border-indigo-300 hover:shadow-sm transition space-y-3">
-              <div className="w-10 h-10 rounded-xl bg-cyan-100 border border-cyan-200 flex items-center justify-center text-cyan-700">
+            <div className="rounded-2xl p-5 sm:p-6 border border-slate-200 bg-slate-50/70 hover:bg-white hover:border-indigo-300 hover:shadow-sm transition space-y-2.5">
+              <div className="w-10 h-10 rounded-xl bg-cyan-100 border border-cyan-200 flex items-center justify-center text-cyan-700 shrink-0">
                 <Headphones className="w-5 h-5" />
               </div>
               <h3 className="text-base font-bold text-slate-900">Authentic Listening Player</h3>
@@ -707,8 +790,8 @@ export const LandingPage: React.FC<LandingPageProps> = ({
               </p>
             </div>
 
-            <div className="rounded-2xl p-6 border border-slate-200 bg-slate-50/70 hover:bg-white hover:border-indigo-300 hover:shadow-sm transition space-y-3">
-              <div className="w-10 h-10 rounded-xl bg-amber-100 border border-amber-200 flex items-center justify-center text-amber-700">
+            <div className="rounded-2xl p-5 sm:p-6 border border-slate-200 bg-slate-50/70 hover:bg-white hover:border-indigo-300 hover:shadow-sm transition space-y-2.5">
+              <div className="w-10 h-10 rounded-xl bg-amber-100 border border-amber-200 flex items-center justify-center text-amber-700 shrink-0">
                 <SlidersHorizontal className="w-5 h-5" />
               </div>
               <h3 className="text-base font-bold text-slate-900">Interactive 40-Question Palette</h3>
@@ -717,8 +800,8 @@ export const LandingPage: React.FC<LandingPageProps> = ({
               </p>
             </div>
 
-            <div className="rounded-2xl p-6 border border-slate-200 bg-slate-50/70 hover:bg-white hover:border-indigo-300 hover:shadow-sm transition space-y-3">
-              <div className="w-10 h-10 rounded-xl bg-emerald-100 border border-emerald-200 flex items-center justify-center text-emerald-700">
+            <div className="rounded-2xl p-5 sm:p-6 border border-slate-200 bg-slate-50/70 hover:bg-white hover:border-indigo-300 hover:shadow-sm transition space-y-2.5">
+              <div className="w-10 h-10 rounded-xl bg-emerald-100 border border-emerald-200 flex items-center justify-center text-emerald-700 shrink-0">
                 <Award className="w-5 h-5" />
               </div>
               <h3 className="text-base font-bold text-slate-900">Official Cambridge Band 9.0 Scale</h3>
@@ -727,8 +810,8 @@ export const LandingPage: React.FC<LandingPageProps> = ({
               </p>
             </div>
 
-            <div className="rounded-2xl p-6 border border-slate-200 bg-slate-50/70 hover:bg-white hover:border-indigo-300 hover:shadow-sm transition space-y-3">
-              <div className="w-10 h-10 rounded-xl bg-pink-100 border border-pink-200 flex items-center justify-center text-pink-700">
+            <div className="rounded-2xl p-5 sm:p-6 border border-slate-200 bg-slate-50/70 hover:bg-white hover:border-indigo-300 hover:shadow-sm transition space-y-2.5">
+              <div className="w-10 h-10 rounded-xl bg-pink-100 border border-pink-200 flex items-center justify-center text-pink-700 shrink-0">
                 <Clock className="w-5 h-5" />
               </div>
               <h3 className="text-base font-bold text-slate-900">Strict Countdown Timer &amp; 10m Warning</h3>
@@ -737,8 +820,8 @@ export const LandingPage: React.FC<LandingPageProps> = ({
               </p>
             </div>
 
-            <div className="rounded-2xl p-6 border border-slate-200 bg-slate-50/70 hover:bg-white hover:border-indigo-300 hover:shadow-sm transition space-y-3">
-              <div className="w-10 h-10 rounded-xl bg-blue-100 border border-blue-200 flex items-center justify-center text-blue-700">
+            <div className="rounded-2xl p-5 sm:p-6 border border-slate-200 bg-slate-50/70 hover:bg-white hover:border-indigo-300 hover:shadow-sm transition space-y-2.5">
+              <div className="w-10 h-10 rounded-xl bg-blue-100 border border-blue-200 flex items-center justify-center text-blue-700 shrink-0">
                 <Building2 className="w-5 h-5" />
               </div>
               <h3 className="text-base font-bold text-slate-900">Consultancy Lab Telemetry</h3>
@@ -751,22 +834,22 @@ export const LandingPage: React.FC<LandingPageProps> = ({
       </section>
 
       {/* 6. Consultancy & Computer Lab Integration (#consultancy-lab) */}
-      <section id="consultancy-lab" className="relative z-10 py-20 bg-slate-50 border-t border-slate-200">
+      <section id="consultancy-lab" className="relative z-10 py-14 sm:py-20 bg-slate-50 border-t border-slate-200">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="rounded-3xl border border-slate-200 bg-white p-8 lg:p-12 shadow-sm text-slate-900">
+          <div className="rounded-3xl border border-slate-200 bg-white p-5 sm:p-8 lg:p-12 shadow-sm text-slate-900">
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
               <div className="lg:col-span-7 space-y-4">
                 <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-50 border border-blue-200 text-blue-700 text-xs font-bold">
-                  <Building2 className="w-3.5 h-3.5" /> For Education Consultancies &amp; Institutes
+                  <Building2 className="w-3.5 h-3.5 shrink-0" /> For Education Consultancies &amp; Institutes
                 </div>
                 <h3 className="text-2xl sm:text-3xl font-black text-slate-950">
                   Turn Your Computer Lab into an Official IELTS Testing Center
                 </h3>
-                <p className="text-sm text-slate-600 leading-relaxed">
+                <p className="text-xs sm:text-sm text-slate-600 leading-relaxed">
                   Our consultancy telemetry platform enables study abroad agencies and IELTS preparation centres to host authenticated mock examinations on any physical PC. Each terminal pairs with your centre PIN, tracks candidate names and IDs, and produces institutional score reports.
                 </p>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2 text-xs text-slate-700 font-medium">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-2 text-xs text-slate-700 font-medium">
                   <div className="flex items-center gap-2">
                     <Check className="w-4 h-4 text-emerald-600 shrink-0" />
                     <span>Station pairing (PC-01 to PC-30)</span>
@@ -785,11 +868,11 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                   </div>
                 </div>
 
-                <div className="flex flex-wrap items-center gap-3 pt-4">
+                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 sm:gap-3 pt-3">
                   {onOpenConsultancy && (
                     <button
                       onClick={onOpenConsultancy}
-                      className="px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs shadow-xs transition cursor-pointer flex items-center gap-2"
+                      className="px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs shadow-xs transition cursor-pointer flex items-center justify-center gap-2"
                     >
                       <Building2 className="w-4 h-4" />
                       <span>Open Consultancy Director Portal</span>
@@ -799,7 +882,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                   {onOpenTerminal && (
                     <button
                       onClick={onOpenTerminal}
-                      className="px-5 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 border border-slate-300 text-slate-800 font-bold text-xs transition cursor-pointer flex items-center gap-2"
+                      className="px-5 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 border border-slate-300 text-slate-800 font-bold text-xs transition cursor-pointer flex items-center justify-center gap-2"
                     >
                       <Laptop className="w-4 h-4 text-indigo-600" />
                       <span>Launch Student Kiosk Station</span>
@@ -809,10 +892,10 @@ export const LandingPage: React.FC<LandingPageProps> = ({
               </div>
 
               {/* Lab Telemetry Graphic */}
-              <div className="lg:col-span-5 rounded-2xl border border-slate-200 bg-slate-50 p-5 space-y-3 text-xs">
+              <div className="lg:col-span-5 rounded-2xl border border-slate-200 bg-slate-50 p-4 sm:p-5 space-y-3 text-xs w-full">
                 <div className="flex items-center justify-between border-b border-slate-200 pb-2">
                   <span className="font-bold text-slate-900 flex items-center gap-2">
-                    <span className="w-2 h-2 rounded-full bg-emerald-500" />
+                    <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0" />
                     Apex Global Education Lab
                   </span>
                   <span className="text-[10px] text-indigo-700 font-mono font-bold">PIN: APX-2026</span>
@@ -852,9 +935,9 @@ export const LandingPage: React.FC<LandingPageProps> = ({
 
       {/* 7. Previous Candidate Results (if any exist) */}
       {pastResults.length > 0 && (
-        <section className="relative z-10 py-12 border-t border-slate-200 bg-white">
+        <section className="relative z-10 py-10 sm:py-12 border-t border-slate-200 bg-white">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-4">
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1">
               <div className="flex items-center gap-2">
                 <Award className="w-4 h-4 text-indigo-600" />
                 <h3 className="font-bold text-slate-900 text-sm">
@@ -870,10 +953,10 @@ export const LandingPage: React.FC<LandingPageProps> = ({
               {pastResults.map((result, idx) => (
                 <div
                   key={idx}
-                  className="p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 hover:bg-slate-50 transition"
+                  className="p-3.5 sm:p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 hover:bg-slate-50 transition"
                 >
                   <div className="flex items-center gap-3">
-                    <span className="w-10 h-10 rounded-xl bg-indigo-600 text-white font-black text-sm flex items-center justify-center">
+                    <span className="w-10 h-10 rounded-xl bg-indigo-600 text-white font-black text-sm flex items-center justify-center shrink-0">
                       {result.bandScore.toFixed(1)}
                     </span>
                     <div>
@@ -901,25 +984,25 @@ export const LandingPage: React.FC<LandingPageProps> = ({
       )}
 
       {/* 8. Meet the Creators (#creators) */}
-      <section id="creators" className="relative z-10 py-20 bg-white border-t border-slate-200">
+      <section id="creators" className="relative z-10 py-14 sm:py-20 bg-white border-t border-slate-200">
         <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-12">
+          <div className="text-center mb-10 sm:mb-12">
             <span className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-indigo-50 border border-indigo-200 text-indigo-700 text-xs font-bold uppercase tracking-widest mb-3">
-              <Sparkles className="w-3.5 h-3.5 text-indigo-600" /> Engineering Team
+              <Sparkles className="w-3.5 h-3.5 text-indigo-600 shrink-0" /> Engineering Team
             </span>
             <h2 className="text-2xl sm:text-3xl font-black text-slate-950 tracking-tight mb-2">
               Meet the <span className="gradient-text">Creators</span>
             </h2>
-            <p className="text-slate-600 text-xs sm:text-sm max-w-xl mx-auto">
+            <p className="text-slate-600 text-xs sm:text-sm max-w-xl mx-auto leading-relaxed">
               Built by the developers behind Master IELTS AI to bring authentic Cambridge examination practice to students and consultancies worldwide.
             </p>
           </div>
 
-          <div className="grid md:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
             {/* Subash Bhandari */}
-            <div className="rounded-2xl p-6 border border-slate-200 bg-slate-50/70 hover:bg-white hover:border-indigo-300 hover:shadow-sm transition">
-              <div className="flex items-center gap-3.5 mb-4">
-                <div className="w-12 h-12 rounded-xl bg-indigo-600 flex items-center justify-center text-white">
+            <div className="rounded-2xl p-5 sm:p-6 border border-slate-200 bg-slate-50/70 hover:bg-white hover:border-indigo-300 hover:shadow-sm transition space-y-3">
+              <div className="flex items-center gap-3.5">
+                <div className="w-12 h-12 rounded-xl bg-indigo-600 flex items-center justify-center text-white shrink-0">
                   <Code className="w-6 h-6" />
                 </div>
                 <div>
@@ -927,21 +1010,21 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                   <p className="text-xs font-semibold text-indigo-600">Full Stack Engineer &amp; AI Specialist</p>
                 </div>
               </div>
-              <p className="text-slate-600 text-xs leading-relaxed mb-4">
+              <p className="text-slate-600 text-xs leading-relaxed">
                 Lead engineer behind Master IELTS AI and the CD-IELTS examination engine. Focused on educational technology, exam simulations, and high-precision evaluation systems.
               </p>
-              <div className="flex items-center gap-2 text-xs text-slate-500">
-                <Mail className="w-3.5 h-3.5 text-indigo-600" />
-                <a href="mailto:subashbhandari2008@gmail.com" className="hover:text-slate-900 transition">
+              <div className="flex items-center gap-2 text-xs text-slate-500 pt-1">
+                <Mail className="w-3.5 h-3.5 text-indigo-600 shrink-0" />
+                <a href="mailto:subashbhandari2008@gmail.com" className="hover:text-slate-900 transition truncate">
                   subashbhandari2008@gmail.com
                 </a>
               </div>
             </div>
 
             {/* Rohan Aacharya */}
-            <div className="rounded-2xl p-6 border border-slate-200 bg-slate-50/70 hover:bg-white hover:border-indigo-300 hover:shadow-sm transition">
-              <div className="flex items-center gap-3.5 mb-4">
-                <div className="w-12 h-12 rounded-xl bg-cyan-600 flex items-center justify-center text-white">
+            <div className="rounded-2xl p-5 sm:p-6 border border-slate-200 bg-slate-50/70 hover:bg-white hover:border-indigo-300 hover:shadow-sm transition space-y-3">
+              <div className="flex items-center gap-3.5">
+                <div className="w-12 h-12 rounded-xl bg-cyan-600 flex items-center justify-center text-white shrink-0">
                   <Terminal className="w-6 h-6" />
                 </div>
                 <div>
@@ -949,11 +1032,11 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                   <p className="text-xs font-semibold text-cyan-700">Software Architect &amp; Product Designer</p>
                 </div>
               </div>
-              <p className="text-slate-600 text-xs leading-relaxed mb-4">
+              <p className="text-slate-600 text-xs leading-relaxed">
                 Co-creator designing seamless candidate experiences, responsive exam interfaces, and institutional telemetry workflows for education consultancies.
               </p>
-              <div className="flex items-center gap-2 text-xs text-slate-500">
-                <Globe className="w-3.5 h-3.5 text-cyan-700" />
+              <div className="flex items-center gap-2 text-xs text-slate-500 pt-1">
+                <Globe className="w-3.5 h-3.5 text-cyan-700 shrink-0" />
                 <a href="https://masterieltsai.com" target="_blank" rel="noreferrer" className="hover:text-slate-900 transition">
                   masterieltsai.com Core Team
                 </a>
@@ -964,9 +1047,9 @@ export const LandingPage: React.FC<LandingPageProps> = ({
       </section>
 
       {/* 9. FAQ Section (#faq) */}
-      <section id="faq" className="relative z-10 py-20 bg-slate-50 border-t border-slate-200">
+      <section id="faq" className="relative z-10 py-14 sm:py-20 bg-slate-50 border-t border-slate-200">
         <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-12">
+          <div className="text-center mb-10 sm:mb-12">
             <h2 className="text-2xl sm:text-3xl font-black text-slate-950 tracking-tight mb-2">
               Frequently Asked <span className="gradient-text">Questions</span>
             </h2>
@@ -1000,12 +1083,12 @@ export const LandingPage: React.FC<LandingPageProps> = ({
       </section>
 
       {/* 10. Clean Footer (White Background, Black Text) */}
-      <footer className="relative z-10 border-t border-slate-200 bg-white py-12 text-xs text-slate-600">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-8">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
-            <div className="col-span-2">
+      <footer className="relative z-10 border-t border-slate-200 bg-white py-10 sm:py-12 text-xs text-slate-600">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6 sm:space-y-8">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6 sm:gap-8">
+            <div className="col-span-1 sm:col-span-2">
               <a href="/" className="flex items-center gap-3 mb-3">
-                <div className="w-8 h-8 rounded-lg overflow-hidden flex items-center justify-center border border-slate-200 bg-white p-1">
+                <div className="w-8 h-8 rounded-lg overflow-hidden flex items-center justify-center border border-slate-200 bg-white p-1 shrink-0">
                   <img
                     src="/images/masterieltsai-icon.png"
                     alt="Master IELTS AI"
@@ -1031,7 +1114,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                   rel="noreferrer"
                   className="px-3 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 border border-slate-200 text-slate-800 transition flex items-center gap-1.5 text-xs font-semibold"
                 >
-                  <Globe className="w-3.5 h-3.5 text-indigo-600" />
+                  <Globe className="w-3.5 h-3.5 text-indigo-600 shrink-0" />
                   <span>masterieltsai.com</span>
                 </a>
               </div>
@@ -1068,7 +1151,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
             </div>
           </div>
 
-          <div className="pt-6 border-t border-slate-200 flex flex-col sm:flex-row items-center justify-between gap-3 text-[11px] text-slate-500">
+          <div className="pt-5 sm:pt-6 border-t border-slate-200 flex flex-col sm:flex-row items-center justify-between gap-2.5 text-[11px] text-slate-500 text-center sm:text-left">
             <p>© {new Date().getFullYear()} MOCK TEST from Master IELTS AI (<a href="https://masterieltsai.com" target="_blank" rel="noreferrer" className="hover:underline text-slate-700">masterieltsai.com</a>). Built by Subash Bhandari &amp; Rohan Aacharya.</p>
             <p>IELTS is a registered trademark of Cambridge University Press &amp; Assessment, IDP, and the British Council.</p>
           </div>

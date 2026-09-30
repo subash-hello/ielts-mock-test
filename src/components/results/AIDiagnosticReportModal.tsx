@@ -53,10 +53,10 @@ export const AIDiagnosticReportModal: React.FC<AIDiagnosticReportModalProps> = (
   };
 
   return (
-    <div className="fixed inset-0 bg-black/50 backdrop-blur-xs flex items-center justify-center z-50 p-4 overflow-y-auto">
-      <div className="bg-white border border-slate-200 max-w-3xl w-full rounded-2xl shadow-xl overflow-hidden my-8 text-slate-900 flex flex-col animate-in fade-in">
+    <div className="fixed inset-0 bg-black/50 backdrop-blur-xs flex items-center justify-center z-50 p-2 sm:p-4 overflow-y-auto">
+      <div className="bg-white border border-slate-200 max-w-3xl w-full rounded-2xl shadow-xl overflow-hidden my-4 sm:my-8 text-slate-900 flex flex-col animate-in fade-in">
         {/* Modal Top Control Bar (Hidden on print) */}
-        <div className="bg-slate-50 border-b border-slate-200 px-6 py-3 flex items-center justify-between print:hidden">
+        <div className="bg-slate-50 border-b border-slate-200 px-3.5 sm:px-6 py-2.5 sm:py-3 flex flex-wrap items-center justify-between gap-2 print:hidden">
           <div className="flex items-center gap-2">
             <Sparkles className="w-4 h-4 text-blue-600" />
             <span className="text-xs font-bold uppercase tracking-wider text-slate-700">
@@ -67,7 +67,7 @@ export const AIDiagnosticReportModal: React.FC<AIDiagnosticReportModalProps> = (
           <div className="flex items-center gap-2">
             <button
               onClick={handlePrint}
-              className="flex items-center gap-1.5 bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs px-3.5 py-1.5 rounded-lg transition cursor-pointer shadow-xs"
+              className="flex items-center gap-1.5 bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs px-3 py-1.5 rounded-lg transition cursor-pointer shadow-xs"
             >
               <Printer className="w-3.5 h-3.5" />
               <span>Print Official Report</span>
@@ -82,15 +82,15 @@ export const AIDiagnosticReportModal: React.FC<AIDiagnosticReportModalProps> = (
         </div>
 
         {/* Printable Certificate Body */}
-        <div className="p-8 sm:p-10 space-y-6 bg-white text-slate-900">
+        <div className="p-4 sm:p-8 md:p-10 space-y-5 sm:space-y-6 bg-white text-slate-900">
           {/* 1. Official Header */}
-          <div className="border-b border-slate-200 pb-5 flex items-start justify-between">
+          <div className="border-b border-slate-200 pb-5 flex flex-col sm:flex-row items-start justify-between gap-3">
             <div className="space-y-1">
               <div className="flex items-center gap-2 text-blue-700 font-bold text-xs uppercase tracking-wider">
                 <Building2 className="w-4 h-4" />
                 <span>{consultancyName}</span>
               </div>
-              <h2 className="text-2xl font-extrabold text-slate-900 tracking-tight">
+              <h2 className="text-xl sm:text-2xl font-extrabold text-slate-900 tracking-tight">
                 IELTS Diagnostic Evaluation Report
               </h2>
               <p className="text-xs text-slate-500">
@@ -98,7 +98,7 @@ export const AIDiagnosticReportModal: React.FC<AIDiagnosticReportModalProps> = (
               </p>
             </div>
 
-            <div className="text-right">
+            <div className="text-left sm:text-right">
               <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-emerald-50 border border-emerald-200 rounded-full text-emerald-800 text-xs font-semibold">
                 <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
                 <span>Verified Assessment</span>

@@ -143,20 +143,20 @@ export const CandidateCheckInModal: React.FC<CandidateCheckInModalProps> = ({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs select-none animate-in fade-in">
       <div
-        className="bg-white border border-slate-200 max-w-lg w-full rounded-2xl shadow-2xl overflow-hidden flex flex-col my-auto"
+        className="bg-white border border-slate-200 max-w-lg w-full rounded-2xl shadow-2xl overflow-hidden flex flex-col my-auto max-h-[92vh]"
         onClick={(e) => e.stopPropagation()}
       >
         {/* 1. Header with Test Identity */}
-        <div className="bg-slate-900 text-white p-5 flex items-start justify-between relative">
+        <div className="bg-slate-900 text-white p-4 sm:p-5 flex items-start justify-between relative shrink-0">
           <div className="space-y-1 pr-6">
             <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-red-600/90 text-white text-[10px] font-bold uppercase tracking-wider">
               {isReading ? <BookOpen className="w-3 h-3" /> : <Headphones className="w-3 h-3" />}
               <span>Cambridge IELTS {test.book} • Test {test.testNumber}</span>
             </div>
-            <h3 className="text-lg font-bold text-white tracking-tight">
+            <h3 className="text-base sm:text-lg font-bold text-white tracking-tight">
               Candidate Examination Check-In
             </h3>
-            <p className="text-xs text-slate-300">
+            <p className="text-[11px] sm:text-xs text-slate-300">
               Please enter your details. Your scores and diagnostic report will be transmitted to your consultancy.
             </p>
           </div>
@@ -171,7 +171,7 @@ export const CandidateCheckInModal: React.FC<CandidateCheckInModalProps> = ({
         </div>
 
         {/* 2. Test Summary Ribbon */}
-        <div className="bg-slate-50 border-b border-slate-200 px-6 py-2.5 flex items-center justify-between text-xs text-slate-600">
+        <div className="bg-slate-50 border-b border-slate-200 px-4 sm:px-6 py-2 flex items-center justify-between text-xs text-slate-600 shrink-0">
           <div className="flex items-center gap-2">
             <span className="font-semibold text-slate-900">{test.title}</span>
           </div>
@@ -182,7 +182,7 @@ export const CandidateCheckInModal: React.FC<CandidateCheckInModalProps> = ({
         </div>
 
         {/* 3. Check-In Form */}
-        <form onSubmit={handleSubmit} className="p-6 space-y-4 text-xs">
+        <form onSubmit={handleSubmit} className="p-4 sm:p-6 space-y-3.5 sm:space-y-4 text-xs overflow-y-auto">
           {error && (
             <div className="bg-red-50 border border-red-200 p-3 rounded-xl flex items-center gap-2 text-xs text-red-700">
               <AlertCircle className="w-4 h-4 text-red-600 shrink-0" />
@@ -238,7 +238,7 @@ export const CandidateCheckInModal: React.FC<CandidateCheckInModalProps> = ({
           </div>
 
           {/* Candidate ID & Target Band */}
-          <div className="grid grid-cols-2 gap-3 pt-1">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
             <div className="space-y-1.5">
               <label className="text-slate-700 font-semibold flex items-center gap-1 text-[11px]">
                 <Hash className="w-3 h-3 text-slate-400" />

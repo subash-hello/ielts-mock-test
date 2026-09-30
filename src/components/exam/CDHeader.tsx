@@ -36,25 +36,25 @@ export const CDHeader: React.FC<CDHeaderProps> = ({
 
   return (
     <>
-      <header className="bg-[#f0f0f0] border-b border-[#cfcfcf] px-4 py-2 flex items-center justify-between text-xs select-none cd-ielts-font shadow-sm z-30">
+      <header className="bg-[#f0f0f0] border-b border-[#cfcfcf] px-2.5 sm:px-4 py-1.5 sm:py-2 flex items-center justify-between text-xs select-none cd-ielts-font shadow-sm z-30 gap-2">
         {/* Left: Test Details */}
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-1.5 sm:gap-3 shrink-0">
           <button
             onClick={onExitTest}
-            className="p-1.5 hover:bg-slate-200 rounded text-slate-700 transition"
+            className="p-1 sm:p-1.5 hover:bg-slate-200 rounded text-slate-700 transition"
             title="Return to Selection Hub"
           >
             <ArrowLeft className="w-4 h-4" />
           </button>
           <div className="flex items-center gap-2">
-            <div className="flex items-center gap-1.5 pr-2.5 border-r border-slate-300">
-              <img src="/images/masterieltsai-icon.png" alt="MasterIELTS AI" className="w-5 h-5 object-contain" />
+            <div className="flex items-center gap-1.5 pr-2 border-r border-slate-300">
+              <img src="/images/masterieltsai-icon.png" alt="MasterIELTS AI" className="w-4 h-4 sm:w-5 sm:h-5 object-contain" />
               <span className="font-extrabold text-xs tracking-tight text-slate-900 hidden xl:inline">MOCK TEST <span className="text-[10px] text-slate-500 font-normal">from Master IELTS AI</span></span>
             </div>
-            <span className="font-bold text-slate-900 text-sm">
-              IELTS Academic {test.module === 'reading' ? 'Reading' : 'Listening'}
+            <span className="font-bold text-slate-900 text-xs sm:text-sm whitespace-nowrap">
+              <span className="hidden sm:inline">IELTS Academic </span>{test.module === 'reading' ? 'Reading' : 'Listening'}
             </span>
-            <span className="text-slate-400">|</span>
+            <span className="text-slate-400 hidden md:inline">|</span>
             <span className="text-slate-700 font-medium hidden md:inline">
               Candidate: <strong>{candidateName || 'Candidate'} ({candidateId || '001428'})</strong>
             </span>
@@ -74,19 +74,26 @@ export const CDHeader: React.FC<CDHeaderProps> = ({
         </div>
 
         {/* Center: Live Countdown Clock */}
-        <div className="flex items-center gap-2 bg-white px-3 py-1 rounded border border-slate-300 shadow-inner">
+        <div className="flex items-center gap-1.5 sm:gap-2 bg-white px-2.5 sm:px-3 py-1 rounded border border-slate-300 shadow-inner shrink-0">
           <Clock className={`w-3.5 h-3.5 ${isUrgent ? 'text-red-600 animate-pulse' : 'text-slate-500'}`} />
           <span
-            className={`font-mono font-bold text-sm ${
+            className={`font-mono font-bold text-xs sm:text-sm ${
               isUrgent ? 'text-red-600 font-black' : 'text-slate-900'
             }`}
           >
-            {settings.showTimer || isUrgent ? `${timeFormatted} remaining` : 'Timer Hidden'}
+            {settings.showTimer || isUrgent ? (
+              <>
+                <span>{timeFormatted}</span>
+                <span className="hidden sm:inline"> remaining</span>
+              </>
+            ) : (
+              'Hidden'
+            )}
           </span>
           {!isUrgent && (
             <button
               onClick={() => onUpdateSettings({ showTimer: !settings.showTimer })}
-              className="text-[11px] text-blue-700 hover:text-blue-900 underline ml-1 cursor-pointer font-medium"
+              className="text-[10px] sm:text-[11px] text-blue-700 hover:text-blue-900 underline ml-0.5 sm:ml-1 cursor-pointer font-medium"
             >
               {settings.showTimer ? 'Hide' : 'Show'}
             </button>
@@ -112,7 +119,7 @@ export const CDHeader: React.FC<CDHeaderProps> = ({
           )}
 
           {/* Text Size Switcher */}
-          <div className="flex items-center gap-1 bg-white border border-slate-300 rounded px-1.5 py-0.5">
+          <div className="hidden sm:flex items-center gap-1 bg-white border border-slate-300 rounded px-1.5 py-0.5">
             <span className="text-[11px] text-slate-500 mr-0.5">Text:</span>
             <button
               onClick={() => onUpdateSettings({ fontSize: 'normal' })}

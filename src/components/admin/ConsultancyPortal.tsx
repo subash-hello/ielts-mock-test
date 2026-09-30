@@ -271,7 +271,7 @@ export const ConsultancyPortal: React.FC<ConsultancyPortalProps> = ({
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 flex flex-col font-sans select-none">
       {/* 1. Header with Consultancy Branding & Live Telemetry Link */}
-      <header className="border-b border-slate-200 bg-white px-6 py-3.5 flex flex-wrap items-center justify-between gap-4 sticky top-0 z-30 shadow-xs">
+      <header className="border-b border-slate-200 bg-white px-3 sm:px-6 py-2.5 sm:py-3.5 flex flex-wrap items-center justify-between gap-3 sm:gap-4 sticky top-0 z-30 shadow-xs">
         <div className="flex items-center gap-3.5">
           <div className="flex items-center gap-2 pr-3 border-r border-slate-200">
             <img src="/images/masterieltsai-icon.png" alt="MasterIELTS AI" className="w-8 h-8 object-contain" />
@@ -357,8 +357,8 @@ export const ConsultancyPortal: React.FC<ConsultancyPortalProps> = ({
       </header>
 
       {/* 2. Sub-Nav Navigation Tabs */}
-      <div className="bg-white border-b border-slate-200 px-6 py-2 flex items-center justify-between text-xs select-none">
-        <div className="flex items-center gap-1.5 overflow-x-auto">
+      <div className="bg-white border-b border-slate-200 px-3 sm:px-6 py-1.5 sm:py-2 flex items-center justify-between text-xs select-none">
+        <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-none">
           <button
             onClick={() => setActiveTab('results')}
             className={`px-3.5 py-2 font-semibold rounded-lg transition flex items-center gap-2 cursor-pointer ${

@@ -168,14 +168,14 @@ export const SuperAdminPortal: React.FC<SuperAdminPortalProps> = ({
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 flex flex-col font-sans select-none">
       {/* Clean White Professional Header */}
-      <header className="border-b border-slate-200 bg-white px-6 py-4 flex items-center justify-between sticky top-0 z-30 shadow-xs">
+      <header className="border-b border-slate-200 bg-white px-3 sm:px-6 py-3 sm:py-4 flex flex-wrap items-center justify-between sticky top-0 z-30 shadow-xs gap-3">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-blue-600 flex items-center justify-center text-white shadow-sm">
+          <div className="w-10 h-10 rounded-xl bg-blue-600 flex items-center justify-center text-white shadow-sm shrink-0">
             <Building2 className="w-5 h-5 text-white" />
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <h1 className="text-lg font-bold text-slate-900">
+              <h1 className="text-base sm:text-lg font-bold text-slate-900">
                 IELTS Platform Super Admin
               </h1>
               <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 border border-blue-200">
@@ -188,7 +188,7 @@ export const SuperAdminPortal: React.FC<SuperAdminPortalProps> = ({
           </div>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2.5">
           <div className="hidden md:flex items-center gap-2 bg-slate-100 border border-slate-200 px-3 py-1.5 rounded-lg text-xs font-medium text-slate-700">
             <span className="w-2 h-2 rounded-full bg-emerald-500" />
             <span>Consultancy Network Active</span>
@@ -215,7 +215,7 @@ export const SuperAdminPortal: React.FC<SuperAdminPortalProps> = ({
       </header>
 
       {/* Main Body */}
-      <main className="flex-1 p-6 md:p-8 max-w-7xl w-full mx-auto space-y-6">
+      <main className="flex-1 p-3 sm:p-6 md:p-8 max-w-7xl w-full mx-auto space-y-6">
         {/* Metric Cards */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           <div className="bg-white border border-slate-200 p-5 rounded-xl shadow-xs">

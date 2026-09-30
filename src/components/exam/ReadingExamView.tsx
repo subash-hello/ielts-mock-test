@@ -73,14 +73,29 @@ export const ReadingExamView: React.FC<ReadingExamViewProps> = ({
   const [highlightCount, setHighlightCount] = useState<number>(0);
 
   const activeSection = test.sections[activePassageIndex] || test.sections[0];
+  const [mobileReadingTab, setMobileReadingTab] = useState<'passage' | 'questions'>('passage');
+  const [isMobile, setIsMobile] = useState<boolean>(() =>
+    typeof window !== 'undefined' ? window.innerWidth < 768 : false
+  );
+
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   // Auto-scroll to selected question in right pane
   useEffect(() => {
+    if (isMobile) {
+      setMobileReadingTab('questions');
+    }
     const el = document.getElementById(`q-box-${currentQuestion}`);
     if (el && rightPaneRef.current) {
       el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
     }
-  }, [currentQuestion]);
+  }, [currentQuestion, isMobile]);
 
   // Update highlight count whenever passage changes
   const updateHighlightCount = () => {
@@ -1092,8 +1107,8 @@ export const ReadingExamView: React.FC<ReadingExamViewProps> = ({
   return (
     <div className="flex-1 flex flex-col overflow-hidden cd-ielts-font bg-white">
       {/* Passage Selector Sub-Header */}
-      <div className="bg-[#f2f2f2] border-b border-[#cfcfcf] px-6 py-2 flex items-center justify-between text-xs select-none">
-        <div className="flex items-center gap-2">
+      <div className="bg-[#f2f2f2] border-b border-[#cfcfcf] px-2 sm:px-4 md:px-6 py-1.5 sm:py-2 flex items-center justify-between text-xs select-none overflow-x-auto scrollbar-none">
+        <div className="flex items-center gap-1 sm:gap-2 shrink-0">
           {test.sections.map((sec, idx) => {
             const isActive = idx === activePassageIndex;
             const qStart = idx === 0 ? 1 : idx === 1 ? 14 : 27;
@@ -1103,22 +1118,25 @@ export const ReadingExamView: React.FC<ReadingExamViewProps> = ({
               <button
                 key={idx}
                 onClick={() => onSelectPassage(idx)}
-                className={`px-5 py-2 font-bold transition rounded-t-md text-xs cursor-pointer ${
+                className={`px-3 sm:px-4 md:px-5 py-1.5 sm:py-2 font-bold transition rounded-t-md text-xs cursor-pointer whitespace-nowrap ${
                   isActive
                     ? 'bg-white text-slate-950 border-t-3 border-red-600 shadow-xs'
                     : 'text-slate-600 hover:text-black hover:bg-slate-200'
                 }`}
               >
-                Passage {sec.sectionNumber} (Q {qStart} – {qEnd})
+                Passage {sec.sectionNumber}{' '}
+                <span className="hidden sm:inline font-normal opacity-70">
+                  (Q {qStart} – {qEnd})
+                </span>
               </button>
             );
           })}
         </div>
 
         {/* Center / Right tools: Layout ratio presets & Highlight counter */}
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2 sm:gap-3 shrink-0">
           {/* Split Ratio Presets */}
-          <div className="hidden sm:flex items-center gap-1 bg-white border border-slate-300 rounded px-1.5 py-0.5 text-[11px] font-semibold text-slate-600">
+          <div className="hidden md:flex items-center gap-1 bg-white border border-slate-300 rounded px-1.5 py-0.5 text-[11px] font-semibold text-slate-600">
             <span className="text-slate-500 mr-0.5">Split:</span>
             <button
               type="button"
@@ -1154,7 +1172,7 @@ export const ReadingExamView: React.FC<ReadingExamViewProps> = ({
 
           {/* Highlights & Notes Badge */}
           {highlightCount > 0 && (
-            <div className="flex items-center gap-1.5 bg-yellow-50 border border-yellow-300 px-2 py-0.5 rounded text-[11px] text-yellow-900 font-medium">
+            <div className="flex items-center gap-1.5 bg-yellow-50 border border-yellow-300 px-2 py-0.5 rounded text-[11px] text-yellow-900 font-medium shrink-0">
               <Highlighter className="w-3.5 h-3.5 text-yellow-600" />
               <span>{highlightCount} Highlight{highlightCount > 1 ? 's' : ''}</span>
               <button
@@ -1174,15 +1192,43 @@ export const ReadingExamView: React.FC<ReadingExamViewProps> = ({
         </div>
       </div>
 
+      {/* Mobile Tab Switcher (Passage vs Questions) */}
+      <div className="md:hidden bg-slate-200 border-b border-slate-300 p-1 flex items-center justify-center gap-1.5 shrink-0">
+        <button
+          type="button"
+          onClick={() => setMobileReadingTab('passage')}
+          className={`flex-1 py-1.5 rounded text-xs font-bold transition cursor-pointer ${
+            mobileReadingTab === 'passage'
+              ? 'bg-white text-slate-900 shadow-xs border-b-2 border-red-600'
+              : 'text-slate-600 hover:text-slate-900'
+          }`}
+        >
+          📖 Passage {activeSection.sectionNumber}
+        </button>
+        <button
+          type="button"
+          onClick={() => setMobileReadingTab('questions')}
+          className={`flex-1 py-1.5 rounded text-xs font-bold transition cursor-pointer ${
+            mobileReadingTab === 'questions'
+              ? 'bg-white text-slate-900 shadow-xs border-b-2 border-red-600'
+              : 'text-slate-600 hover:text-slate-900'
+          }`}
+        >
+          ✍️ Questions ({activeSection.sectionNumber === 1 ? '1–13' : activeSection.sectionNumber === 2 ? '14–26' : '27–40'})
+        </button>
+      </div>
+
       {/* Main Split Screen Area */}
       <div ref={containerRef} className="flex-1 flex overflow-hidden relative">
         {/* Left Pane: Reading Passage */}
         <div
           ref={passagePaneRef}
-          style={{ width: `${leftWidthPercent}%` }}
+          style={isMobile ? undefined : { width: `${leftWidthPercent}%` }}
           onMouseUp={handlePassageMouseUp}
           onClick={handlePassageClick}
-          className="h-full overflow-y-auto p-6 md:p-8 border-r border-[#cfcfcf] bg-white relative select-text"
+          className={`h-full overflow-y-auto p-4 sm:p-6 md:p-8 border-r border-[#cfcfcf] bg-white relative select-text w-full md:w-auto ${
+            mobileReadingTab === 'passage' ? 'block' : 'hidden md:block'
+          }`}
         >
           <div
             className={`max-w-2xl mx-auto passage-body text-slate-800 ${
@@ -1388,7 +1434,7 @@ export const ReadingExamView: React.FC<ReadingExamViewProps> = ({
         {/* Resizer Handle */}
         <div
           onMouseDown={() => setIsDragging(true)}
-          className="w-2.5 bg-[#e4e4e4] hover:bg-red-500 active:bg-red-600 cursor-col-resize flex items-center justify-center transition select-none z-10 shadow-xs"
+          className="hidden md:flex w-2.5 bg-[#e4e4e4] hover:bg-red-500 active:bg-red-600 cursor-col-resize items-center justify-center transition select-none z-10 shadow-xs"
           title="Drag to resize passage and questions"
         >
           <div className="w-0.5 h-8 bg-slate-400"></div>
@@ -1397,8 +1443,10 @@ export const ReadingExamView: React.FC<ReadingExamViewProps> = ({
         {/* Right Pane: Questions Area */}
         <div
           ref={rightPaneRef}
-          style={{ width: `${100 - leftWidthPercent}%` }}
-          className="h-full overflow-y-auto p-6 md:p-8 bg-[#fafafa]"
+          style={isMobile ? undefined : { width: `${100 - leftWidthPercent}%` }}
+          className={`h-full overflow-y-auto p-3.5 sm:p-6 md:p-8 bg-[#fafafa] w-full md:w-auto ${
+            mobileReadingTab === 'questions' ? 'block' : 'hidden md:block'
+          }`}
         >
           <div className="max-w-2xl mx-auto space-y-8 text-sm">
             {activeSection.questionGroups.map((group) => {
