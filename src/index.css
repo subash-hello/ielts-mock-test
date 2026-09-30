@@ -1,0 +1,155 @@
+@import "tailwindcss";
+
+@layer base {
+  body {
+    background-color: #f8fafc;
+    color: #1e293b;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+}
+
+::selection {
+  background-color: #fef08a;
+  color: #0f172a;
+}
+
+.passage-body {
+  font-family: 'Georgia', 'Cambria', 'Times New Roman', serif;
+  line-height: 1.85;
+  font-size: 15.5px;
+}
+
+.cd-ielts-font {
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+.ielts-highlight {
+  background-color: #fef08a;
+  padding: 1px 4px;
+  border-radius: 2px;
+  color: #0f172a;
+  border-bottom: 2px solid #eab308;
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+}
+
+.ielts-highlight:hover {
+  background-color: #fde047;
+}
+
+.ielts-highlight.with-note {
+  border-bottom: 2px solid #3b82f6;
+  background-color: #fef9c3;
+}
+
+.ielts-note-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-left: 3px;
+  font-size: 11px;
+  cursor: pointer;
+  vertical-align: middle;
+  transform: translateY(-1px);
+}
+
+/* Contrast Modes */
+.contrast-standard {
+  background-color: #ffffff;
+  color: #0f172a;
+}
+
+/* Inverted Theme: White text on Dark background */
+.contrast-inverted {
+  background-color: #0f172a !important;
+  color: #f8fafc !important;
+}
+.contrast-inverted header,
+.contrast-inverted .bg-white,
+.contrast-inverted .bg-\[\#f0f0f0\],
+.contrast-inverted .bg-\[\#f2f2f2\],
+.contrast-inverted .bg-\[\#fafafa\],
+.contrast-inverted .bg-\[\#f8fafc\],
+.contrast-inverted .bg-\[\#fcfcfc\] {
+  background-color: #1e293b !important;
+  color: #f8fafc !important;
+  border-color: #334155 !important;
+}
+.contrast-inverted input,
+.contrast-inverted select,
+.contrast-inverted textarea {
+  background-color: #0f172a !important;
+  color: #f8fafc !important;
+  border-color: #475569 !important;
+}
+.contrast-inverted .text-slate-900,
+.contrast-inverted .text-slate-800,
+.contrast-inverted .text-slate-700,
+.contrast-inverted .text-black {
+  color: #f8fafc !important;
+}
+.contrast-inverted .text-slate-600,
+.contrast-inverted .text-slate-500 {
+  color: #94a3b8 !important;
+}
+.contrast-inverted .border-slate-200,
+.contrast-inverted .border-slate-300,
+.contrast-inverted .border-\[\#cfcfcf\],
+.contrast-inverted .border-\[\#e5e5e5\] {
+  border-color: #334155 !important;
+}
+
+/* Yellow on Black Theme: UK/CD-IELTS Standard Accessibility */
+.contrast-yellow-on-black {
+  background-color: #000000 !important;
+  color: #facc15 !important;
+}
+.contrast-yellow-on-black header,
+.contrast-yellow-on-black .bg-white,
+.contrast-yellow-on-black .bg-\[\#f0f0f0\],
+.contrast-yellow-on-black .bg-\[\#f2f2f2\],
+.contrast-yellow-on-black .bg-\[\#fafafa\],
+.contrast-yellow-on-black .bg-\[\#f8fafc\],
+.contrast-yellow-on-black .bg-\[\#fcfcfc\] {
+  background-color: #09090b !important;
+  color: #facc15 !important;
+  border-color: #854d0e !important;
+}
+.contrast-yellow-on-black input,
+.contrast-yellow-on-black select,
+.contrast-yellow-on-black textarea {
+  background-color: #000000 !important;
+  color: #fef08a !important;
+  border-color: #eab308 !important;
+}
+.contrast-yellow-on-black .text-slate-900,
+.contrast-yellow-on-black .text-slate-800,
+.contrast-yellow-on-black .text-slate-700,
+.contrast-yellow-on-black .text-black,
+.contrast-yellow-on-black .text-slate-600,
+.contrast-yellow-on-black .text-slate-500 {
+  color: #facc15 !important;
+}
+.contrast-yellow-on-black .border-slate-200,
+.contrast-yellow-on-black .border-slate-300,
+.contrast-yellow-on-black .border-\[\#cfcfcf\],
+.contrast-yellow-on-black .border-\[\#e5e5e5\] {
+  border-color: #854d0e !important;
+}
+
+/* Custom subtle scrollbars */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #f1f5f9;
+}
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}

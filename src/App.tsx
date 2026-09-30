@@ -1,0 +1,713 @@
+import React, { useState, useEffect, useRef } from 'react';
+import type { IELTSMockTest, CandidateAnswers, ReviewStatus, ExamSettings, TestResult } from './types/ielts';
+import type { AdminUser, CandidateSession } from './types/consultancy';
+import { LandingPage } from './components/landing/LandingPage';
+import { CDHeader } from './components/exam/CDHeader';
+import { ReadingExamView } from './components/exam/ReadingExamView';
+import { ListeningExamView } from './components/exam/ListeningExamView';
+import { QuestionPalette } from './components/exam/QuestionPalette';
+import { ResultReport } from './components/results/ResultReport';
+import { SuperAdminPortal } from './components/admin/SuperAdminPortal';
+import { ConsultancyPortal } from './components/admin/ConsultancyPortal';
+import { StudentTerminalView } from './components/terminal/StudentTerminalView';
+import { UnifiedAuthView } from './components/auth/UnifiedAuthView';
+import { ConsultancyService } from './services/consultancyService';
+import { calculateBandScore, isAnswerCorrect } from './utils/scoring';
+import { saveTestResultToSupabase, fetchMockTestsFromSupabase } from './lib/supabase';
+import { allMockTests } from './data/mockTests';
+import { Pause } from 'lucide-react';
+
+export const App: React.FC = () => {
+  // Candidate session state
+  const [candidateSession, setCandidateSession] = useState<CandidateSession | null>(() =>
+    ConsultancyService.getCurrentCandidateSession()
+  );
+
+  // Admin session state
+  const [adminUser, setAdminUser] = useState<AdminUser | null>(() =>
+    ConsultancyService.getCurrentAdmin()
+  );
+
+  const [authMessage, setAuthMessage] = useState<string | null>(null);
+  const [initialAuthTab, setInitialAuthTab] = useState<'candidate' | 'admin'>('candidate');
+
+  const [activeScreen, setActiveScreen] = useState<
+    'landing' | 'exam' | 'results' | 'super-admin' | 'consultancy' | 'terminal' | 'auth'
+  >(() => {
+    const hasCandidate = !!ConsultancyService.getCurrentCandidateSession();
+    const hasAdmin = !!ConsultancyService.getCurrentAdmin();
+    // User cannot access without login: default to 'auth' if not authenticated!
+    if (!hasCandidate && !hasAdmin) {
+      return 'auth';
+    }
+    return 'landing';
+  });
+
+  const [selectedConsultancyId, setSelectedConsultancyId] = useState<string>(() => {
+    const saved = ConsultancyService.getCurrentCandidateSession();
+    return saved?.consultancyId || 'apex-global';
+  });
+
+  const [terminalStationName, setTerminalStationName] = useState<string>(() => {
+    const saved = ConsultancyService.getCurrentCandidateSession();
+    return saved?.stationName || 'PC-01';
+  });
+
+  const [activeCandidateInfo, setActiveCandidateInfo] = useState<{
+    name: string;
+    candidateId: string;
+    targetBand?: number;
+    stationName?: string;
+    consultancyId?: string;
+  } | null>(() => {
+    const saved = ConsultancyService.getCurrentCandidateSession();
+    if (!saved) return null;
+    return {
+      name: saved.candidateName,
+      candidateId: saved.candidateId,
+      targetBand: saved.targetBand,
+      stationName: saved.stationName,
+      consultancyId: saved.consultancyId
+    };
+  });
+
+  const [isExamPausedByTeacher, setIsExamPausedByTeacher] = useState<boolean>(false);
+
+  const [tests, setTests] = useState<IELTSMockTest[]>(allMockTests);
+  const [currentTest, setCurrentTest] = useState<IELTSMockTest | null>(null);
+  const [currentQuestion, setCurrentQuestion] = useState<number>(1);
+  const [activeSectionIndex, setActiveSectionIndex] = useState<number>(0);
+  const [answers, setAnswers] = useState<CandidateAnswers>({});
+  const [reviewStatus, setReviewStatus] = useState<ReviewStatus>({});
+  const [remainingSeconds, setRemainingSeconds] = useState<number>(3600);
+  const [audioVolume, setAudioVolume] = useState<number>(80);
+  const [settings, setSettings] = useState<ExamSettings>({
+    fontSize: 'normal',
+    contrast: 'standard',
+    showTimer: true
+  });
+
+  const [activeResult, setActiveResult] = useState<TestResult | null>(null);
+  const [pastResults, setPastResults] = useState<TestResult[]>(() => {
+    try {
+      const saved = localStorage.getItem('ielts_mock_past_results');
+      return saved ? JSON.parse(saved) : [];
+    } catch {
+      return [];
+    }
+  });
+
+  // Keep ref to answers and remainingSeconds for callbacks
+  const answersRef = useRef(answers);
+  answersRef.current = answers;
+  const remainingSecondsRef = useRef(remainingSeconds);
+  remainingSecondsRef.current = remainingSeconds;
+  const currentTestRef = useRef(currentTest);
+  currentTestRef.current = currentTest;
+
+  // URL deep link routing on initial page load (e.g. ?mode=admin, ?mode=consultancy, ?mode=terminal&station=PC-04)
+  useEffect(() => {
+    try {
+      const params = new URLSearchParams(window.location.search);
+      const mode = params.get('mode');
+      const cid = params.get('consultancy') || params.get('cid');
+      const station = params.get('station') || params.get('st');
+
+      if (cid) setSelectedConsultancyId(cid);
+      if (station) setTerminalStationName(station);
+
+      const loggedAdmin = ConsultancyService.getCurrentAdmin();
+      const loggedCandidate = ConsultancyService.getCurrentCandidateSession();
+
+      if (mode === 'admin' || mode === 'super-admin') {
+        if (loggedAdmin?.role === 'super_admin') {
+          setActiveScreen('super-admin');
+        } else {
+          setInitialAuthTab('admin');
+          setAuthMessage('Super Administrator sign in required.');
+          setActiveScreen('auth');
+        }
+      } else if (mode === 'consultancy') {
+        if (loggedAdmin) {
+          if (loggedAdmin.consultancyId) {
+            setSelectedConsultancyId(loggedAdmin.consultancyId);
+          }
+          setActiveScreen('consultancy');
+        } else {
+          setInitialAuthTab('admin');
+          setAuthMessage('Consultancy Director sign in required.');
+          setActiveScreen('auth');
+        }
+      } else if (mode === 'terminal' || mode === 'lab' || mode === 'kiosk') {
+        if (loggedCandidate) {
+          setActiveScreen('terminal');
+        } else {
+          setInitialAuthTab('candidate');
+          setActiveScreen('auth');
+        }
+      } else {
+        // Enforce: User cannot access without login
+        if (!loggedCandidate && !loggedAdmin) {
+          setActiveScreen('auth');
+        }
+      }
+    } catch (e) {
+      console.error('URL parse error:', e);
+    }
+  }, []);
+
+  // Save past results to localStorage
+  useEffect(() => {
+    try {
+      localStorage.setItem('ielts_mock_past_results', JSON.stringify(pastResults));
+    } catch (e) {
+      console.error('Failed to save past results', e);
+    }
+  }, [pastResults]);
+
+  // Load mock tests dynamically from Supabase
+  useEffect(() => {
+    fetchMockTestsFromSupabase().then((data) => {
+      if (data && data.length > 0) {
+        setTests(data);
+        setCurrentTest((prev) => {
+          if (!prev) return null;
+          const fresh = data.find((t) => t.id === prev.id);
+          return fresh || prev;
+        });
+      }
+    });
+  }, []);
+
+  // Keep currentTest up to date if tests array is updated
+  useEffect(() => {
+    if (currentTest) {
+      const match = tests.find((t) => t.id === currentTest.id);
+      if (match && match !== currentTest) {
+        setCurrentTest(match);
+      }
+    }
+  }, [tests]);
+
+  // Exam Countdown Timer (freezes if invigilator paused test)
+  useEffect(() => {
+    if (activeScreen !== 'exam' || !currentTest || isExamPausedByTeacher) return;
+
+    const timer = setInterval(() => {
+      setRemainingSeconds((prev) => {
+        if (prev <= 1) {
+          clearInterval(timer);
+          finishExam();
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, [activeScreen, currentTest, answers, isExamPausedByTeacher]);
+
+  // Lab invigilator remote command listener
+  useEffect(() => {
+    if (activeScreen !== 'exam' || !activeCandidateInfo?.stationName) return;
+
+    const unsubscribe = ConsultancyService.subscribe((event) => {
+      if (event.type === 'STATION_COMMAND') {
+        const { stationId, command } = event.payload || {};
+        if (stationId === activeCandidateInfo.stationName) {
+          if (command === 'PAUSE_EXAM') {
+            setIsExamPausedByTeacher(true);
+          } else if (command === 'RESUME_EXAM') {
+            setIsExamPausedByTeacher(false);
+          } else if (command === 'FORCE_SUBMIT') {
+            finishExam();
+          } else if (command === 'RESET_STATION') {
+            alert('Your examination station was reset by the consultancy invigilator.');
+            setActiveScreen('terminal');
+          }
+        }
+      }
+    });
+
+    return () => unsubscribe();
+  }, [activeScreen, activeCandidateInfo]);
+
+  // Active exam live telemetry heartbeat to Consultancy Lab Monitor
+  useEffect(() => {
+    if (
+      activeScreen !== 'exam' ||
+      !currentTest ||
+      !activeCandidateInfo?.consultancyId ||
+      !activeCandidateInfo?.stationName
+    ) {
+      return;
+    }
+
+    const answeredCount = Object.keys(answers).filter(
+      (k) => answers[Number(k)] && answers[Number(k)].length > 0
+    ).length;
+
+    const sendHeartbeat = () => {
+      ConsultancyService.updateStationHeartbeat(
+        activeCandidateInfo.consultancyId!,
+        activeCandidateInfo.stationName!,
+        {
+          status: isExamPausedByTeacher ? 'paused' : 'in_progress',
+          currentQuestion,
+          totalQuestions: 40,
+          answeredCount,
+          remainingSeconds,
+          assignedTestId: currentTest.id,
+          testTitle: currentTest.title,
+          module: currentTest.module,
+          currentCandidate: {
+            candidateId: activeCandidateInfo.candidateId,
+            name: activeCandidateInfo.name,
+            targetBand: activeCandidateInfo.targetBand
+          }
+        }
+      );
+    };
+
+    sendHeartbeat();
+    const interval = setInterval(sendHeartbeat, 3500);
+
+    return () => clearInterval(interval);
+  }, [
+    activeScreen,
+    currentTest,
+    activeCandidateInfo,
+    currentQuestion,
+    answers,
+    remainingSeconds,
+    isExamPausedByTeacher
+  ]);
+
+  // Start a new test
+  const startTest = (test: IELTSMockTest) => {
+    if (!candidateSession && !adminUser) {
+      setInitialAuthTab('candidate');
+      setAuthMessage('Please sign in before starting an examination.');
+      setActiveScreen('auth');
+      return;
+    }
+    setCurrentTest(test);
+    setCurrentQuestion(1);
+    setActiveSectionIndex(0);
+    setAnswers({});
+    setReviewStatus({});
+    setRemainingSeconds(test.durationMinutes * 60);
+    setIsExamPausedByTeacher(false);
+    setActiveScreen('exam');
+  };
+
+  // Update answer for a specific question
+  const handleAnswerChange = (qNum: number, value: string | string[]) => {
+    setAnswers((prev) => ({
+      ...prev,
+      [qNum]: value
+    }));
+  };
+
+  // Toggle review flag
+  const handleToggleReview = (qNum: number) => {
+    setReviewStatus((prev) => ({
+      ...prev,
+      [qNum]: !prev[qNum]
+    }));
+  };
+
+  // Switch question and automatically change active section tab
+  const handleSelectQuestion = (qNum: number) => {
+    setCurrentQuestion(qNum);
+    if (!currentTest) return;
+
+    if (currentTest.module === 'reading') {
+      if (qNum <= 13) setActiveSectionIndex(0);
+      else if (qNum <= 26) setActiveSectionIndex(1);
+      else setActiveSectionIndex(2);
+    } else {
+      if (qNum <= 10) setActiveSectionIndex(0);
+      else if (qNum <= 20) setActiveSectionIndex(1);
+      else if (qNum <= 30) setActiveSectionIndex(2);
+      else setActiveSectionIndex(3);
+    }
+  };
+
+  // Select section tab and jump to its first question
+  const handleSelectSection = (index: number) => {
+    setActiveSectionIndex(index);
+    if (!currentTest) return;
+
+    if (currentTest.module === 'reading') {
+      const targetQ = index === 0 ? 1 : index === 1 ? 14 : 27;
+      setCurrentQuestion(targetQ);
+    } else {
+      const targetQ = index * 10 + 1;
+      setCurrentQuestion(targetQ);
+    }
+  };
+
+  // Calculate score and finalize test
+  const finishExam = () => {
+    const activeTest = currentTestRef.current;
+    if (!activeTest) return;
+
+    const curAnswers = answersRef.current;
+    const curRemaining = remainingSecondsRef.current;
+
+    const allQuestions = activeTest.sections.flatMap((s) =>
+      s.questionGroups.flatMap((g) => g.questions)
+    );
+
+    let correctCount = 0;
+    allQuestions.forEach((q) => {
+      const userAns = curAnswers[q.questionNumber];
+      if (isAnswerCorrect(userAns, q.correctAnswer, q.acceptedVariants)) {
+        correctCount += 1;
+      }
+    });
+
+    const totalQuestions = allQuestions.length || 40;
+    const bandScore = calculateBandScore(activeTest.module, correctCount);
+    const timeTaken = activeTest.durationMinutes * 60 - curRemaining;
+
+    const newResult: TestResult = {
+      testId: activeTest.id,
+      book: activeTest.book,
+      testNumber: activeTest.testNumber,
+      module: activeTest.module,
+      totalQuestions,
+      correctCount,
+      bandScore,
+      timeTakenSeconds: Math.max(1, timeTaken),
+      completedAt: new Date().toISOString(),
+      answers: curAnswers
+    };
+
+    setActiveResult(newResult);
+    setPastResults((prev) => [newResult, ...prev.filter((p) => p.testId !== newResult.testId)]);
+    saveTestResultToSupabase(newResult);
+
+    // If candidate took test in a consultancy lab station
+    if (activeCandidateInfo?.consultancyId && activeCandidateInfo?.stationName) {
+      ConsultancyService.updateStationHeartbeat(
+        activeCandidateInfo.consultancyId,
+        activeCandidateInfo.stationName,
+        {
+          status: 'submitted',
+          remainingSeconds: 0,
+          answeredCount: Object.keys(curAnswers).length
+        }
+      );
+
+      // Record student statistics
+      ConsultancyService.recordStudentTestResult(
+        activeCandidateInfo.consultancyId,
+        activeCandidateInfo.candidateId,
+        newResult
+      );
+
+      // Save AI diagnostic report in consultancy archive
+      ConsultancyService.saveReport(activeCandidateInfo.consultancyId, {
+        studentName: activeCandidateInfo.name,
+        candidateId: activeCandidateInfo.candidateId,
+        testTitle: activeTest.title,
+        module: activeTest.module,
+        bandScore,
+        correctCount,
+        totalQuestions,
+        timeTakenSeconds: Math.max(1, timeTaken),
+        completedAt: newResult.completedAt
+      });
+    }
+
+    setActiveScreen('results');
+  };
+
+  // Candidate login callback
+  const handleCandidateLogin = (session: CandidateSession) => {
+    setCandidateSession(session);
+    setTerminalStationName(session.stationName);
+    setSelectedConsultancyId(session.consultancyId);
+    setActiveCandidateInfo({
+      name: session.candidateName,
+      candidateId: session.candidateId,
+      targetBand: session.targetBand,
+      stationName: session.stationName,
+      consultancyId: session.consultancyId
+    });
+    setAuthMessage(null);
+    setActiveScreen('landing');
+  };
+
+  // Admin login callback
+  const handleAdminLogin = (user: AdminUser) => {
+    setAdminUser(user);
+    setAuthMessage(null);
+    if (user.role === 'super_admin') {
+      setActiveScreen('super-admin');
+    } else {
+      if (user.consultancyId) {
+        setSelectedConsultancyId(user.consultancyId);
+      }
+      setActiveScreen('consultancy');
+    }
+  };
+
+  // Master logout handler
+  const handleLogout = () => {
+    ConsultancyService.logoutCandidate();
+    ConsultancyService.logoutAdmin();
+    setCandidateSession(null);
+    setAdminUser(null);
+    setActiveCandidateInfo(null);
+    setAuthMessage('You have been signed out successfully.');
+    setInitialAuthTab('candidate');
+    setActiveScreen('auth');
+  };
+
+  return (
+    <div className="min-h-screen bg-slate-50 flex flex-col">
+      {/* SCREEN 1: OFFICIAL AUTHENTICATION GATE (CANDIDATE & ADMIN) */}
+      {activeScreen === 'auth' && (
+        <UnifiedAuthView
+          initialTab={initialAuthTab}
+          initialBranchCode={candidateSession?.branchCode || 'APEX-2026'}
+          initialPcNumber={terminalStationName || 'PC-01'}
+          onCandidateLogin={handleCandidateLogin}
+          onAdminLogin={handleAdminLogin}
+          authMessage={authMessage}
+        />
+      )}
+
+      {/* SCREEN 2: AUTHENTICATED CANDIDATE & TEST CATALOG HUB */}
+      {activeScreen === 'landing' && (
+        <LandingPage
+          tests={tests}
+          onStartTest={(test) => {
+            if (candidateSession) {
+              setActiveCandidateInfo({
+                name: candidateSession.candidateName,
+                candidateId: candidateSession.candidateId,
+                targetBand: candidateSession.targetBand,
+                stationName: candidateSession.stationName,
+                consultancyId: candidateSession.consultancyId
+              });
+            }
+            startTest(test);
+          }}
+          pastResults={pastResults}
+          onViewResults={(res) => {
+            setActiveResult(res);
+            const foundTest = tests.find((t) => t.id === res.testId) || currentTest;
+            if (foundTest) {
+              setCurrentTest(foundTest);
+            }
+            setActiveScreen('results');
+          }}
+          onOpenSuperAdmin={() => {
+            if (adminUser?.role === 'super_admin') {
+              setActiveScreen('super-admin');
+            } else {
+              setInitialAuthTab('admin');
+              setAuthMessage('Super Administrator sign in required.');
+              setActiveScreen('auth');
+            }
+          }}
+          onOpenConsultancy={() => {
+            if (adminUser) {
+              if (adminUser.consultancyId) {
+                setSelectedConsultancyId(adminUser.consultancyId);
+              }
+              setActiveScreen('consultancy');
+            } else {
+              setInitialAuthTab('admin');
+              setAuthMessage('Consultancy Director sign in required.');
+              setActiveScreen('auth');
+            }
+          }}
+          onOpenTerminal={() => {
+            setActiveScreen('terminal');
+          }}
+          candidateSession={candidateSession}
+          adminUser={adminUser}
+          onLogout={handleLogout}
+        />
+      )}
+
+      {/* SCREEN 3: SUPER ADMIN PORTAL */}
+      {activeScreen === 'super-admin' && (
+        <SuperAdminPortal
+          onBackToApp={() => setActiveScreen('landing')}
+          onOpenConsultancy={(cid) => {
+            setSelectedConsultancyId(cid);
+            setActiveScreen('consultancy');
+          }}
+          onLogout={handleLogout}
+        />
+      )}
+
+      {/* SCREEN 4: CONSULTANCY ADMIN & LAB INVIGILATOR PORTAL */}
+      {activeScreen === 'consultancy' && (
+        <ConsultancyPortal
+          consultancyId={selectedConsultancyId}
+          tests={tests}
+          onBackToHub={() => setActiveScreen('landing')}
+          onOpenTerminal={(stName) => {
+            setTerminalStationName(stName);
+            setActiveScreen('terminal');
+          }}
+          onLogout={handleLogout}
+        />
+      )}
+
+      {/* SCREEN 5: STUDENT COMPUTER TERMINAL KIOSK */}
+      {activeScreen === 'terminal' && (
+        <StudentTerminalView
+          initialStationName={terminalStationName}
+          initialConsultancyId={selectedConsultancyId}
+          tests={tests}
+          onStartExam={(test, candidate) => {
+            const cleanStation = candidate.stationName || terminalStationName || 'PC-01';
+            const cleanCid = candidate.consultancyId || selectedConsultancyId || 'apex-global';
+            setTerminalStationName(cleanStation);
+            setSelectedConsultancyId(cleanCid);
+            const sess: CandidateSession = {
+              stationName: cleanStation,
+              branchCode: 'APEX-2026',
+              consultancyId: cleanCid,
+              consultancyName: 'Apex Global Education',
+              candidateName: candidate.name,
+              candidateId: candidate.candidateId,
+              targetBand: candidate.targetBand || 7.5,
+              loggedInAt: new Date().toISOString()
+            };
+            ConsultancyService.setCurrentCandidateSession(sess);
+            setCandidateSession(sess);
+            setActiveCandidateInfo({
+              name: candidate.name,
+              candidateId: candidate.candidateId,
+              targetBand: candidate.targetBand,
+              stationName: cleanStation,
+              consultancyId: cleanCid
+            });
+            startTest(test);
+          }}
+          onExitTerminal={() => {
+            if (!candidateSession && !adminUser) {
+              setActiveScreen('auth');
+            } else {
+              setActiveScreen('landing');
+            }
+          }}
+        />
+      )}
+
+      {/* SCREEN 6: OFFICIAL CD-IELTS EXAMINATION SIMULATOR */}
+      {activeScreen === 'exam' && currentTest && (
+        <div className={`h-screen flex flex-col overflow-hidden bg-white select-none contrast-${settings.contrast} relative`}>
+          {/* Invigilator Pause Overlay */}
+          {isExamPausedByTeacher && (
+            <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-xs z-50 flex flex-col items-center justify-center p-6 text-center text-slate-900 space-y-4 animate-in fade-in">
+              <div className="bg-white border border-slate-200 p-8 rounded-2xl shadow-xl max-w-md w-full space-y-4 flex flex-col items-center">
+                <div className="w-14 h-14 rounded-full bg-amber-50 border border-amber-200 flex items-center justify-center shadow-xs">
+                  <Pause className="w-7 h-7 text-amber-600" />
+                </div>
+                <div className="space-y-1">
+                  <h2 className="text-xl font-bold tracking-tight text-slate-900">
+                    Examination Paused by Invigilator
+                  </h2>
+                  <p className="text-xs text-slate-600 leading-relaxed">
+                    Your test countdown timer and audio playback are temporarily paused. Please remain seated at your desk until the invigilator resumes the session.
+                  </p>
+                </div>
+                <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-slate-100 border border-slate-200 text-xs font-mono text-slate-700">
+                  <span className="w-2 h-2 rounded-full bg-emerald-500" />
+                  <span>Station: {activeCandidateInfo?.stationName || 'Lab Terminal'} • Live Synchronized</span>
+                </div>
+              </div>
+            </div>
+          )}
+
+          <CDHeader
+            test={currentTest}
+            remainingSeconds={remainingSeconds}
+            settings={settings}
+            onUpdateSettings={(newSet) => setSettings((prev) => ({ ...prev, ...newSet }))}
+            onExitTest={() => {
+              if (window.confirm('Return to previous screen? Your current exam session will be interrupted.')) {
+                if (activeCandidateInfo?.stationName && activeCandidateInfo?.consultancyId) {
+                  ConsultancyService.resetStation(activeCandidateInfo.consultancyId, activeCandidateInfo.stationName);
+                  setActiveScreen('terminal');
+                } else {
+                  setActiveScreen('landing');
+                }
+              }
+            }}
+            audioVolume={audioVolume}
+            onVolumeChange={setAudioVolume}
+          />
+
+          {/* Reading or Listening View */}
+          {currentTest.module === 'reading' ? (
+            <ReadingExamView
+              test={currentTest}
+              currentQuestion={currentQuestion}
+              answers={answers}
+              onAnswerChange={handleAnswerChange}
+              settings={settings}
+              activePassageIndex={activeSectionIndex}
+              onSelectPassage={handleSelectSection}
+              onSelectQuestion={handleSelectQuestion}
+            />
+          ) : (
+            <ListeningExamView
+              test={currentTest}
+              currentQuestion={currentQuestion}
+              answers={answers}
+              onAnswerChange={handleAnswerChange}
+              settings={settings}
+              activePartIndex={activeSectionIndex}
+              onSelectPart={handleSelectSection}
+              onSelectQuestion={handleSelectQuestion}
+              volume={audioVolume}
+            />
+          )}
+
+          {/* 40 Question Palette & Navigation */}
+          <QuestionPalette
+            currentQuestion={currentQuestion}
+            totalQuestions={40}
+            answers={answers}
+            reviewStatus={reviewStatus}
+            onSelectQuestion={handleSelectQuestion}
+            onToggleReview={handleToggleReview}
+            onFinishTest={finishExam}
+            module={currentTest.module}
+            activeSectionIndex={activeSectionIndex}
+            onSelectSection={handleSelectSection}
+          />
+        </div>
+      )}
+
+      {/* SCREEN 7: DIAGNOSTIC RESULTS REPORT */}
+      {activeScreen === 'results' && activeResult && currentTest && (
+        <ResultReport
+          test={currentTest}
+          result={activeResult}
+          onReturnHub={() => {
+            if (activeCandidateInfo?.stationName) {
+              setActiveScreen('terminal');
+            } else {
+              setActiveScreen('landing');
+            }
+          }}
+          onRetakeTest={() => startTest(currentTest)}
+        />
+      )}
+    </div>
+  );
+};
+
+export default App;
