@@ -55,7 +55,7 @@ export const ResultReport: React.FC<ResultReportProps> = ({
             </button>
             <div className="hidden sm:flex items-center gap-2 border-l border-slate-200 pl-3">
               <img src="/images/masterieltsai-icon.png" alt="MasterIELTS AI" className="w-5 h-5 object-contain" />
-              <span className="font-extrabold text-xs text-slate-900 tracking-tight">MasterIELTS AI</span>
+              <span className="font-extrabold text-xs text-slate-900 tracking-tight">MOCK TEST <span className="text-[10px] text-slate-500 font-normal">from Master IELTS AI</span></span>
             </div>
           </div>
           <div className="flex items-center gap-2">
