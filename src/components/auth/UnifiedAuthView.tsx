@@ -37,12 +37,12 @@ export const UnifiedAuthView: React.FC<UnifiedAuthViewProps> = ({
   // Candidate fields (No name required!)
   const [branchCode, setBranchCode] = useState(initialBranchCode);
   const [pcNumber, setPcNumber] = useState(initialPcNumber);
-  const [examPassword, setExamPassword] = useState('1234');
+  const [examPassword, setExamPassword] = useState('');
   const [showExamPassword, setShowExamPassword] = useState(false);
 
   // Admin fields (Email & Password)
-  const [adminEmail, setAdminEmail] = useState('director@apexglobal.edu.np');
-  const [adminPassword, setAdminPassword] = useState('admin123');
+  const [adminEmail, setAdminEmail] = useState('');
+  const [adminPassword, setAdminPassword] = useState('');
   const [showAdminPassword, setShowAdminPassword] = useState(false);
 
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -262,22 +262,7 @@ export const UnifiedAuthView: React.FC<UnifiedAuthViewProps> = ({
                 </div>
               </div>
 
-              {/* Quick Fill Demo */}
-              <div className="pt-1">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setBranchCode('APEX-2026');
-                    setPcNumber('PC-01');
-                    setExamPassword('1234');
-                    setErrorMessage(null);
-                  }}
-                  className="w-full text-left p-2 rounded-lg bg-slate-50 hover:bg-slate-100 border border-slate-200 text-[11px] text-slate-600 flex items-center justify-between transition cursor-pointer"
-                >
-                  <span className="font-medium">Quick Fill: Apex Global Lab (APEX-2026 • PC-01 • Pass: 1234)</span>
-                  <span className="text-blue-600 font-semibold text-[10px]">Use Demo</span>
-                </button>
-              </div>
+
 
               {/* Error Message */}
               {errorMessage && (
@@ -318,7 +303,7 @@ export const UnifiedAuthView: React.FC<UnifiedAuthViewProps> = ({
                     required
                     value={adminEmail}
                     onChange={(e) => setAdminEmail(e.target.value)}
-                    placeholder="director@consultancy.com"
+                    placeholder="e.g. admin@example.com"
                     className="w-full bg-white border border-slate-300 focus:border-blue-600 focus:ring-1 focus:ring-blue-600 text-slate-900 pl-10 pr-4 py-2.5 rounded-lg outline-none text-xs"
                   />
                 </div>
@@ -336,7 +321,7 @@ export const UnifiedAuthView: React.FC<UnifiedAuthViewProps> = ({
                     required
                     value={adminPassword}
                     onChange={(e) => setAdminPassword(e.target.value)}
-                    placeholder="Enter admin password"
+                    placeholder="Enter password"
                     className="w-full bg-white border border-slate-300 focus:border-blue-600 focus:ring-1 focus:ring-blue-600 text-slate-900 pl-10 pr-10 py-2.5 rounded-lg outline-none text-xs font-mono"
                   />
                   <button
@@ -347,34 +332,6 @@ export const UnifiedAuthView: React.FC<UnifiedAuthViewProps> = ({
                     {showAdminPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                   </button>
                 </div>
-              </div>
-
-              {/* Quick Fill Demos */}
-              <div className="space-y-1.5 pt-1">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setAdminEmail('director@apexglobal.edu.np');
-                    setAdminPassword('admin123');
-                    setErrorMessage(null);
-                  }}
-                  className="w-full text-left p-2 rounded-lg bg-slate-50 hover:bg-slate-100 border border-slate-200 text-[11px] text-slate-600 flex items-center justify-between transition cursor-pointer"
-                >
-                  <span><strong>Consultancy Director</strong>: director@apexglobal.edu.np</span>
-                  <span className="text-blue-600 font-semibold text-[10px]">Use Demo</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setAdminEmail('admin@ieltsplatform.com');
-                    setAdminPassword('admin123');
-                    setErrorMessage(null);
-                  }}
-                  className="w-full text-left p-2 rounded-lg bg-slate-50 hover:bg-slate-100 border border-slate-200 text-[11px] text-slate-600 flex items-center justify-between transition cursor-pointer"
-                >
-                  <span><strong>Super Admin</strong>: admin@ieltsplatform.com</span>
-                  <span className="text-blue-600 font-semibold text-[10px]">Use Demo</span>
-                </button>
               </div>
 
               {/* Error Message */}

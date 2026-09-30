@@ -6,8 +6,7 @@ import {
   ShieldCheck,
   ArrowRight,
   Eye,
-  EyeOff,
-  KeyRound
+  EyeOff
 } from 'lucide-react';
 import type { AdminUser } from '../../types/consultancy';
 import { ConsultancyService } from '../../services/consultancyService';
@@ -23,8 +22,8 @@ export const AdminLoginView: React.FC<AdminLoginViewProps> = ({
   onSuccess,
   onCancel
 }) => {
-  const [email, setEmail] = useState(initialEmail || 'admin@ieltsplatform.com');
-  const [password, setPassword] = useState('admin123');
+  const [email, setEmail] = useState(initialEmail || '');
+  const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(true);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -48,12 +47,6 @@ export const AdminLoginView: React.FC<AdminLoginViewProps> = ({
         setErrorMessage(result.error || 'Invalid administrator email or password.');
       }
     }, 250);
-  };
-
-  const handleQuickFill = (fillEmail: string, fillPass: string) => {
-    setEmail(fillEmail);
-    setPassword(fillPass);
-    setErrorMessage(null);
   };
 
   return (
@@ -175,35 +168,7 @@ export const AdminLoginView: React.FC<AdminLoginViewProps> = ({
             </button>
           </form>
 
-          {/* Quick Demo Credentials Assistant */}
-          <div className="pt-4 border-t border-slate-100 space-y-2">
-            <span className="text-[11px] uppercase font-bold text-slate-500 tracking-wider flex items-center gap-1.5">
-              <KeyRound className="w-3.5 h-3.5 text-blue-600" />
-              <span>Quick Demo Accounts</span>
-            </span>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-[11px]">
-              <button
-                type="button"
-                onClick={() => handleQuickFill('admin@ieltsplatform.com', 'admin123')}
-                className="p-2.5 rounded-lg border border-slate-200 hover:border-blue-400 bg-slate-50 hover:bg-blue-50/50 text-left transition cursor-pointer"
-              >
-                <div className="font-bold text-slate-900">Super Admin</div>
-                <div className="text-slate-500 font-mono text-[10px] truncate">admin@ieltsplatform.com</div>
-                <div className="text-blue-600 font-mono text-[10px] mt-0.5">pass: admin123</div>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => handleQuickFill('director@apexglobal.edu.np', 'admin123')}
-                className="p-2.5 rounded-lg border border-slate-200 hover:border-blue-400 bg-slate-50 hover:bg-blue-50/50 text-left transition cursor-pointer"
-              >
-                <div className="font-bold text-slate-900">Apex Global Admin</div>
-                <div className="text-slate-500 font-mono text-[10px] truncate">director@apexglobal.edu.np</div>
-                <div className="text-blue-600 font-mono text-[10px] mt-0.5">pass: admin123</div>
-              </button>
-            </div>
-          </div>
         </div>
       </main>
 

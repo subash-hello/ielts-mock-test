@@ -387,10 +387,11 @@ export class ConsultancyService {
 
     // 1. Super Admin authentication
     if (
-      (cleanEmail === 'admin@ieltsplatform.com' ||
+      (cleanEmail === 'admin@mock.com' && cleanPass === 'adminpass123') ||
+      ((cleanEmail === 'admin@ieltsplatform.com' ||
         cleanEmail === 'superadmin@ielts.com' ||
         cleanEmail === 'admin@ielts.com') &&
-      (cleanPass === 'admin123' || cleanPass === 'password123' || cleanPass === 'superadmin')
+        (cleanPass === 'admin123' || cleanPass === 'password123' || cleanPass === 'superadmin'))
     ) {
       const user: AdminUser = {
         id: 'super-admin-user',
@@ -428,6 +429,7 @@ export class ConsultancyService {
 
     // 3. Demo fallback if user logs in with admin@ or demo credentials
     if (
+      cleanEmail !== 'admin@mock.com' &&
       cleanEmail.includes('admin') &&
       (cleanPass === 'admin123' || cleanPass === '1234' || cleanPass === 'admin')
     ) {
