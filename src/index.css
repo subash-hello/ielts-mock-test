@@ -154,9 +154,9 @@
   background: #475569;
 }
 
-/* MasterIELTS AI Signature Branding */
+/* MasterIELTS AI Signature Branding (High contrast for light background) */
 .gradient-text {
-  background: linear-gradient(135deg, #a5b4fc 0%, #c084fc 45%, #67e8f9 100%);
+  background: linear-gradient(135deg, #4338ca 0%, #6d28d9 45%, #0369a1 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
 }
