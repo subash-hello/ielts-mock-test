@@ -5,7 +5,9 @@ import {
   RotateCcw,
   Upload,
   AlertCircle,
-  ChevronDown
+  ChevronDown,
+  Check,
+  X
 } from 'lucide-react';
 import type { CandidateAnswers, ExamSettings, IELTSMockTest, IELTSQuestionGroup } from '../../types/ielts';
 import { ListeningMapDiagram } from './ListeningMapDiagram';
@@ -242,27 +244,6 @@ export const ListeningExamView: React.FC<ListeningExamViewProps> = ({
     return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
   };
 
-  // Helper for multiple choice multi-selection (e.g. Choose TWO letters)
-  const handleMultiChoiceToggle = (qNum: number, letter: string) => {
-    const current = answers[qNum];
-    const currentArr: string[] = Array.isArray(current)
-      ? current
-      : typeof current === 'string' && current
-      ? current.split(',').map((s) => s.trim())
-      : [];
-
-    let newArr: string[];
-    if (currentArr.includes(letter)) {
-      newArr = currentArr.filter((l) => l !== letter);
-    } else {
-      if (currentArr.length >= 2) {
-        newArr = [currentArr[1], letter];
-      } else {
-        newArr = [...currentArr, letter];
-      }
-    }
-    onAnswerChange(qNum, newArr);
-  };
 
   // Helper to parse word limit rules
   const parseWordLimit = (rule?: string): number | null => {
@@ -473,32 +454,233 @@ export const ListeningExamView: React.FC<ListeningExamViewProps> = ({
     );
   };
 
+  // Helper to parse option text cleanly without duplicate letters or non-breaking spaces
+  const parseOptionItem = (opt: string, fallbackIdx: number = 0) => {
+    const clean = opt.replace(/\u00a0/g, ' ').trim();
+    const match = clean.match(/^([A-Za-z])[.):\s-]+(.*)$/);
+    if (match) {
+      return {
+        letter: match[1].toUpperCase(),
+        text: match[2].trim(),
+      };
+    }
+    return {
+      letter: String.fromCharCode(65 + fallbackIdx),
+      text: clean,
+    };
+  };
+
   // Render Multiple Choice / Multi-Select
   const renderMultipleChoice = (group: IELTSQuestionGroup) => {
+    const isMultiGroup =
+      group.type === 'multiple_choice_multi' ||
+      group.instructions.toLowerCase().includes('two letters') ||
+      group.instructions.toLowerCase().includes('three letters');
+
+    if (isMultiGroup) {
+      const qNums = group.questions.map((q) => q.questionNumber);
+      const maxSelections = qNums.length;
+
+      const currentSelections: string[] = [];
+      qNums.forEach((qn) => {
+        const a = answers[qn];
+        if (typeof a === 'string' && a.trim()) {
+          const upper = a.trim().toUpperCase();
+          if (!currentSelections.includes(upper)) {
+            currentSelections.push(upper);
+          }
+        } else if (Array.isArray(a)) {
+          a.forEach((item) => {
+            if (item) {
+              const upper = item.trim().toUpperCase();
+              if (!currentSelections.includes(upper)) {
+                currentSelections.push(upper);
+              }
+            }
+          });
+        }
+      });
+
+      const rawPrompt = group.questions[0]?.prompt || group.instructions;
+      const cleanPrompt = rawPrompt
+        .replace(/\s*\((First|Second|Third|1st|2nd|3rd)\s*choice\)/gi, '')
+        .replace(/\[\s*\d+\s*\]/g, '')
+        .trim();
+
+      const optionsList =
+        group.questions.find((q) => q.options && q.options.length > 0)?.options || [];
+
+      const handleToggle = (letter: string) => {
+        let newSelections = [...currentSelections];
+        if (newSelections.includes(letter)) {
+          newSelections = newSelections.filter((l) => l !== letter);
+        } else {
+          if (newSelections.length >= maxSelections) {
+            newSelections = [...newSelections.slice(1), letter];
+          } else {
+            newSelections.push(letter);
+          }
+        }
+
+        qNums.forEach((qn, idx) => {
+          onAnswerChange(qn, newSelections[idx] || '');
+        });
+
+        if (newSelections.length > 0 && newSelections.length <= qNums.length) {
+          onSelectQuestion(qNums[newSelections.length - 1]);
+        } else {
+          onSelectQuestion(qNums[0]);
+        }
+      };
+
+      const isAnySelected = qNums.includes(currentQuestion);
+
+      return (
+        <div
+          id={`listening-q-box-${qNums[0]}`}
+          className={`p-5 rounded-xl border transition ${
+            isAnySelected
+              ? 'border-red-500 bg-red-50/20 ring-2 ring-red-400/40 shadow-xs'
+              : 'border-slate-200 bg-white'
+          }`}
+        >
+          {qNums.slice(1).map((qn) => (
+            <span key={qn} id={`listening-q-box-${qn}`} className="sr-only" />
+          ))}
+
+          <div className="flex flex-wrap items-center justify-between gap-2.5 pb-3 border-b border-slate-200 mb-3.5">
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-bold uppercase tracking-wider text-slate-500">
+                Questions:
+              </span>
+              <div className="flex items-center gap-2">
+                {qNums.map((qn, idx) => {
+                  const isCurrent = currentQuestion === qn;
+                  const assigned = currentSelections[idx] || '';
+                  return (
+                    <button
+                      key={qn}
+                      type="button"
+                      onClick={() => onSelectQuestion(qn)}
+                      className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded text-xs font-bold border transition cursor-pointer ${
+                        isCurrent
+                          ? 'bg-red-600 text-white border-red-600 shadow-xs'
+                          : assigned
+                          ? 'bg-slate-900 text-white border-slate-900'
+                          : 'bg-white text-slate-700 border-slate-300 hover:border-slate-400'
+                      }`}
+                    >
+                      <span>Q{qn}:</span>
+                      {assigned ? (
+                        <span className="font-mono text-sm underline decoration-2">{assigned}</span>
+                      ) : (
+                        <span className="text-slate-400 font-normal italic">Empty</span>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2 text-xs">
+              <span className="font-semibold text-slate-600">
+                {currentSelections.length} of {maxSelections} selected
+              </span>
+              {currentSelections.length > 0 && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    qNums.forEach((qn) => onAnswerChange(qn, ''));
+                    onSelectQuestion(qNums[0]);
+                  }}
+                  className="text-slate-400 hover:text-red-600 cursor-pointer text-xs ml-1 flex items-center gap-1"
+                  title="Clear choices"
+                >
+                  <X className="w-3.5 h-3.5" />
+                  <span>Clear</span>
+                </button>
+              )}
+            </div>
+          </div>
+
+          <div className="font-semibold text-slate-900 text-sm leading-relaxed mb-4">
+            {cleanPrompt}
+          </div>
+
+          <div className="space-y-2.5">
+            {optionsList.map((opt, oIdx) => {
+              const { letter, text } = parseOptionItem(opt, oIdx);
+              const isChecked = currentSelections.includes(letter);
+              const slotIndex = currentSelections.indexOf(letter);
+
+              return (
+                <div
+                  key={letter}
+                  onClick={() => handleToggle(letter)}
+                  className={`p-3 rounded-lg border flex items-start gap-3 cursor-pointer transition select-none ${
+                    isChecked
+                      ? 'border-slate-900 bg-slate-100 text-slate-950 font-medium shadow-2xs ring-1 ring-slate-900/10'
+                      : 'border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50/70 text-slate-800'
+                  }`}
+                >
+                  <div
+                    className={`w-5 h-5 rounded border flex items-center justify-center text-xs font-bold shrink-0 mt-0.5 transition ${
+                      isChecked
+                        ? 'border-slate-900 bg-slate-900 text-white'
+                        : 'border-slate-400 bg-white text-transparent'
+                    }`}
+                  >
+                    <Check className="w-3.5 h-3.5 stroke-[3]" />
+                  </div>
+
+                  <span
+                    className={`font-mono font-bold text-xs px-2 py-0.5 rounded shrink-0 ${
+                      isChecked
+                        ? 'bg-slate-900 text-white'
+                        : 'bg-slate-100 text-slate-800'
+                    }`}
+                  >
+                    {letter}
+                  </span>
+
+                  <span className="text-xs sm:text-[13px] leading-relaxed flex-1">
+                    {text}
+                  </span>
+
+                  {isChecked && slotIndex >= 0 && slotIndex < qNums.length && (
+                    <span className="text-[11px] font-bold px-2 py-0.5 rounded bg-slate-200 text-slate-800 shrink-0">
+                      Box {qNums[slotIndex]}
+                    </span>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      );
+    }
+
     return (
       <div className="space-y-5">
         {group.questions.map((q) => {
           const qNum = q.questionNumber;
-          const currentAns = answers[qNum];
+          const currentAns = answers[qNum] as string;
           const isSelected = currentQuestion === qNum;
-          const isMulti =
-            group.type === 'multiple_choice_multi' ||
-            group.instructions.toLowerCase().includes('two letters');
 
           return (
             <div
               id={`listening-q-box-${qNum}`}
               key={qNum}
               onClick={() => onSelectQuestion(qNum)}
-              className={`p-4 rounded border transition ${
+              className={`p-4 rounded-xl border transition ${
                 isSelected
-                  ? 'border-red-500 bg-red-50/20'
+                  ? 'border-red-500 bg-red-50/20 ring-2 ring-red-400/40 shadow-xs'
                   : 'border-slate-200 bg-white hover:border-slate-300'
               }`}
             >
               <div className="flex items-start gap-2.5 mb-3">
                 <span
-                  className={`font-bold text-xs px-2 py-0.5 rounded-xs select-none shrink-0 ${
+                  className={`font-mono font-bold text-xs px-2 py-0.5 rounded select-none shrink-0 ${
                     isSelected
                       ? 'bg-red-600 text-white'
                       : currentAns
@@ -508,7 +690,7 @@ export const ListeningExamView: React.FC<ListeningExamViewProps> = ({
                 >
                   {qNum}
                 </span>
-                <p className="font-semibold text-slate-900 text-sm leading-relaxed">
+                <p className="font-semibold text-slate-900 text-xs sm:text-sm leading-relaxed">
                   {q.prompt.replace(/\[\s*\d+\s*\]/, '').trim()}
                 </p>
               </div>
@@ -516,45 +698,35 @@ export const ListeningExamView: React.FC<ListeningExamViewProps> = ({
               {q.options && (
                 <div className="space-y-2 pl-7">
                   {q.options.map((opt, oIdx) => {
-                    const letterMatch = opt.match(/^([A-G])\.\s*(.*)$/);
-                    const optLetter = letterMatch ? letterMatch[1] : String.fromCharCode(65 + oIdx);
-                    const optText = letterMatch ? letterMatch[2] : opt;
-
-                    const isChecked = isMulti
-                      ? Array.isArray(currentAns)
-                        ? currentAns.includes(optLetter)
-                        : typeof currentAns === 'string' && currentAns.includes(optLetter)
-                      : currentAns === optLetter;
+                    const { letter, text } = parseOptionItem(opt, oIdx);
+                    const isChecked = currentAns === letter;
 
                     return (
-                      <label
-                        key={oIdx}
+                      <div
+                        key={letter}
                         onClick={(e) => {
                           e.stopPropagation();
-                          if (isMulti) {
-                            handleMultiChoiceToggle(qNum, optLetter);
-                          } else {
-                            onAnswerChange(qNum, optLetter);
-                          }
+                          onAnswerChange(qNum, letter);
                         }}
-                        className={`flex items-start gap-3 p-2.5 rounded border text-sm cursor-pointer transition select-none ${
+                        className={`flex items-start gap-3 p-2.5 rounded-lg border text-xs sm:text-[13px] cursor-pointer transition select-none ${
                           isChecked
-                            ? 'border-slate-900 bg-slate-100 text-slate-950 font-bold shadow-xs'
-                            : 'border-slate-200 bg-white hover:bg-slate-50 text-slate-800'
+                            ? 'border-slate-900 bg-slate-100 text-slate-950 font-medium shadow-2xs ring-1 ring-slate-900/10'
+                            : 'border-slate-200 bg-white hover:border-slate-300 text-slate-800'
                         }`}
                       >
-                        <input
-                          type={isMulti ? 'checkbox' : 'radio'}
-                          name={`q-${qNum}`}
-                          checked={isChecked}
-                          onChange={() => {}}
-                          className="mt-0.5 w-4 h-4 text-slate-900 accent-slate-900 cursor-pointer"
-                        />
-                        <span>
-                          <strong className="mr-1.5">{optLetter}.</strong>
-                          {optText}
+                        <div
+                          className={`w-5 h-5 rounded-full border flex items-center justify-center text-xs font-bold shrink-0 mt-0.5 transition ${
+                            isChecked
+                              ? 'border-slate-900 bg-slate-900 text-white'
+                              : 'border-slate-400 bg-white text-slate-600'
+                          }`}
+                        >
+                          {letter}
+                        </div>
+                        <span className="leading-relaxed flex-1">
+                          {text}
                         </span>
-                      </label>
+                      </div>
                     );
                   })}
                 </div>

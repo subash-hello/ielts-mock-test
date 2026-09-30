@@ -2599,7 +2599,7 @@ export const cambridge19Test4Reading: IELTSMockTest = {
       "questionGroups": [
         {
           "id": "r-sec3-g1-27-30",
-          "type": "multiple_choice_multi",
+          "type": "multiple_choice",
           "title": "Questions 27–30",
           "instructions": "Choose the correct letter, A, B, C or D. Write the correct letter in boxes 27–30 on your answer sheet.",
           "questions": [

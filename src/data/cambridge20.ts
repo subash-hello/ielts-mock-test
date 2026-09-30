@@ -1437,7 +1437,16 @@ export const cambridge20Test3Reading: IELTSMockTest = {
           "id": "r-sec2-g1-14-19",
           "type": "matching_headings",
           "title": "Questions 14–19",
-          "instructions": "Choose the correct heading for each section from the list of headings below. Write the correct number, i-vii, in boxes 14-19 on your answer sheet. i   Tried and tested solutions",
+          "instructions": "Choose the correct heading for each section from the list of headings below. Write the correct number, i-vii, in boxes 14-19 on your answer sheet.",
+          "headingList": [
+            "i. Tried and tested solutions",
+            "ii. Cooperation beneath the waves",
+            "iii. Working to lessen the problems",
+            "iv. Disagreement about the accuracy of a certain phrase",
+            "v. Two clear educational goals",
+            "vi. Promoting hope",
+            "vii. A warning of further trouble ahead"
+          ],
           "questions": [
             {
               "questionNumber": 14,

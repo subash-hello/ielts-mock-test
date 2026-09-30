@@ -877,6 +877,218 @@ export const ReadingExamView: React.FC<ReadingExamViewProps> = ({
     );
   };
 
+  // Helper to parse option text cleanly without duplicate letters or non-breaking spaces
+  const parseOptionItem = (opt: string, fallbackIdx: number = 0) => {
+    const clean = opt.replace(/\u00a0/g, ' ').trim();
+    const match = clean.match(/^([A-Za-z])[.):\s-]+(.*)$/);
+    if (match) {
+      return {
+        letter: match[1].toUpperCase(),
+        text: match[2].trim(),
+      };
+    }
+    return {
+      letter: String.fromCharCode(65 + fallbackIdx),
+      text: clean,
+    };
+  };
+
+  // Render unified multi-select questions (e.g. Choose TWO letters, A-E)
+  const renderMultiChoiceQuestions = (group: IELTSQuestionGroup) => {
+    const qNums = group.questions.map((q) => q.questionNumber);
+    const maxSelections = qNums.length;
+
+    // Collect current active selections from answers for this question group
+    const currentSelections: string[] = [];
+    qNums.forEach((qn) => {
+      const a = answers[qn];
+      if (typeof a === 'string' && a.trim()) {
+        const upper = a.trim().toUpperCase();
+        if (!currentSelections.includes(upper)) {
+          currentSelections.push(upper);
+        }
+      } else if (Array.isArray(a)) {
+        a.forEach((item) => {
+          if (item) {
+            const upper = item.trim().toUpperCase();
+            if (!currentSelections.includes(upper)) {
+              currentSelections.push(upper);
+            }
+          }
+        });
+      }
+    });
+
+    // Extract clean stem prompt (strip "(First choice)", "(Second choice)", etc.)
+    const rawPrompt = group.questions[0]?.prompt || group.instructions;
+    const cleanPrompt = rawPrompt
+      .replace(/\s*\((First|Second|Third|1st|2nd|3rd)\s*choice\)/gi, '')
+      .replace(/\[\s*\d+\s*\]/g, '')
+      .trim();
+
+    // All options from the first question with options
+    const optionsList =
+      group.questions.find((q) => q.options && q.options.length > 0)?.options || [];
+
+    const handleToggle = (letter: string) => {
+      let newSelections = [...currentSelections];
+      if (newSelections.includes(letter)) {
+        newSelections = newSelections.filter((l) => l !== letter);
+      } else {
+        if (newSelections.length >= maxSelections) {
+          newSelections = [...newSelections.slice(1), letter];
+        } else {
+          newSelections.push(letter);
+        }
+      }
+
+      // Assign letters in order to questions in this group
+      qNums.forEach((qn, idx) => {
+        onAnswerChange(qn, newSelections[idx] || '');
+      });
+
+      if (newSelections.length > 0 && newSelections.length <= qNums.length) {
+        onSelectQuestion(qNums[newSelections.length - 1]);
+      } else {
+        onSelectQuestion(qNums[0]);
+      }
+    };
+
+    const isAnySelected = qNums.includes(currentQuestion);
+
+    return (
+      <div
+        id={`q-box-${qNums[0]}`}
+        className={`p-5 rounded-xl border transition ${
+          isAnySelected
+            ? 'border-red-500 bg-red-50/20 ring-2 ring-red-400/40 shadow-xs'
+            : 'border-slate-200 bg-white'
+        }`}
+      >
+        {/* Anchor spans for secondary questions in this group */}
+        {qNums.slice(1).map((qn) => (
+          <span key={qn} id={`q-box-${qn}`} className="sr-only" />
+        ))}
+
+        {/* Target Question Number Badges */}
+        <div className="flex flex-wrap items-center justify-between gap-2.5 pb-3 border-b border-slate-200 mb-3.5">
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-bold uppercase tracking-wider text-slate-500">
+              Questions:
+            </span>
+            <div className="flex items-center gap-2">
+              {qNums.map((qn, idx) => {
+                const isCurrent = currentQuestion === qn;
+                const assigned = currentSelections[idx] || '';
+                return (
+                  <button
+                    key={qn}
+                    type="button"
+                    onClick={() => onSelectQuestion(qn)}
+                    className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded text-xs font-bold border transition cursor-pointer ${
+                      isCurrent
+                        ? 'bg-red-600 text-white border-red-600 shadow-xs'
+                        : assigned
+                        ? 'bg-slate-900 text-white border-slate-900'
+                        : 'bg-white text-slate-700 border-slate-300 hover:border-slate-400'
+                    }`}
+                  >
+                    <span>Q{qn}:</span>
+                    {assigned ? (
+                      <span className="font-mono text-sm underline decoration-2">{assigned}</span>
+                    ) : (
+                      <span className="text-slate-400 font-normal italic">Empty</span>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2 text-xs">
+            <span className="font-semibold text-slate-600">
+              {currentSelections.length} of {maxSelections} selected
+            </span>
+            {currentSelections.length > 0 && (
+              <button
+                type="button"
+                onClick={() => {
+                  qNums.forEach((qn) => onAnswerChange(qn, ''));
+                  onSelectQuestion(qNums[0]);
+                }}
+                className="text-slate-400 hover:text-red-600 cursor-pointer text-xs ml-1 flex items-center gap-1"
+                title="Clear choices"
+              >
+                <X className="w-3.5 h-3.5" />
+                <span>Clear</span>
+              </button>
+            )}
+          </div>
+        </div>
+
+        {/* Question prompt statement */}
+        <div className="font-semibold text-slate-900 text-sm leading-relaxed mb-4">
+          {cleanPrompt}
+        </div>
+
+        {/* Options List with Checkboxes */}
+        <div className="space-y-2.5">
+          {optionsList.map((opt, oIdx) => {
+            const { letter, text } = parseOptionItem(opt, oIdx);
+            const isChecked = currentSelections.includes(letter);
+            const slotIndex = currentSelections.indexOf(letter);
+
+            return (
+              <div
+                key={letter}
+                onClick={() => handleToggle(letter)}
+                className={`p-3 rounded-lg border flex items-start gap-3 cursor-pointer transition select-none ${
+                  isChecked
+                    ? 'border-slate-900 bg-slate-100 text-slate-950 font-medium shadow-2xs ring-1 ring-slate-900/10'
+                    : 'border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50/70 text-slate-800'
+                }`}
+              >
+                {/* Checkbox Icon */}
+                <div
+                  className={`w-5 h-5 rounded border flex items-center justify-center text-xs font-bold shrink-0 mt-0.5 transition ${
+                    isChecked
+                      ? 'border-slate-900 bg-slate-900 text-white'
+                      : 'border-slate-400 bg-white text-transparent'
+                  }`}
+                >
+                  <Check className="w-3.5 h-3.5 stroke-[3]" />
+                </div>
+
+                {/* Letter indicator */}
+                <span
+                  className={`font-mono font-bold text-xs px-2 py-0.5 rounded shrink-0 ${
+                    isChecked
+                      ? 'bg-slate-900 text-white'
+                      : 'bg-slate-100 text-slate-800'
+                  }`}
+                >
+                  {letter}
+                </span>
+
+                {/* Option description */}
+                <span className="text-xs sm:text-[13px] leading-relaxed flex-1">
+                  {text}
+                </span>
+
+                {/* Slot Indicator badge */}
+                {isChecked && slotIndex >= 0 && slotIndex < qNums.length && (
+                  <span className="text-[11px] font-bold px-2 py-0.5 rounded bg-slate-200 text-slate-800 shrink-0">
+                    Box {qNums[slotIndex]}
+                  </span>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    );
+  };
+
   return (
     <div className="flex-1 flex flex-col overflow-hidden cd-ielts-font bg-white">
       {/* Passage Selector Sub-Header */}
@@ -1278,8 +1490,11 @@ export const ReadingExamView: React.FC<ReadingExamViewProps> = ({
                   ) : isCompletionGroup ? (
                     /* 2. AUTHENTIC INLINE COMPLETION FOR SENTENCE, SUMMARY, NOTE, TABLE */
                     renderCompletionQuestions(group)
+                  ) : group.type === 'multiple_choice_multi' ? (
+                    /* 3. MULTIPLE CHOICE MULTI (e.g. Choose TWO letters) */
+                    renderMultiChoiceQuestions(group)
                   ) : (
-                    /* 3. MULTIPLE CHOICE, TRUE/FALSE/NOT GIVEN, MATCHING */
+                    /* 4. MULTIPLE CHOICE, TRUE/FALSE/NOT GIVEN, MATCHING */
                     <div className="space-y-5">
                       {group.questions.map((q) => {
                         const qNum = q.questionNumber;
@@ -1345,31 +1560,31 @@ export const ReadingExamView: React.FC<ReadingExamViewProps> = ({
                             {/* MULTIPLE CHOICE (Single) */}
                             {group.type === 'multiple_choice' && q.options && (
                               <div className="space-y-2 mt-2 ml-7">
-                                {q.options.map((opt) => {
-                                  const letter = opt.charAt(0);
+                                {q.options.map((opt, oIdx) => {
+                                  const { letter, text } = parseOptionItem(opt, oIdx);
                                   const isChecked = val === letter;
 
                                   return (
                                     <div
-                                      key={opt}
+                                      key={letter}
                                       onClick={() => onAnswerChange(qNum, letter)}
-                                      className={`p-2.5 rounded-lg border flex items-start gap-3 cursor-pointer transition ${
+                                      className={`p-2.5 rounded-lg border flex items-start gap-3 cursor-pointer transition select-none ${
                                         isChecked
-                                          ? 'bg-red-50/60 border-red-500 text-slate-950 font-medium'
-                                          : 'bg-white border-slate-200 hover:border-slate-300 text-slate-800'
+                                          ? 'border-slate-900 bg-slate-100 text-slate-950 font-medium shadow-2xs ring-1 ring-slate-900/10'
+                                          : 'border-slate-200 bg-white hover:border-slate-300 text-slate-800'
                                       }`}
                                     >
                                       <div
-                                        className={`w-5 h-5 rounded-full border flex items-center justify-center text-xs font-bold flex-shrink-0 mt-0.5 ${
+                                        className={`w-5 h-5 rounded-full border flex items-center justify-center text-xs font-bold flex-shrink-0 mt-0.5 transition ${
                                           isChecked
-                                            ? 'border-red-600 bg-red-600 text-white'
+                                            ? 'border-slate-900 bg-slate-900 text-white'
                                             : 'border-slate-400 bg-white text-slate-600'
                                         }`}
                                       >
                                         {letter}
                                       </div>
-                                      <span className="text-xs sm:text-[13px] leading-snug">
-                                        {opt.replace(/^[A-D]\.\s*/, '')}
+                                      <span className="text-xs sm:text-[13px] leading-relaxed flex-1">
+                                        {text}
                                       </span>
                                     </div>
                                   );

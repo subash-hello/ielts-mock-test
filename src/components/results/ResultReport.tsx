@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { CheckCircle2, Clock, ArrowLeft, RotateCcw, BookOpen, Sparkles, Building2, User } from 'lucide-react';
 import type { IELTSMockTest, TestResult } from '../../types/ielts';
-import { isAnswerCorrect } from '../../utils/scoring';
+import { evaluateTestAnswers } from '../../utils/scoring';
 import { AIDiagnosticReportModal } from './AIDiagnosticReportModal';
 
 interface ResultReportProps {
@@ -31,9 +31,10 @@ export const ResultReport: React.FC<ResultReportProps> = ({
     return 'Limited User';
   };
 
+  const { questionResults } = evaluateTestAnswers(test, result.answers);
+
   const filteredQuestions = allQuestions.filter((q) => {
-    const userAns = result.answers[q.questionNumber];
-    const isCorrect = isAnswerCorrect(userAns, q.correctAnswer, q.acceptedVariants);
+    const isCorrect = !!questionResults[q.questionNumber];
     if (filterMode === 'correct') return isCorrect;
     if (filterMode === 'incorrect') return !isCorrect;
     return true;
@@ -214,7 +215,7 @@ export const ResultReport: React.FC<ResultReportProps> = ({
           <div className="divide-y divide-slate-100 text-xs">
             {filteredQuestions.map((q) => {
               const userAns = result.answers[q.questionNumber];
-              const isCorrect = isAnswerCorrect(userAns, q.correctAnswer, q.acceptedVariants);
+              const isCorrect = !!questionResults[q.questionNumber];
               const displayUser = Array.isArray(userAns) ? userAns.join(', ') : (userAns || 'No Answer Provided');
               const displayCorrect = Array.isArray(q.correctAnswer) ? q.correctAnswer.join(', ') : q.correctAnswer;
 

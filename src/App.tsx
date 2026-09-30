@@ -12,7 +12,7 @@ import { ConsultancyPortal } from './components/admin/ConsultancyPortal';
 import { StudentTerminalView } from './components/terminal/StudentTerminalView';
 import { UnifiedAuthView } from './components/auth/UnifiedAuthView';
 import { ConsultancyService } from './services/consultancyService';
-import { calculateBandScore, isAnswerCorrect } from './utils/scoring';
+import { calculateBandScore, evaluateTestAnswers } from './utils/scoring';
 import { saveTestResultToSupabase, fetchMockTestsFromSupabase } from './lib/supabase';
 import { allMockTests } from './data/mockTests';
 import { Pause } from 'lucide-react';
@@ -395,13 +395,7 @@ export const App: React.FC = () => {
       s.questionGroups.flatMap((g) => g.questions)
     );
 
-    let correctCount = 0;
-    allQuestions.forEach((q) => {
-      const userAns = curAnswers[q.questionNumber];
-      if (isAnswerCorrect(userAns, q.correctAnswer, q.acceptedVariants)) {
-        correctCount += 1;
-      }
-    });
+    const { correctCount } = evaluateTestAnswers(activeTest, curAnswers);
 
     const totalQuestions = allQuestions.length || 40;
     const bandScore = calculateBandScore(activeTest.module, correctCount);

@@ -2370,7 +2370,17 @@ export const cambridge18Test3Reading: IELTSMockTest = {
           "id": "r-sec2-g1-14-20",
           "type": "matching_headings",
           "title": "Questions 14-20",
-          "instructions": "Choose the correct heading for each paragraph from the list of headings below. Write the correct number, i-viii, in boxes 14-20 on your answer sheet. List of Headings",
+          "instructions": "Choose the correct heading for each paragraph from the list of headings below. Write the correct number, i-viii, in boxes 14-20 on your answer sheet.",
+          "headingList": [
+            "i. A period in cold conditions before the technology is assessed",
+            "ii. Marketing issues lead to failure",
+            "iii. Good and bad aspects of steam technology are passed on",
+            "iv. A possible solution to the issues of today",
+            "v. Further improvements lead to commercial orders",
+            "vi. Positive publicity at last for this quiet, clean, fast vehicle",
+            "vii. A disappointing outcome for customers",
+            "viii. A better option than the steam car arises"
+          ],
           "questions": [
             {
               "questionNumber": 14,

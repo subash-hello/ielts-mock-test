@@ -95,3 +95,60 @@ export function isAnswerCorrect(
 
   return false;
 }
+
+/**
+ * Holistically evaluates an entire mock test's answers, supporting multi_choice_multi pools
+ * where questions in a group (e.g. Q20 & Q21) can match answers in any order without penalty.
+ */
+export function evaluateTestAnswers(
+  test: { sections: Array<{ questionGroups: Array<{ type: string; questions: Array<{ questionNumber: number; correctAnswer: string | string[]; acceptedVariants?: string[] }> }> }> },
+  answers: Record<number, string | string[]>
+): {
+  correctCount: number;
+  questionResults: Record<number, boolean>;
+} {
+  let correctCount = 0;
+  const questionResults: Record<number, boolean> = {};
+
+  test.sections.forEach((section) => {
+    section.questionGroups.forEach((group) => {
+      if (group.type === 'multiple_choice_multi') {
+        // Collect all acceptable answers across the multi-choice group
+        const correctPool: string[] = [];
+        group.questions.forEach((q) => {
+          if (Array.isArray(q.correctAnswer)) {
+            q.correctAnswer.forEach((c) => correctPool.push(normalizeAnswer(c)));
+          } else if (q.correctAnswer) {
+            correctPool.push(normalizeAnswer(q.correctAnswer));
+          }
+        });
+
+        const usedAnswers = new Set<string>();
+
+        group.questions.forEach((q) => {
+          const userVal = answers[q.questionNumber];
+          const normUser = normalizeAnswer(Array.isArray(userVal) ? userVal.join(' ') : userVal);
+
+          if (normUser && correctPool.includes(normUser) && !usedAnswers.has(normUser)) {
+            usedAnswers.add(normUser);
+            questionResults[q.questionNumber] = true;
+            correctCount += 1;
+          } else {
+            questionResults[q.questionNumber] = false;
+          }
+        });
+      } else {
+        group.questions.forEach((q) => {
+          const userVal = answers[q.questionNumber];
+          const isCorrect = isAnswerCorrect(userVal, q.correctAnswer, q.acceptedVariants);
+          questionResults[q.questionNumber] = isCorrect;
+          if (isCorrect) {
+            correctCount += 1;
+          }
+        });
+      }
+    });
+  });
+
+  return { correctCount, questionResults };
+}
