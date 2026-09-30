@@ -273,6 +273,13 @@ export const ConsultancyPortal: React.FC<ConsultancyPortalProps> = ({
       {/* 1. Header with Consultancy Branding & Live Telemetry Link */}
       <header className="border-b border-slate-200 bg-white px-6 py-3.5 flex flex-wrap items-center justify-between gap-4 sticky top-0 z-30 shadow-xs">
         <div className="flex items-center gap-3.5">
+          <div className="flex items-center gap-2 pr-3 border-r border-slate-200">
+            <img src="/images/masterieltsai-icon.png" alt="MasterIELTS AI" className="w-8 h-8 object-contain" />
+            <div className="hidden sm:block">
+              <div className="text-[10px] uppercase font-bold tracking-wider text-violet-600">Powered by</div>
+              <div className="text-xs font-black text-slate-900 leading-none">MasterIELTS AI</div>
+            </div>
+          </div>
           <div className="w-10 h-10 rounded-xl bg-blue-600 flex items-center justify-center font-bold text-white shadow-xs">
             {consultancy.name.charAt(0)}
           </div>
