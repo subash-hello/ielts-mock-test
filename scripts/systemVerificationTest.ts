@@ -584,6 +584,48 @@ suite('Suite 3: Consultancy Test Launch & Terminal Waiting Logic', () => {
     ConsultancyService.launchTestToBranch(testCid, null);
     localStorage.removeItem(`ielts_stations_${testCid}`);
   });
+
+  test('PC-03 joining after branch test launched automatically inherits active test', () => {
+    const kiecId = 'kiec-lalitpur';
+
+    // 1. Admin launches Cambridge 16 Test 1 Full Mock
+    ConsultancyService.launchTestToBranch(
+      kiecId,
+      'cambridge-16-test-1-full',
+      'Cambridge 16 Test 1 — Full Mock',
+      true
+    );
+
+    // 2. Candidate registers station PC-03 AFTER launch
+    const station = ConsultancyService.addStation(kiecId, 'PC-03');
+    assertEqual(station.name, 'PC-03');
+    assertEqual(station.status, 'assigned', 'Newly added station auto-assigned to active test');
+    assertEqual(station.assignedTestId, 'cambridge-16-test-1-full');
+
+    // 3. Station lookup resolves active test immediately
+    const resolved = ConsultancyService.getStationAssignedTest(kiecId, 'PC-03');
+    assert(resolved !== null, 'PC-03 resolves active test immediately');
+    assertEqual(resolved?.testId, 'cambridge-16-test-1-full');
+    assertEqual(resolved?.isFullMock, true);
+
+    // 4. Branch code & name lookup works with "Kiec lalitpur", "KIEC321", "kiec"
+    const cByName = ConsultancyService.getConsultancyByBranchCode('Kiec lalitpur');
+    assert(cByName !== undefined, 'Found by name');
+    assertEqual(cByName?.id, kiecId);
+
+    const cByCode = ConsultancyService.getConsultancyByBranchCode('KIEC321');
+    assert(cByCode !== undefined, 'Found by code');
+    assertEqual(cByCode?.id, kiecId);
+
+    // 5. Active test retrieved using resolved consultancy ID
+    const activeTest = ConsultancyService.getActiveLaunchedTest(cByName!.id);
+    assert(activeTest !== null, 'Active test found for Kiec lalitpur');
+    assertEqual(activeTest?.testId, 'cambridge-16-test-1-full');
+
+    // Cleanup
+    ConsultancyService.launchTestToBranch(kiecId, null);
+    ConsultancyService.deleteStation(kiecId, station.id);
+  });
 });
 
 // --- SUITE 4: WRITING SUBMISSION & EXAMINER EVALUATION WORKFLOW ---

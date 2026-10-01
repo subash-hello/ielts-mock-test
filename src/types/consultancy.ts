@@ -56,6 +56,7 @@ export interface LabStation {
   assignedTestId?: string;
   testTitle?: string;
   module?: 'reading' | 'listening' | 'writing';
+  isFullMock?: boolean;
   currentQuestion?: number;
   totalQuestions?: number;
   answeredCount?: number;

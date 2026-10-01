@@ -8,6 +8,7 @@ import type {
   CandidateSession
 } from '../types/consultancy';
 import type { TestResult } from '../types/ielts';
+import { supabase } from '../lib/supabase';
 
 // Initial pre-configured consultancies for immediate out-of-the-box demonstration
 const DEFAULT_CONSULTANCIES: Consultancy[] = [
@@ -256,6 +257,8 @@ const BROADCAST_CHANNEL_NAME = 'ielts_lab_telemetry_bus';
 export class ConsultancyService {
   private static broadcastChannel: BroadcastChannel | null = null;
   private static localListeners: Set<(event: { type: string; payload: any }) => void> = new Set();
+  private static supabaseChannel: any = null;
+  private static isSupabaseSubscribed = false;
 
   private static getChannel(): BroadcastChannel | null {
     if (typeof window !== 'undefined' && 'BroadcastChannel' in window) {
@@ -267,7 +270,136 @@ export class ConsultancyService {
     return null;
   }
 
-  // Broadcast event across browser tabs / windows in the lab with 0ms latency
+  // Supabase Realtime Telemetry Bus (operates seamlessly across different computers and browsers)
+  private static getSupabaseChannel(): any {
+    if (typeof window === 'undefined' || !supabase) return null;
+    if (this.supabaseChannel) return this.supabaseChannel;
+
+    try {
+      this.supabaseChannel = supabase.channel('ielts-global-lab-telemetry', {
+        config: {
+          broadcast: { ack: false, self: false },
+          presence: { key: 'station-telemetry' }
+        }
+      });
+
+      this.supabaseChannel
+        .on('broadcast', { event: 'telemetry' }, (msg: any) => {
+          if (msg?.payload) {
+            this.handleCloudTelemetry(msg.payload);
+          }
+        })
+        .on('presence', { event: 'sync' }, () => {
+          try {
+            const state = this.supabaseChannel.presenceState();
+            this.handlePresenceSync(state);
+          } catch {}
+        })
+        .subscribe((status: string) => {
+          if (status === 'SUBSCRIBED') {
+            this.isSupabaseSubscribed = true;
+            this.syncLocalToPresence();
+          }
+        });
+
+      return this.supabaseChannel;
+    } catch {
+      return null;
+    }
+  }
+
+  private static handleCloudTelemetry(eventObj: { type: string; payload: any }): void {
+    if (!eventObj?.type) return;
+
+    if (eventObj.type === 'BRANCH_TEST_LAUNCHED') {
+      const p = eventObj.payload;
+      if (p?.consultancyId && p?.testId) {
+        try {
+          localStorage.setItem(`ielts_launched_test_${p.consultancyId}`, JSON.stringify(p));
+          localStorage.setItem('ielts_latest_launched_test', JSON.stringify(p));
+        } catch {}
+      } else if (p?.consultancyId && !p?.testId) {
+        try {
+          localStorage.removeItem(`ielts_launched_test_${p.consultancyId}`);
+          const latestRaw = localStorage.getItem('ielts_latest_launched_test');
+          if (latestRaw) {
+            const parsed = JSON.parse(latestRaw);
+            if (parsed?.consultancyId === p.consultancyId) {
+              localStorage.removeItem('ielts_latest_launched_test');
+            }
+          }
+        } catch {}
+      }
+    } else if (eventObj.type === 'STATION_UPDATED' || eventObj.type === 'STATION_HEARTBEAT' || eventObj.type === 'STATION_ADDED') {
+      const st = eventObj.payload;
+      if (st?.consultancyId && st?.name) {
+        try {
+          const list = this.getStations(st.consultancyId);
+          const norm = this.normalizeStationName(st.name);
+          const idx = list.findIndex((s) => this.normalizeStationName(s.name) === norm);
+          if (idx >= 0) {
+            list[idx] = { ...list[idx], ...st };
+          } else {
+            list.push(st);
+          }
+          localStorage.setItem(`ielts_stations_${st.consultancyId}`, JSON.stringify(list));
+        } catch {}
+      }
+    }
+
+    // Dispatch locally to components
+    this.localListeners.forEach((listener) => {
+      try {
+        listener(eventObj);
+      } catch {}
+    });
+
+    if (typeof window !== 'undefined') {
+      try {
+        window.dispatchEvent(new CustomEvent('ielts_telemetry', { detail: eventObj }));
+      } catch {}
+    }
+  }
+
+  private static handlePresenceSync(state: Record<string, any[]>): void {
+    if (!state) return;
+    for (const key of Object.keys(state)) {
+      const presences = state[key];
+      if (Array.isArray(presences)) {
+        for (const item of presences) {
+          if (item?.type === 'BRANCH_TEST_LAUNCHED' && item.consultancyId && item.testId) {
+            try {
+              localStorage.setItem(`ielts_launched_test_${item.consultancyId}`, JSON.stringify(item));
+              localStorage.setItem('ielts_latest_launched_test', JSON.stringify(item));
+            } catch {}
+            this.localListeners.forEach((listener) => {
+              try {
+                listener({ type: 'BRANCH_TEST_LAUNCHED', payload: item });
+              } catch {}
+            });
+          }
+        }
+      }
+    }
+  }
+
+  private static syncLocalToPresence(): void {
+    if (!this.supabaseChannel || !this.isSupabaseSubscribed) return;
+    try {
+      const latestRaw = localStorage.getItem('ielts_latest_launched_test');
+      if (latestRaw) {
+        const parsed = JSON.parse(latestRaw);
+        if (parsed?.testId) {
+          this.supabaseChannel.track({
+            type: 'BRANCH_TEST_LAUNCHED',
+            ...parsed
+          });
+        }
+      }
+    } catch {}
+  }
+
+  // Broadcast event across browser tabs / windows in the lab with 0ms latency + Cloud Realtime
   public static broadcast(type: string, payload: any) {
     const eventObj = { type, payload, timestamp: Date.now() };
 
@@ -287,17 +419,42 @@ export class ConsultancyService {
       } catch {}
     }
 
-    // 3. BroadcastChannel message across separate tabs/windows
+    // 3. BroadcastChannel message across separate tabs/windows on the same machine
     const channel = this.getChannel();
     if (channel) {
       try {
         channel.postMessage(eventObj);
       } catch {}
     }
+
+    // 4. Supabase Realtime across separate computers / browsers on the internet
+    const sbCh = this.getSupabaseChannel();
+    if (sbCh) {
+      try {
+        sbCh.send({
+          type: 'broadcast',
+          event: 'telemetry',
+          payload: eventObj
+        });
+        if (type === 'BRANCH_TEST_LAUNCHED') {
+          if (payload?.testId) {
+            sbCh.track({
+              type: 'BRANCH_TEST_LAUNCHED',
+              ...payload
+            });
+          } else {
+            sbCh.untrack();
+          }
+        }
+      } catch {}
+    }
   }
 
   // Subscribe to live telemetry events with multi-channel instant reaction
   public static subscribe(callback: (event: { type: string; payload: any }) => void): () => void {
+    // Ensure cloud channel is active
+    this.getSupabaseChannel();
+
     // 1. Register local synchronous listener (0ms)
     this.localListeners.add(callback);
 
@@ -410,15 +567,35 @@ export class ConsultancyService {
   }
 
   public static getConsultancyById(id: string): Consultancy | undefined {
-    return this.getConsultancies().find((c) => c.id === id);
+    if (!id) return undefined;
+    const clean = id.trim().toLowerCase();
+    const cleanAlphaNum = clean.replace(/[^a-z0-9]/g, '');
+    return this.getConsultancies().find(
+      (c) =>
+        c.id.toLowerCase() === clean ||
+        c.id.toLowerCase().replace(/[^a-z0-9]/g, '') === cleanAlphaNum ||
+        (c.branchCode && c.branchCode.toLowerCase() === clean) ||
+        (c.accessCode && c.accessCode.toLowerCase() === clean) ||
+        (c.name && c.name.toLowerCase() === clean) ||
+        (c.name && c.name.toLowerCase().replace(/[^a-z0-9]/g, '') === cleanAlphaNum)
+    );
   }
 
   public static getConsultancyByAccessCode(code: string): Consultancy | undefined {
+    if (!code) return undefined;
     const clean = code.trim().toUpperCase();
+    const cleanAlphaNum = clean.replace(/[^A-Z0-9]/g, '');
     return this.getConsultancies().find(
       (c) =>
         (c.accessCode && c.accessCode.toUpperCase() === clean) ||
-        (c.branchCode && c.branchCode.toUpperCase() === clean)
+        (c.branchCode && c.branchCode.toUpperCase() === clean) ||
+        (c.id && c.id.toUpperCase() === clean) ||
+        (c.name && c.name.toUpperCase() === clean) ||
+        (c.branch && c.branch.toUpperCase() === clean) ||
+        (c.accessCode && c.accessCode.toUpperCase().replace(/[^A-Z0-9]/g, '') === cleanAlphaNum) ||
+        (c.branchCode && c.branchCode.toUpperCase().replace(/[^A-Z0-9]/g, '') === cleanAlphaNum) ||
+        (c.id && c.id.toUpperCase().replace(/[^A-Z0-9]/g, '') === cleanAlphaNum) ||
+        (c.name && c.name.toUpperCase().replace(/[^A-Z0-9]/g, '') === cleanAlphaNum)
     );
   }
 
@@ -809,11 +986,18 @@ export class ConsultancyService {
   public static addStation(consultancyId: string, stationName: string): LabStation {
     const normName = this.normalizeStationName(stationName);
     const list = this.getStations(consultancyId);
+    const activeTest = this.getActiveLaunchedTest(consultancyId);
     
     // Strict uniqueness check by normalized station name
     const existing = list.find((s) => this.normalizeStationName(s.name) === normName);
     if (existing) {
       existing.lastHeartbeat = new Date().toISOString();
+      if (activeTest && (!existing.assignedTestId || existing.status === 'idle')) {
+        existing.status = 'assigned';
+        existing.assignedTestId = activeTest.testId;
+        existing.testTitle = activeTest.title;
+        existing.isFullMock = activeTest.isFullMock;
+      }
       this.saveStation(existing);
       return existing;
     }
@@ -823,7 +1007,10 @@ export class ConsultancyService {
       id,
       name: normName,
       consultancyId,
-      status: 'idle',
+      status: activeTest ? 'assigned' : 'idle',
+      assignedTestId: activeTest?.testId,
+      testTitle: activeTest?.title,
+      isFullMock: activeTest?.isFullMock,
       lastHeartbeat: new Date().toISOString()
     };
     list.push(newStation);
@@ -880,6 +1067,7 @@ export class ConsultancyService {
 
     // If specific consultancyId is provided, check directly
     if (consultancyId) {
+      const branchActive = this.getActiveLaunchedTest(consultancyId);
       const stations = this.getStations(consultancyId);
       const matched = stations.find((s) => s.id === stationIdentifier || this.normalizeStationName(s.name) === norm);
       if (matched && matched.assignedTestId && (matched.status === 'assigned' || matched.status === 'in_progress')) {
@@ -892,8 +1080,6 @@ export class ConsultancyService {
           candidate: matched.currentCandidate,
           isFullMock: matched.assignedTestId.includes('full')
         };
-        // Check if an active branch test was launched more recently
-        const branchActive = this.getActiveLaunchedTest(consultancyId);
         if (branchActive) {
           const bTime = new Date(branchActive.launchedAt || 0).getTime();
           const sTime = new Date(stationAssignment.launchedAt || 0).getTime();
@@ -910,11 +1096,24 @@ export class ConsultancyService {
         }
         return stationAssignment;
       }
+
+      // If station itself didn't have an individual override, but branch has an active test:
+      if (branchActive) {
+        return {
+          consultancyId: branchActive.consultancyId || consultancyId,
+          testId: branchActive.testId,
+          title: branchActive.title,
+          launchedAt: branchActive.launchedAt,
+          isFullMock: branchActive.isFullMock,
+          candidate: matched?.currentCandidate
+        };
+      }
     }
 
     // Otherwise scan all registered consultancies
     const allConsultancies = this.getConsultancies();
     for (const c of allConsultancies) {
+      const branchActive = this.getActiveLaunchedTest(c.id);
       const stations = this.getStations(c.id);
       const matched = stations.find((s) => s.id === stationIdentifier || this.normalizeStationName(s.name) === norm);
       if (matched && matched.assignedTestId && (matched.status === 'assigned' || matched.status === 'in_progress')) {
@@ -927,7 +1126,6 @@ export class ConsultancyService {
           candidate: matched.currentCandidate,
           isFullMock: matched.assignedTestId.includes('full')
         };
-        const branchActive = this.getActiveLaunchedTest(c.id);
         if (branchActive) {
           const bTime = new Date(branchActive.launchedAt || 0).getTime();
           const sTime = new Date(stationAssignment.launchedAt || 0).getTime();
@@ -944,7 +1142,30 @@ export class ConsultancyService {
         }
         return stationAssignment;
       }
+      if (matched && branchActive) {
+        return {
+          consultancyId: branchActive.consultancyId || c.id,
+          testId: branchActive.testId,
+          title: branchActive.title,
+          launchedAt: branchActive.launchedAt,
+          isFullMock: branchActive.isFullMock,
+          candidate: matched.currentCandidate
+        };
+      }
     }
+
+    // Global fallback if station not matched to a specific lab
+    const globalActive = this.getActiveLaunchedTest(consultancyId);
+    if (globalActive) {
+      return {
+        consultancyId: globalActive.consultancyId || consultancyId || 'apex-global',
+        testId: globalActive.testId,
+        title: globalActive.title,
+        launchedAt: globalActive.launchedAt,
+        isFullMock: globalActive.isFullMock
+      };
+    }
+
     return null;
   }
 
@@ -963,6 +1184,18 @@ export class ConsultancyService {
         try {
           specific = JSON.parse(raw);
         } catch {}
+      }
+      // Also try normalized ID / branch code / name lookup
+      if (!specific) {
+        const c = this.getConsultancyById(consultancyId) || this.getConsultancyByBranchCode(consultancyId);
+        if (c && c.id !== consultancyId) {
+          const cRaw = localStorage.getItem(`ielts_launched_test_${c.id}`);
+          if (cRaw) {
+            try {
+              specific = JSON.parse(cRaw);
+            } catch {}
+          }
+        }
       }
     }
 

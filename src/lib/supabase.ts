@@ -1,14 +1,29 @@
 import { createClient } from '@supabase/supabase-js';
 import type { IELTSMockTest, TestResult } from '../types/ielts';
 
+const getEnv = (key: string): string | undefined => {
+  try {
+    if (typeof import.meta !== 'undefined' && (import.meta as any).env) {
+      return (import.meta as any).env[key];
+    }
+  } catch {}
+  try {
+    const globalObj = globalThis as unknown as { process?: { env?: Record<string, string> } };
+    if (globalObj?.process?.env) {
+      return globalObj.process.env[key];
+    }
+  } catch {}
+  return undefined;
+};
+
 const supabaseUrl =
-  import.meta.env.VITE_SUPABASE_URL ||
-  import.meta.env.NEXT_PUBLIC_SUPABASE_URL ||
+  getEnv('VITE_SUPABASE_URL') ||
+  getEnv('NEXT_PUBLIC_SUPABASE_URL') ||
   'https://fqwdzxaprsefutccdqns.supabase.co';
 
 const supabaseAnonKey =
-  import.meta.env.VITE_SUPABASE_ANON_KEY ||
-  import.meta.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ||
+  getEnv('VITE_SUPABASE_ANON_KEY') ||
+  getEnv('NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY') ||
   'sb_publishable_seh5sW-Yt3mlaq8u2_dwLA_iu1A3ibO';
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey);

@@ -104,8 +104,13 @@ export const LandingPage: React.FC<LandingPageProps> = ({
     isFullMock?: boolean;
     consultancyId?: string;
   } | null>(() => {
+    let cid = candidateSession?.consultancyId;
+    if (!cid && candidateSession?.consultancyName) {
+      const found = ConsultancyService.getConsultancyByBranchCode(candidateSession.consultancyName);
+      if (found) cid = found.id;
+    }
     const stationTest = ConsultancyService.getStationAssignedTest(
-      candidateSession?.consultancyId,
+      cid,
       candidateSession?.stationName
     );
     if (stationTest) {
@@ -117,7 +122,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
         consultancyId: stationTest.consultancyId
       };
     }
-    return ConsultancyService.getActiveLaunchedTest(candidateSession?.consultancyId);
+    return ConsultancyService.getActiveLaunchedTest(cid);
   });
 
   // Sync candidateNameInput when candidateSession updates
@@ -130,7 +135,11 @@ export const LandingPage: React.FC<LandingPageProps> = ({
   // Subscribe and poll for active branch launched test & station assignments
   useEffect(() => {
     const syncTest = () => {
-      const cid = candidateSession?.consultancyId;
+      let cid = candidateSession?.consultancyId;
+      if (!cid && candidateSession?.consultancyName) {
+        const found = ConsultancyService.getConsultancyByBranchCode(candidateSession.consultancyName);
+        if (found) cid = found.id;
+      }
       const stName = candidateSession?.stationName;
 
       // 1. Branch-wide launched test (consultancy-specific or newest active)
