@@ -778,7 +778,9 @@ Parking:
         GUIDE: Welcome everyone to Stevenson's. We are delighted to host your work experience group this week. Before we take you onto the production floor, I'd like to share a brief background about the company. Stevenson's was originally established in 1926 by our founder, Ronald Stevenson. Ronald had worked as a metal craftsman since 1923 and drafted plans for an independent business in 1924, but it was in 1926 that the company was officially incorporated.
         Interestingly, although Stevenson's is widely known today for manufacturing automotive components and precision machine tools, originally Stevenson's manufactured goods exclusively for the healthcare industry, producing stainless surgical trays and sterilization containers.
         Now, you may have heard rumours about Stevenson's relocating to a modern industrial park outside the county. I can assure you that the company has no plans to move; our roots are firmly established here. As for your schedule this week, along with practical observation on the shop floor, the programme for your work experience includes regular talks by staff from engineering, marketing, and design.
-        Now, let me give you a quick orientation using the site plan. You are currently standing at the Main Entrance. Directly facing you as you enter through the main double doors is Reception, which is marked A on your map. To your left, room H is our Coffee room where you can relax during breaks. Tucked behind the main corridor on the east side, letter C is our main Warehouse where raw materials and finished parts are catalogued. At the far north end, letter G is the Staff canteen, serving hot lunches every day. Beside the courtyard, letter B is the executive Meeting room. And finally, adjacent to the reception area on the eastern flank, letter I is the Admin office.
+        Now, let me give you a quick orientation using the site plan. As you can see, we're in the Reception area, which we try to make attractive and welcoming to visitors. There's a corridor running left from here, and if you go along that, the door facing you at the end is the entrance to the Coffee room, marked H. This looks out onto the main road on one side, and some trees on the other, and that'll be where you meet each morning.
+        Next, across from the courtyard on the east side, letter C is our main Warehouse where raw materials and manufactured parts are stored. Right next to reception is the Staff canteen, marked G; the windows look onto the corridor and courtyard on one side and the access road on the other.
+        Beside the courtyard, letter B is the executive Meeting room. And along the corridor near reception, letter I is Human Resources. Finally, letter A is the Boardroom, which has a pleasant view looking out onto the trees next to the factory.
       `,
       questionGroups: [
         {
@@ -835,63 +837,54 @@ Parking:
         },
         {
           id: "c16-l1-qg3",
-          type: "matching_features",
+          type: "map_labelling",
           title: "Questions 15 – 20",
-          instructions: "Label the map below. Write the correct letter, A–J, next to Questions 15–20.",
-          options: [
-            "A. Reception",
-            "B. Meeting room",
-            "C. Warehouse",
-            "D. Main laboratory",
-            "E. Car park",
-            "F. Quality control",
-            "G. Staff canteen",
-            "H. Coffee room",
-            "I. Admin office",
-            "J. Loading bay"
-          ],
+          instructions: "Write the correct letter, A-J, next to Questions.",
+          diagramTitle: "Plan of Stevenson's site",
+          imageUrl: "/images/cambridge16-test1-stevensons-site.png",
+          options: ["A", "B", "C", "D", "E", "F", "G", "H", "I", "J"],
           questions: [
             {
               questionNumber: 15,
-              prompt: "Coffee room",
+              prompt: "coffee room",
               options: ["A", "B", "C", "D", "E", "F", "G", "H", "I", "J"],
               correctAnswer: "H",
-              explanation: "Transcript: 'room H is our Coffee room where you can relax'"
+              explanation: "Official Cambridge answer: H (coffee room is located at H at the end of the corridor facing the trees and main road)."
             },
             {
               questionNumber: 16,
-              prompt: "Warehouse",
+              prompt: "warehouse",
               options: ["A", "B", "C", "D", "E", "F", "G", "H", "I", "J"],
               correctAnswer: "C",
-              explanation: "Transcript: 'letter C is our main Warehouse'"
+              explanation: "Official Cambridge answer: C (warehouse is located at C on the east side)."
             },
             {
               questionNumber: 17,
-              prompt: "Staff canteen",
+              prompt: "staff canteen",
               options: ["A", "B", "C", "D", "E", "F", "G", "H", "I", "J"],
               correctAnswer: "G",
-              explanation: "Transcript: 'At the far north end, letter G is the Staff canteen'"
+              explanation: "Official Cambridge answer: G (staff canteen is located at G next to reception)."
             },
             {
               questionNumber: 18,
-              prompt: "Meeting room",
+              prompt: "meeting room",
               options: ["A", "B", "C", "D", "E", "F", "G", "H", "I", "J"],
               correctAnswer: "B",
-              explanation: "Transcript: 'Beside the courtyard, letter B is the executive Meeting room'"
+              explanation: "Official Cambridge answer: B (meeting room is located at B beside the courtyard)."
             },
             {
               questionNumber: 19,
-              prompt: "Admin office",
+              prompt: "human resources",
               options: ["A", "B", "C", "D", "E", "F", "G", "H", "I", "J"],
               correctAnswer: "I",
-              explanation: "Transcript: 'adjacent to the reception area on the eastern flank, letter I is the Admin office'"
+              explanation: "Official Cambridge answer: I (human resources is located at I along the corridor near reception)."
             },
             {
               questionNumber: 20,
-              prompt: "Reception",
+              prompt: "boardroom",
               options: ["A", "B", "C", "D", "E", "F", "G", "H", "I", "J"],
               correctAnswer: "A",
-              explanation: "Transcript: 'Directly facing you as you enter through the main double doors is Reception, which is marked A'"
+              explanation: "Official Cambridge answer: A (boardroom is located at A next to the factory with pleasant view onto the trees)."
             }
           ]
         }

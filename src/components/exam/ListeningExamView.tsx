@@ -7,10 +7,11 @@ import {
   AlertCircle,
   ChevronDown,
   Check,
-  X
+  X,
+  ZoomIn,
+  MapPin
 } from 'lucide-react';
 import type { CandidateAnswers, ExamSettings, IELTSMockTest, IELTSQuestionGroup } from '../../types/ielts';
-import { ListeningMapDiagram } from './ListeningMapDiagram';
 
 interface ListeningExamViewProps {
   test: IELTSMockTest;
@@ -97,6 +98,7 @@ export const ListeningExamView: React.FC<ListeningExamViewProps> = ({
   const [duration, setDuration] = useState<number>(1800);
   const [audioSrc, setAudioSrc] = useState<string>(initialSources[0] || '');
   const [audioError, setAudioError] = useState<string | null>(null);
+  const [zoomMap, setZoomMap] = useState<{ url: string; title: string } | null>(null);
 
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
@@ -811,136 +813,239 @@ export const ListeningExamView: React.FC<ListeningExamViewProps> = ({
   };
 
   // Render Map / Plan / Diagram Labelling
+  // Render Official CD-IELTS Map / Plan / Diagram Labelling
   const renderMapLabelling = (group: IELTSQuestionGroup) => {
-    // Collect all answered letters for the map pins
-    const answeredLetters: Record<string, number> = {};
-    group.questions.forEach((q) => {
-      const a = answers[q.questionNumber];
-      if (typeof a === 'string' && a.trim()) {
-        answeredLetters[a.trim().toUpperCase()] = q.questionNumber;
-      }
-    });
+    // 1. Resolve official map image and diagram title
+    let mapImage = group.imageUrl;
+    let diagramTitle = group.diagramTitle || group.title || 'Plan / Map Reference';
 
-    // Available letters (e.g. A to H or A to I)
-    const availableLetters =
+    const cleanSearchStr = (
+      (group.title || '') + ' ' +
+      (group.diagramTitle || '') + ' ' +
+      (activeSection.subtitle || '') + ' ' +
+      (group.instructions || '')
+    ).toLowerCase();
+
+    if (!mapImage) {
+      if (cleanSearchStr.includes('stevenson') || test.id.includes('cambridge-16-test-1')) {
+        mapImage = '/images/cambridge16-test1-stevensons-site.png';
+        diagramTitle = "Plan of Stevenson's site";
+      } else if (cleanSearchStr.includes('farley') || test.id.includes('cambridge-19-test-1')) {
+        mapImage = '/images/maps/cam19-test1-farley-house.jpg';
+        diagramTitle = 'Farley House and Grounds';
+      } else if (cleanSearchStr.includes('housing') || cleanSearchStr.includes('residential') || test.id.includes('cambridge-18-test-2')) {
+        mapImage = '/images/maps/cam18-test2-housing-development.jpg';
+        diagramTitle = 'New Housing Development Plan';
+      } else if (cleanSearchStr.includes('melby') || cleanSearchStr.includes('coal') || test.id.includes('cambridge-21-test-2')) {
+        mapImage = '/images/maps/cam21-test2-melby-coal-mine.png';
+        diagramTitle = 'Melby Coal Mine';
+      }
+    }
+
+    // 2. Extract clean single-character letters (A, B, C, D, ...)
+    const rawOptions =
       group.options && group.options.length > 0
         ? group.options
-        : ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'];
+        : group.questions[0]?.options && group.questions[0].options.length > 0
+        ? group.questions[0].options
+        : ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J'];
+
+    const availableLetters = Array.from(
+      new Set(
+        rawOptions.map((opt, idx) => {
+          const match = opt.trim().match(/^([A-Z])/i);
+          return match ? match[1].toUpperCase() : String.fromCharCode(65 + idx);
+        })
+      )
+    ).sort();
 
     return (
       <div className="space-y-6">
-        {/* Visual Map / Plan Diagram */}
-        <ListeningMapDiagram
-          title={group.diagramTitle || group.title || test.title}
-          imageUrl={group.imageUrl}
-          options={availableLetters}
-          selectedLetter={answers[currentQuestion] as string}
-          onSelectLetter={(letter) => {
-            onAnswerChange(currentQuestion, letter);
-          }}
-          answeredLetters={answeredLetters}
-          testId={test.id}
-        />
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+          {/* LEFT COLUMN: Official IELTS Map / Diagram Graphic */}
+          <div className="lg:col-span-6 bg-white border border-slate-300 rounded-lg p-3 sm:p-4 shadow-xs">
+            <div className="flex items-center justify-between gap-2 mb-3 pb-2 border-b border-slate-200">
+              <h4 className="font-bold text-slate-900 text-sm sm:text-base">
+                {diagramTitle}
+              </h4>
+              {mapImage && (
+                <button
+                  type="button"
+                  onClick={() => setZoomMap({ url: mapImage!, title: diagramTitle })}
+                  className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-semibold text-slate-700 bg-slate-50 border border-slate-300 rounded hover:bg-slate-100 transition shadow-2xs cursor-pointer"
+                  title="Enlarge diagram"
+                >
+                  <ZoomIn className="w-3.5 h-3.5 text-slate-600" />
+                  <span>Enlarge Map</span>
+                </button>
+              )}
+            </div>
 
-        {/* Questions with Dropdowns & Quick Selectors */}
-        <div className="space-y-3">
-          <div className="text-xs font-bold uppercase tracking-wider text-slate-700 pb-1 border-b border-slate-200 flex items-center justify-between">
-            <span>
-              Questions {group.questions[0]?.questionNumber}–{group.questions[group.questions.length - 1]?.questionNumber}
-            </span>
-            <span className="text-slate-500 font-normal">Choose letter for each location</span>
+            <div className="relative border border-slate-200 rounded overflow-hidden bg-white flex items-center justify-center min-h-[260px]">
+              {mapImage ? (
+                <img
+                  src={mapImage}
+                  alt={diagramTitle}
+                  className="w-full h-auto max-h-[520px] object-contain mx-auto select-none"
+                />
+              ) : (
+                <div className="p-8 text-center text-slate-400">
+                  <MapPin className="w-8 h-8 text-slate-300 mx-auto mb-2" />
+                  <p className="font-semibold text-xs text-slate-600">{diagramTitle}</p>
+                </div>
+              )}
+            </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            {group.questions.map((q) => {
-              const qNum = q.questionNumber;
-              const val = (answers[qNum] as string) || '';
-              const isSelected = currentQuestion === qNum;
-              const cleanPrompt = q.prompt.replace(/\[\s*\d+\s*\]/, '').replace(/[…._-]+/g, '').trim();
+          {/* RIGHT COLUMN: Official CD-IELTS Radio Selection Matrix Table */}
+          <div className="lg:col-span-6 overflow-x-auto">
+            <table className="w-full border-collapse border border-slate-300 bg-white text-xs sm:text-sm select-none shadow-xs rounded-lg overflow-hidden">
+              <thead>
+                <tr className="bg-slate-100/90 text-slate-800 border-b border-slate-300">
+                  <th className="py-2.5 px-3 border-r border-slate-300 text-left font-bold text-slate-700 w-40 sm:w-48">
+                    {/* Empty corner cell */}
+                  </th>
+                  {availableLetters.map((l) => (
+                    <th
+                      key={l}
+                      className="py-2.5 px-1 sm:px-2 border-r last:border-r-0 border-slate-300 text-center font-bold text-slate-900 min-w-[28px] sm:min-w-[34px]"
+                    >
+                      {l}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-200">
+                {group.questions.map((q) => {
+                  const qNum = q.questionNumber;
+                  const currentVal = ((answers[qNum] as string) || '').trim().toUpperCase();
+                  const isSelected = currentQuestion === qNum;
+                  const cleanPrompt = q.prompt
+                    .replace(/\[\s*\d+\s*\]/, '')
+                    .replace(/[…._-]+/g, '')
+                    .trim();
 
-              return (
-                <div
-                  key={qNum}
-                  id={`listening-q-box-${qNum}`}
-                  onClick={() => onSelectQuestion(qNum)}
-                  className={`p-3.5 rounded-xl border transition flex flex-col justify-between gap-3 ${
-                    isSelected
-                      ? 'border-red-500 bg-red-50/20 shadow-xs'
-                      : val
-                      ? 'border-slate-300 bg-white'
-                      : 'border-slate-200 bg-slate-50 hover:bg-white'
-                  }`}
-                >
-                  <div className="flex items-center justify-between gap-2">
-                    <div className="flex items-center gap-2.5">
-                      <span
-                        className={`font-bold text-xs px-2.5 py-1 rounded select-none ${
-                          isSelected
-                            ? 'bg-red-600 text-white'
-                            : val
-                            ? 'bg-blue-600 text-white'
-                            : 'bg-slate-200 text-slate-800'
-                        }`}
-                      >
-                        {qNum}
-                      </span>
-                      <span className="font-bold text-sm text-slate-900">
-                        {cleanPrompt}
-                      </span>
-                    </div>
+                  return (
+                    <tr
+                      key={qNum}
+                      id={`listening-q-box-${qNum}`}
+                      onClick={() => onSelectQuestion(qNum)}
+                      className={`transition-colors cursor-pointer ${
+                        isSelected
+                          ? 'bg-blue-50/60'
+                          : 'hover:bg-slate-50'
+                      }`}
+                    >
+                      {/* Question Number & Location Label */}
+                      <td className="py-2.5 px-3 border-r border-slate-300 whitespace-nowrap">
+                        <div className="flex items-center gap-2.5">
+                          <span
+                            className={`inline-flex items-center justify-center font-bold text-xs px-2 py-0.5 border rounded-xs select-none ${
+                              isSelected
+                                ? 'bg-red-600 text-white border-red-700'
+                                : currentVal
+                                ? 'bg-blue-600 text-white border-blue-700'
+                                : 'bg-white text-slate-900 border-slate-800'
+                            }`}
+                          >
+                            {qNum}
+                          </span>
+                          <span className="font-semibold text-slate-800 text-xs sm:text-sm">
+                            {cleanPrompt}
+                          </span>
+                        </div>
+                      </td>
 
-                    {/* Official Dropdown Selector */}
-                    <div className="relative">
-                      <select
-                        value={val}
-                        onChange={(e) => onAnswerChange(qNum, e.target.value)}
-                        onFocus={() => onSelectQuestion(qNum)}
-                        className={`h-9 pl-3 pr-8 rounded-lg border text-xs font-extrabold outline-none cursor-pointer appearance-none ${
-                          isSelected
-                            ? 'border-red-600 ring-2 ring-red-200 bg-white text-red-950'
-                            : val
-                            ? 'border-blue-600 bg-blue-50 text-blue-900'
-                            : 'border-slate-300 bg-white text-slate-700 hover:border-slate-400'
-                        }`}
-                      >
-                        <option value="">-- Letter --</option>
-                        {availableLetters.map((l) => (
-                          <option key={l} value={l}>
-                            Letter {l}
-                          </option>
-                        ))}
-                      </select>
-                      <ChevronDown className="w-3.5 h-3.5 text-slate-400 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
-                    </div>
-                  </div>
+                      {/* Radio Selection Buttons for Each Letter Column */}
+                      {availableLetters.map((l) => {
+                        const isChecked = currentVal === l;
 
-                  {/* Letter Buttons for direct clicking */}
-                  <div className="flex items-center gap-1.5 pt-1 border-t border-slate-100 flex-wrap">
-                    <span className="text-[10px] text-slate-400 mr-1 font-semibold">Select:</span>
-                    {availableLetters.map((l) => (
-                      <button
-                        key={l}
-                        type="button"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          onSelectQuestion(qNum);
-                          onAnswerChange(qNum, l);
-                        }}
-                        className={`w-7 h-7 rounded text-xs font-mono font-bold transition cursor-pointer ${
-                          val === l
-                            ? 'bg-blue-600 text-white shadow-xs'
-                            : 'bg-white hover:bg-slate-100 text-slate-700 border border-slate-200'
-                        }`}
-                      >
-                        {l}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              );
-            })}
+                        return (
+                          <td
+                            key={l}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              onSelectQuestion(qNum);
+                              onAnswerChange(qNum, currentVal === l ? '' : l);
+                            }}
+                            className={`py-2 px-1 sm:px-2 border-r last:border-r-0 border-slate-300 text-center cursor-pointer transition-colors ${
+                              isChecked ? 'bg-blue-100/40' : 'hover:bg-slate-100/60'
+                            }`}
+                            title={`Question ${qNum}: ${l}`}
+                          >
+                            <div className="flex items-center justify-center">
+                              <div
+                                className={`w-4 h-4 sm:w-4.5 sm:h-4.5 rounded-full border flex items-center justify-center transition-all ${
+                                  isChecked
+                                    ? 'border-slate-900 bg-white ring-2 ring-slate-900/20'
+                                    : 'border-slate-400 bg-white hover:border-slate-700'
+                                }`}
+                              >
+                                {isChecked && (
+                                  <div className="w-2.5 h-2.5 rounded-full bg-slate-900" />
+                                )}
+                              </div>
+                            </div>
+                          </td>
+                        );
+                      })}
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
           </div>
         </div>
+
+        {/* Fullscreen / Lightbox Modal for Enlarge View */}
+        {zoomMap && (
+          <div
+            role="dialog"
+            aria-modal="true"
+            className="fixed inset-0 z-50 bg-slate-900/80 backdrop-blur-xs flex flex-col items-center justify-center p-4 animate-in fade-in"
+            onClick={() => setZoomMap(null)}
+          >
+            <div
+              className="bg-white rounded-xl shadow-2xl max-w-4xl w-full max-h-[90vh] flex flex-col overflow-hidden"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="flex items-center justify-between px-5 py-3 border-b border-slate-200 bg-slate-50">
+                <div className="flex items-center gap-2">
+                  <MapPin className="w-4 h-4 text-red-600" />
+                  <h3 className="font-bold text-slate-900 text-sm sm:text-base">
+                    {zoomMap.title}
+                  </h3>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setZoomMap(null)}
+                  className="p-1 rounded-md text-slate-500 hover:text-slate-800 hover:bg-slate-200 transition cursor-pointer"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              <div className="p-4 overflow-auto flex items-center justify-center bg-white flex-1">
+                <img
+                  src={zoomMap.url}
+                  alt={zoomMap.title}
+                  className="max-w-full max-h-[75vh] object-contain shadow-sm border border-slate-200 rounded"
+                />
+              </div>
+
+              <div className="px-5 py-2.5 bg-slate-50 border-t border-slate-200 flex justify-between items-center text-xs text-slate-600">
+                <span>Official Cambridge Examination Graphic</span>
+                <button
+                  type="button"
+                  onClick={() => setZoomMap(null)}
+                  className="px-3 py-1 bg-slate-800 text-white font-semibold rounded hover:bg-slate-900 transition cursor-pointer"
+                >
+                  Close View
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     );
   };
@@ -1189,7 +1294,7 @@ export const ListeningExamView: React.FC<ListeningExamViewProps> = ({
         ref={mainPaneRef}
         className="flex-1 overflow-y-auto px-3 sm:px-6 md:px-14 py-4 sm:py-8 bg-white"
       >
-        <div className="max-w-4xl space-y-6">
+        <div className="max-w-5xl space-y-6">
           {/* Question Groups */}
           {activeSection.questionGroups.map((group) => {
             const isMap =
@@ -1197,7 +1302,11 @@ export const ListeningExamView: React.FC<ListeningExamViewProps> = ({
               group.type === 'map_labelling' ||
               group.instructions.toLowerCase().includes('label the map') ||
               group.instructions.toLowerCase().includes('label the plan') ||
-              group.title.toLowerCase().includes('map');
+              group.instructions.toLowerCase().includes('stevenson') ||
+              group.title.toLowerCase().includes('map') ||
+              group.title.toLowerCase().includes('plan') ||
+              group.id.includes('c16-l1-qg3') ||
+              !!group.imageUrl;
 
             const isMatching =
               (group.type as string) === 'matching' ||
