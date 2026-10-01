@@ -360,6 +360,50 @@ suite('Suite 3: Consultancy Test Launch & Terminal Waiting Logic', () => {
     const active = ConsultancyService.getActiveLaunchedTest(branchId);
     assertEqual(active, null, 'Active test cleared');
   });
+
+  test('Candidate station session management and instant test launch without catalog browsing', () => {
+    // 1. Candidate connects to station
+    const session = {
+      stationName: 'PC-04',
+      branchCode: 'APEX-2026',
+      consultancyId: branchId,
+      consultancyName: 'Apex Global Education',
+      candidateName: 'Rohan Sharma',
+      candidateId: '007711',
+      targetBand: 7.5,
+      loggedInAt: new Date().toISOString()
+    };
+    ConsultancyService.setCurrentCandidateSession(session);
+    const stored = ConsultancyService.getCurrentCandidateSession();
+    assertEqual(stored?.candidateName, 'Rohan Sharma');
+    assertEqual(stored?.stationName, 'PC-04');
+
+    // 2. Candidate changes their name
+    const updated = { ...stored!, candidateName: 'Sujan Sharma' };
+    ConsultancyService.setCurrentCandidateSession(updated);
+    assertEqual(ConsultancyService.getCurrentCandidateSession()?.candidateName, 'Sujan Sharma');
+
+    // 3. Test launched by consultancy automatically available to student
+    ConsultancyService.launchTestToBranch(
+      branchId,
+      'cambridge-16-test-2-reading',
+      'Cambridge 16 Academic Reading Test 2',
+      false
+    );
+    const currentActive = ConsultancyService.getActiveLaunchedTest(branchId);
+    assertEqual(currentActive?.testId, 'cambridge-16-test-2-reading');
+
+    // 4. Resolve test directly for instant exam launch
+    const resolved = allMockTests.find((t) => t.id === currentActive?.testId);
+    assert(resolved !== undefined, 'Active launched test resolved successfully');
+    assertEqual(resolved?.module, 'reading');
+    assertEqual(resolved?.book, 16);
+
+    // 5. Cleanup
+    ConsultancyService.launchTestToBranch(branchId, null);
+    ConsultancyService.logoutCandidate();
+    assertEqual(ConsultancyService.getCurrentCandidateSession(), null);
+  });
 });
 
 // --- SUITE 4: WRITING SUBMISSION & EXAMINER EVALUATION WORKFLOW ---

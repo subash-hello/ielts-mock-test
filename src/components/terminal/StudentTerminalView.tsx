@@ -10,12 +10,11 @@ import {
   Headphones,
   Clock,
   Layers,
-  Search,
   Sparkles,
   PenTool,
   CheckCircle2,
-  ChevronDown,
-  ChevronUp
+  Volume2,
+  FileCheck
 } from 'lucide-react';
 import type { Consultancy, LabStation } from '../../types/consultancy';
 import type { IELTSMockTest, FullMockTest } from '../../types/ielts';
@@ -104,27 +103,44 @@ export const StudentTerminalView: React.FC<StudentTerminalViewProps> = ({
     return c ? ConsultancyService.getActiveLaunchedTest(c.id) : null;
   });
 
-  // Teacher override: whether to expand manual test library
-  const [showManualOverride, setShowManualOverride] = useState(false);
-  const [testMode, setTestMode] = useState<'full' | 'individual'>('individual');
-  const [availableTests, setAvailableTests] = useState<IELTSMockTest[]>(tests);
-  const [availableFullMocks, setAvailableFullMocks] = useState<FullMockTest[]>([]);
+  // Audio Test Tone generator (440Hz standard)
+  const [isSoundTesting, setIsSoundTesting] = useState(false);
+  const testAudio = () => {
+    if (typeof window === 'undefined') return;
+    try {
+      setIsSoundTesting(true);
+      const audioCtx = new (window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext)();
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(440, audioCtx.currentTime);
+      gain.gain.setValueAtTime(0.18, audioCtx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 1.2);
+
+      osc.connect(gain);
+      gain.connect(audioCtx.destination);
+      osc.start();
+      osc.stop(audioCtx.currentTime + 1.2);
+
+      setTimeout(() => setIsSoundTesting(false), 1200);
+    } catch (e) {
+      console.error('Audio test failed', e);
+      setIsSoundTesting(false);
+    }
+  };
 
   // Sync consultancy when branchCode changes
   useEffect(() => {
     const found = ConsultancyService.getConsultancyByBranchCode(branchCode);
     setConsultancy(found);
     if (found) {
-      computeAvailableTests(found.id);
       setActiveLaunchedTest(ConsultancyService.getActiveLaunchedTest(found.id));
       if (pcNumber) {
         const stations = ConsultancyService.getStations(found.id);
         const st = stations.find((s) => s.name.toUpperCase() === pcNumber.toUpperCase());
         setCurrentStation(st);
       }
-    } else {
-      setAvailableTests(tests);
-      setAvailableFullMocks(buildFullMockTests(tests));
     }
   }, [branchCode, pcNumber, tests]);
 
@@ -175,19 +191,6 @@ export const StudentTerminalView: React.FC<StudentTerminalViewProps> = ({
       clearInterval(interval);
     };
   }, [consultancy, currentStation, pcNumber, tests]);
-
-  // Filter tests based on consultancy's assigned tests
-  const computeAvailableTests = (cid: string) => {
-    const assignedIds = ConsultancyService.getAssignedTestIds(cid);
-    let filtered: IELTSMockTest[] = [];
-    if (assignedIds.length > 0) {
-      filtered = tests.filter((t) => assignedIds.includes(t.id));
-    } else {
-      filtered = tests;
-    }
-    setAvailableTests(filtered);
-    setAvailableFullMocks(buildFullMockTests(filtered));
-  };
 
   const handleLaunchExam = (testToRun: IELTSMockTest, fullMock?: FullMockTest) => {
     const cleanPc = pcNumber.trim().toUpperCase();
@@ -273,9 +276,6 @@ export const StudentTerminalView: React.FC<StudentTerminalViewProps> = ({
     // Ensure station is added to consultancy lab
     ConsultancyService.addStation(verification.consultancy.id, verification.stationName);
 
-    // Compute available tests for this consultancy
-    computeAvailableTests(verification.consultancy.id);
-
     // Move to connected phase
     setPhase('connected');
   };
@@ -321,7 +321,7 @@ export const StudentTerminalView: React.FC<StudentTerminalViewProps> = ({
               onClick={onOpenLookup}
               className="px-3 py-1.5 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 text-indigo-700 rounded-lg text-xs font-bold transition cursor-pointer shadow-xs flex items-center gap-1.5"
             >
-              <Search className="w-3.5 h-3.5" />
+              <FileCheck className="w-3.5 h-3.5" />
               <span>Check Results</span>
             </button>
           )}
@@ -692,94 +692,23 @@ export const StudentTerminalView: React.FC<StudentTerminalViewProps> = ({
             </div>
           )}
 
-          {/* Teacher Override: Manual practice catalog (Collapsed by default) */}
-          <div className="mt-8 border-t border-slate-200 pt-5 text-center">
+          {/* Terminal Support Tools */}
+          <div className="mt-8 border-t border-slate-200 pt-5 flex flex-wrap items-center justify-center gap-3">
             <button
-              onClick={() => setShowManualOverride(!showManualOverride)}
-              className="inline-flex items-center gap-2 text-xs font-semibold text-slate-500 hover:text-slate-800 transition cursor-pointer"
+              onClick={testAudio}
+              className="px-4 py-2.5 rounded-xl bg-white hover:bg-slate-50 border border-slate-300 text-slate-800 font-bold text-xs shadow-xs transition flex items-center gap-2 cursor-pointer"
             >
-              <span>Teacher Override / Self-Study Practice Mode</span>
-              {showManualOverride ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+              <Volume2 className="w-4 h-4 text-blue-600" />
+              <span>{isSoundTesting ? 'Playing Test Tone (440Hz)...' : 'Check Audio / Headphones'}</span>
             </button>
-
-            {showManualOverride && (
-              <div className="mt-5 text-left bg-white border border-slate-200 rounded-2xl p-5 shadow-xs space-y-4 animate-in fade-in">
-                <div className="flex items-center justify-between">
-                  <div className="text-xs font-bold text-slate-900">
-                    Manual Test Selection (Teacher Practice Override)
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <button
-                      onClick={() => setTestMode('individual')}
-                      className={`px-3 py-1 rounded-lg text-xs font-semibold transition cursor-pointer ${
-                        testMode === 'individual' ? 'bg-slate-900 text-white' : 'bg-slate-100 text-slate-600'
-                      }`}
-                    >
-                      Individual Module
-                    </button>
-                    <button
-                      onClick={() => setTestMode('full')}
-                      className={`px-3 py-1 rounded-lg text-xs font-semibold transition cursor-pointer ${
-                        testMode === 'full' ? 'bg-slate-900 text-white' : 'bg-slate-100 text-slate-600'
-                      }`}
-                    >
-                      Full Mock
-                    </button>
-                  </div>
-                </div>
-
-                {testMode === 'individual' && (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-72 overflow-y-auto pr-1">
-                    {availableTests.map((t) => (
-                      <div
-                        key={t.id}
-                        className="p-3 bg-slate-50 border border-slate-200 rounded-xl flex items-center justify-between gap-2 hover:border-blue-300 transition"
-                      >
-                        <div className="space-y-0.5">
-                          <span className="font-bold text-xs text-slate-900 block truncate max-w-[220px]">
-                            {t.title}
-                          </span>
-                          <span className="text-[10px] text-slate-500">
-                            Cambridge {t.book} • {t.durationMinutes} min
-                          </span>
-                        </div>
-                        <button
-                          onClick={() => handleLaunchExam(t)}
-                          className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-lg transition cursor-pointer shrink-0"
-                        >
-                          Start
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                )}
-
-                {testMode === 'full' && (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-72 overflow-y-auto pr-1">
-                    {availableFullMocks.map((fm) => (
-                      <div
-                        key={fm.id}
-                        className="p-3 bg-slate-50 border border-slate-200 rounded-xl flex items-center justify-between gap-2 hover:border-blue-300 transition"
-                      >
-                        <div className="space-y-0.5">
-                          <span className="font-bold text-xs text-slate-900 block truncate max-w-[220px]">
-                            {fm.title}
-                          </span>
-                          <span className="text-[10px] text-slate-500">
-                            Reading + Listening • {fm.totalDurationMinutes} min
-                          </span>
-                        </div>
-                        <button
-                          onClick={() => handleLaunchExam(fm.listeningTest, fm)}
-                          className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-lg transition cursor-pointer shrink-0"
-                        >
-                          Start
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
+            {onOpenLookup && (
+              <button
+                onClick={onOpenLookup}
+                className="px-4 py-2.5 rounded-xl bg-blue-50 hover:bg-blue-100 border border-blue-200 text-blue-700 font-bold text-xs transition flex items-center gap-2 cursor-pointer"
+              >
+                <FileCheck className="w-4 h-4 text-blue-600" />
+                <span>Check Published Results by Candidate ID</span>
+              </button>
             )}
           </div>
         </main>

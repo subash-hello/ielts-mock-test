@@ -1,9 +1,10 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import {
   BookOpen,
   Headphones,
   Award,
   CheckCircle,
+  CheckCircle2,
   Clock,
   Volume2,
   Building2,
@@ -86,6 +87,139 @@ export const LandingPage: React.FC<LandingPageProps> = ({
   const [selectedTestForModal, setSelectedTestForModal] = useState<IELTSMockTest | null>(null);
   const [selectedFullMockForModal, setSelectedFullMockForModal] = useState<FullMockTest | null>(null);
   const [isCheckInModalOpen, setIsCheckInModalOpen] = useState(false);
+
+  // Candidate Name Input & Active Launched Test for Candidate Session
+  const [candidateNameInput, setCandidateNameInput] = useState<string>(() => {
+    return (
+      candidateSession?.candidateName ||
+      localStorage.getItem('ielts_candidate_name') ||
+      ''
+    );
+  });
+
+  const [activeLaunchedTest, setActiveLaunchedTest] = useState<{
+    testId: string;
+    title: string;
+    launchedAt: string;
+    isFullMock?: boolean;
+  } | null>(() => {
+    return candidateSession?.consultancyId
+      ? ConsultancyService.getActiveLaunchedTest(candidateSession.consultancyId)
+      : null;
+  });
+
+  // Sync candidateNameInput when candidateSession updates
+  useEffect(() => {
+    if (candidateSession?.candidateName) {
+      setCandidateNameInput(candidateSession.candidateName);
+    }
+  }, [candidateSession?.candidateName]);
+
+  // Subscribe and poll for active branch launched test
+  useEffect(() => {
+    if (!candidateSession?.consultancyId) {
+      setActiveLaunchedTest(null);
+      return;
+    }
+    const cid = candidateSession.consultancyId;
+    setActiveLaunchedTest(ConsultancyService.getActiveLaunchedTest(cid));
+
+    const unsubscribe = ConsultancyService.subscribe((event) => {
+      if (event.type === 'BRANCH_TEST_LAUNCHED') {
+        const payload = event.payload;
+        if (payload?.consultancyId === cid) {
+          if (payload.testId) {
+            setActiveLaunchedTest({
+              testId: payload.testId,
+              title: payload.title || payload.testId,
+              launchedAt: payload.launchedAt || new Date().toISOString(),
+              isFullMock: payload.isFullMock
+            });
+          } else {
+            setActiveLaunchedTest(null);
+          }
+        }
+      }
+    });
+
+    const interval = setInterval(() => {
+      const active = ConsultancyService.getActiveLaunchedTest(cid);
+      setActiveLaunchedTest(active);
+    }, 1500);
+
+    return () => {
+      unsubscribe();
+      clearInterval(interval);
+    };
+  }, [candidateSession?.consultancyId]);
+
+  // Resolve launched test or full mock
+  const resolvedLaunchedTest = useMemo(() => {
+    if (!activeLaunchedTest) return null;
+    return (
+      tests.find((t) => t.id === activeLaunchedTest.testId) ||
+      allMockTests.find((t) => t.id === activeLaunchedTest.testId) ||
+      null
+    );
+  }, [activeLaunchedTest, tests]);
+
+  const resolvedLaunchedFullMock = useMemo(() => {
+    if (!activeLaunchedTest || !activeLaunchedTest.isFullMock) return null;
+    const allFMs = buildFullMockTests(tests.length > 0 ? tests : allMockTests);
+    return allFMs.find((fm) => fm.id === activeLaunchedTest.testId) || null;
+  }, [activeLaunchedTest, tests]);
+
+  const handleStartLaunchedTest = () => {
+    const cleanName = candidateNameInput.trim();
+    if (!cleanName) {
+      alert('Please enter your full name before starting the exam.');
+      return;
+    }
+    localStorage.setItem('ielts_candidate_name', cleanName);
+
+    const candId =
+      candidateSession?.candidateId ||
+      '00' + Math.floor(1000 + Math.random() * 9000);
+    const targetBand = candidateSession?.targetBand || 7.5;
+    const cid = candidateSession?.consultancyId || 'apex-global';
+    const cname = candidateSession?.consultancyName || 'Apex Global Education';
+    const station = candidateSession?.stationName || 'PC-01';
+
+    if (candidateSession) {
+      const updatedSession: CandidateSession = {
+        ...candidateSession,
+        candidateName: cleanName
+      };
+      ConsultancyService.setCurrentCandidateSession(updatedSession);
+    }
+
+    const candidateData = {
+      name: cleanName,
+      candidateId: candId,
+      targetBand,
+      consultancyId: cid,
+      consultancyName: cname,
+      stationName: station
+    };
+
+    if (activeLaunchedTest?.isFullMock && resolvedLaunchedFullMock) {
+      onStartTest(resolvedLaunchedFullMock.listeningTest, candidateData, resolvedLaunchedFullMock);
+      return;
+    }
+
+    if (resolvedLaunchedTest) {
+      onStartTest(resolvedLaunchedTest, candidateData);
+      return;
+    }
+
+    const fallback =
+      tests.find((t) => t.id === activeLaunchedTest?.testId) ||
+      allMockTests.find((t) => t.id === activeLaunchedTest?.testId) ||
+      tests[0];
+    if (fallback) {
+      onStartTest(fallback, candidateData);
+    }
+  };
 
   // Filter tests by consultancy assignment if candidate is logged in under a consultancy
   const consultancyAssignedIds = useMemo(() => {
@@ -190,7 +324,8 @@ export const LandingPage: React.FC<LandingPageProps> = ({
   };
 
   const scrollToTests = () => {
-    const el = document.getElementById('test-catalog');
+    const targetId = candidateSession ? 'test-station' : 'test-catalog';
+    const el = document.getElementById(targetId);
     if (el) {
       el.scrollIntoView({ behavior: 'smooth' });
     }
@@ -373,7 +508,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
               className="px-3 sm:px-4 py-1.5 sm:py-2 rounded-xl text-xs font-extrabold bg-indigo-600 hover:bg-indigo-700 text-white shadow-xs hover:-translate-y-0.5 transition-all flex items-center gap-1 cursor-pointer"
             >
               <Sparkles className="w-3.5 h-3.5 text-amber-300 shrink-0" />
-              <span>Select Test</span>
+              <span>{candidateSession ? 'Test Station' : 'Select Test'}</span>
             </button>
 
             {/* Sign Out Button */}
@@ -506,8 +641,259 @@ export const LandingPage: React.FC<LandingPageProps> = ({
         </div>
       )}
 
-      {/* 3. Hero Section (Clean, High-Contrast White Background) */}
-      <section className="relative z-10 pt-8 pb-12 sm:pt-14 sm:pb-16 lg:pt-18 lg:pb-20 bg-white">
+      {/* 3. CANDIDATE TEST STATION (IF LOGGED IN UNDER CANDIDATE SESSION) */}
+      {candidateSession ? (
+        <>
+          <section id="test-station" className="relative z-10 py-8 sm:py-12 bg-slate-50 min-h-[75vh] flex flex-col justify-center">
+            <div className="max-w-3xl mx-auto px-4 sm:px-6 w-full space-y-6">
+              {/* Station Status Bar */}
+              <div className="bg-white border border-slate-200 rounded-2xl p-4 sm:p-5 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div className="flex items-center gap-3.5">
+                  <div className="w-12 h-12 rounded-xl bg-indigo-50 border border-indigo-200 flex items-center justify-center text-indigo-700 font-mono font-black text-sm shadow-xs shrink-0">
+                    {candidateSession.stationName || 'PC-01'}
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <h3 className="text-sm sm:text-base font-bold text-slate-900">
+                        Station: {candidateSession.stationName || 'PC-01'}
+                      </h3>
+                      <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                      <span className="text-[11px] font-semibold text-emerald-700">
+                        Synchronized
+                      </span>
+                    </div>
+                    <p className="text-xs text-slate-500">
+                      {candidateSession.consultancyName} • Candidate ID: <strong className="font-mono text-indigo-700">{candidateSession.candidateId}</strong>
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2 sm:justify-end">
+                  {onOpenResultLookup && (
+                    <button
+                      onClick={onOpenResultLookup}
+                      className="px-3 py-1.5 rounded-lg bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-xs font-bold border border-indigo-200 transition cursor-pointer flex items-center gap-1.5"
+                    >
+                      <FileCheck className="w-3.5 h-3.5 text-indigo-600" />
+                      <span>Check Results</span>
+                    </button>
+                  )}
+                  {onLogout && (
+                    <button
+                      onClick={onLogout}
+                      className="px-3 py-1.5 rounded-lg bg-slate-100 hover:bg-red-50 hover:text-red-700 text-slate-600 text-xs font-semibold border border-slate-200 transition cursor-pointer"
+                    >
+                      Disconnect
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              {/* Candidate Full Name Input (Required before test) */}
+              <div className="bg-white border border-slate-200 rounded-2xl p-5 sm:p-6 shadow-xs space-y-3">
+                <div className="flex items-center justify-between">
+                  <label className="text-xs sm:text-sm font-bold text-slate-900 flex items-center gap-2">
+                    <User className="w-4 h-4 text-indigo-600" />
+                    <span>Candidate Full Name</span>
+                    <span className="text-red-500 text-xs">*</span>
+                  </label>
+                  {candidateNameInput.trim() ? (
+                    <span className="text-[11px] font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2.5 py-0.5 rounded-full flex items-center gap-1">
+                      <CheckCircle2 className="w-3 h-3 text-emerald-600" /> Ready
+                    </span>
+                  ) : (
+                    <span className="text-[11px] font-semibold text-amber-700 bg-amber-50 border border-amber-200 px-2.5 py-0.5 rounded-full">
+                      Name Required
+                    </span>
+                  )}
+                </div>
+
+                <div className="relative">
+                  <input
+                    type="text"
+                    required
+                    value={candidateNameInput}
+                    onChange={(e) => {
+                      setCandidateNameInput(e.target.value);
+                      localStorage.setItem('ielts_candidate_name', e.target.value);
+                    }}
+                    placeholder="Type your full official name (e.g. Sujan Sharma)"
+                    className="w-full bg-slate-50 border border-slate-300 focus:bg-white focus:border-indigo-600 focus:ring-2 focus:ring-indigo-100 font-bold text-slate-900 px-4 py-3 rounded-xl outline-none text-sm transition shadow-2xs"
+                  />
+                </div>
+                <p className="text-[11px] text-slate-500">
+                  Your official name will appear on the teacher invigilator monitor, writing submission, and published scorecard.
+                </p>
+              </div>
+
+              {/* ================= CONDITION A: TEST IS LAUNCHED BY ADMIN ================= */}
+              {activeLaunchedTest ? (
+                <div className="bg-gradient-to-b from-emerald-50/70 via-white to-white border-2 border-emerald-500 rounded-3xl p-6 sm:p-8 shadow-xl space-y-6 animate-in fade-in">
+                  <div className="flex items-center justify-between border-b border-emerald-100 pb-4">
+                    <div className="flex items-center gap-2.5">
+                      <span className="relative flex h-3 w-3">
+                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                        <span className="relative inline-flex rounded-full h-3 w-3 bg-emerald-500"></span>
+                      </span>
+                      <span className="text-xs font-black uppercase tracking-wider text-emerald-800">
+                        Live Exam Session Launched by Invigilator
+                      </span>
+                    </div>
+                    <span className="text-[11px] font-mono text-slate-400">
+                      {new Date(activeLaunchedTest.launchedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                    </span>
+                  </div>
+
+                  {/* Test Meta Card */}
+                  <div className="space-y-3">
+                    <div className="flex flex-wrap items-center gap-2">
+                      {activeLaunchedTest.isFullMock || activeLaunchedTest.testId.includes('full') ? (
+                        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-purple-100 text-purple-800 font-bold text-xs">
+                          <Layers className="w-3.5 h-3.5 text-purple-700" />
+                          <span>Full Mock Test</span>
+                        </span>
+                      ) : resolvedLaunchedTest?.module === 'writing' ? (
+                        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-100 text-emerald-800 font-bold text-xs">
+                          <PenTool className="w-3.5 h-3.5 text-emerald-700" />
+                          <span>Academic Writing</span>
+                        </span>
+                      ) : resolvedLaunchedTest?.module === 'reading' ? (
+                        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-blue-100 text-blue-800 font-bold text-xs">
+                          <BookOpen className="w-3.5 h-3.5 text-blue-700" />
+                          <span>Academic Reading</span>
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-indigo-100 text-indigo-800 font-bold text-xs">
+                          <Headphones className="w-3.5 h-3.5 text-indigo-700" />
+                          <span>Academic Listening</span>
+                        </span>
+                      )}
+
+                      <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-slate-100 text-slate-700 font-medium text-xs">
+                        <Clock className="w-3 h-3 text-slate-500" />
+                        <span>
+                          {activeLaunchedTest.isFullMock || activeLaunchedTest.testId.includes('full')
+                            ? '95 Mins Total'
+                            : resolvedLaunchedTest?.module === 'writing'
+                            ? '60 Mins • 2 Tasks'
+                            : resolvedLaunchedTest?.module === 'reading'
+                            ? '60 Mins • 40 Questions'
+                            : '35 Mins • 40 Questions'}
+                        </span>
+                      </span>
+                    </div>
+
+                    <h2 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
+                      {resolvedLaunchedFullMock ? resolvedLaunchedFullMock.title : resolvedLaunchedTest ? resolvedLaunchedTest.title : activeLaunchedTest.title}
+                    </h2>
+
+                    <p className="text-xs sm:text-sm text-slate-600 leading-relaxed">
+                      {resolvedLaunchedTest?.module === 'writing'
+                        ? 'In this exam session, you will complete Task 1 (report/summary, 150 words minimum) and Task 2 (essay, 250 words minimum). Your essays will submit directly to your consultancy admin for band scoring.'
+                        : activeLaunchedTest.isFullMock || activeLaunchedTest.testId.includes('full')
+                        ? 'Official full mock exam sequence: Section 1 Listening (35 min), followed by a 1-minute transition window, and Section 2 Reading (60 min).'
+                        : 'Standard computer-delivered examination simulator with official timing, navigation palette, and live invigilator telemetry.'}
+                    </p>
+                  </div>
+
+                  {/* Start Exam Action Button */}
+                  <div>
+                    {candidateNameInput.trim().length >= 2 ? (
+                      <button
+                        onClick={handleStartLaunchedTest}
+                        className="w-full py-4 bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-base rounded-2xl transition cursor-pointer shadow-lg hover:shadow-xl shadow-emerald-600/20 flex items-center justify-center gap-3 transform active:scale-[0.99]"
+                      >
+                        <span>Start Test</span>
+                        <ArrowRight className="w-5 h-5" />
+                      </button>
+                    ) : (
+                      <div className="space-y-2">
+                        <button
+                          disabled
+                          className="w-full py-4 bg-slate-200 text-slate-400 font-bold text-sm rounded-2xl cursor-not-allowed flex items-center justify-center gap-2"
+                        >
+                          <User className="w-4 h-4" />
+                          <span>Please Enter Your Full Name Above to Start Test</span>
+                        </button>
+                        <p className="text-[11px] text-center text-amber-700 font-medium">
+                          Invigilator protocol requires candidate identification before launching.
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              ) : (
+                /* ================= CONDITION B: NO TEST LAUNCHED YET (AWAITING SCREEN) ================= */
+                <div className="bg-white border border-slate-200 rounded-3xl p-8 sm:p-12 text-center space-y-6 shadow-sm">
+                  <div className="relative w-20 h-20 mx-auto flex items-center justify-center">
+                    <span className="w-full h-full rounded-full bg-indigo-100/60 animate-ping absolute" />
+                    <div className="w-16 h-16 rounded-2xl bg-indigo-50 border border-indigo-200 flex items-center justify-center relative z-10 shadow-xs">
+                      <Monitor className="w-8 h-8 text-indigo-600" />
+                    </div>
+                  </div>
+
+                  <div className="space-y-2 max-w-lg mx-auto">
+                    <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-slate-100 text-slate-700 text-xs font-semibold">
+                      <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                      <span>Station {candidateSession.stationName || 'PC-01'} Connected to Invigilator Radar</span>
+                    </div>
+
+                    <h2 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
+                      Waiting for Invigilator to Launch Test
+                    </h2>
+
+                    <p className="text-xs sm:text-sm text-slate-500 leading-relaxed">
+                      Please enter your candidate name above and remain seated. Your consultancy invigilator will launch the test session from the admin control desk.
+                    </p>
+                  </div>
+
+                  {/* Helpful Actions while waiting */}
+                  <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
+                    <button
+                      onClick={testAudio}
+                      className="px-4 py-2.5 rounded-xl bg-white hover:bg-slate-50 border border-slate-300 text-slate-800 font-bold text-xs shadow-xs transition flex items-center gap-2 cursor-pointer"
+                    >
+                      <Volume2 className="w-4 h-4 text-indigo-600" />
+                      <span>{isSoundTesting ? 'Playing Test Tone (440Hz)...' : 'Check Audio / Headphones'}</span>
+                    </button>
+                    {onOpenResultLookup && (
+                      <button
+                        onClick={onOpenResultLookup}
+                        className="px-4 py-2.5 rounded-xl bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 text-indigo-700 font-bold text-xs transition flex items-center gap-2 cursor-pointer"
+                      >
+                        <FileCheck className="w-4 h-4 text-indigo-600" />
+                        <span>Check Published Results by Candidate ID</span>
+                      </button>
+                    )}
+                  </div>
+
+                  {/* Instructions Box */}
+                  <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4 sm:p-5 text-left text-xs max-w-lg mx-auto space-y-2.5">
+                    <div className="font-bold text-slate-800 flex items-center gap-2">
+                      <Sparkles className="w-4 h-4 text-indigo-600" />
+                      <span>CD-IELTS Terminal Protocol:</span>
+                    </div>
+                    <ul className="list-disc pl-5 space-y-1.5 text-slate-600 text-[11px] leading-relaxed">
+                      <li>No tests are visible to students until authorized by the branch administrator.</li>
+                      <li>When the invigilator clicks <strong>Launch Test</strong>, the <strong>Start Test</strong> button will appear here in real time.</li>
+                      <li>Ensure your headphones are connected and sound volume is adjusted properly.</li>
+                    </ul>
+                  </div>
+                </div>
+              )}
+            </div>
+          </section>
+
+          {/* Dedicated Candidate Terminal Footer */}
+          <footer className="border-t border-slate-200 bg-white px-6 py-4 text-center text-xs text-slate-500">
+            British Council &amp; IDP CD-IELTS Standard Computer Terminal • Station {candidateSession.stationName || 'PC-01'} • Official Invigilator Telemetry Active
+          </footer>
+        </>
+      ) : (
+        /* GUEST / VISITOR PUBLIC SECTIONS */
+        <>
+          {/* 3. Hero Section (Clean, High-Contrast White Background) */}
+          <section className="relative z-10 pt-8 pb-12 sm:pt-14 sm:pb-16 lg:pt-18 lg:pb-20 bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-8 items-center">
             {/* Left Column */}
@@ -766,29 +1152,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
             </div>
           </div>
 
-          {/* Consultancy Curated Notice Banner */}
-          {candidateSession && (
-            consultancyAssignedIds.length > 0 ? (
-              <div className="bg-indigo-50 border border-indigo-200 rounded-xl p-3 sm:p-4 flex items-center justify-between gap-3 text-xs">
-                <div className="flex items-center gap-2 text-indigo-900 font-semibold">
-                  <CheckCircle className="w-4 h-4 text-indigo-600 shrink-0" />
-                  <span>Showing tests assigned by <strong>{candidateSession.consultancyName}</strong> ({candidateAvailableTests.length} tests active)</span>
-                </div>
-                <span className="text-[11px] font-bold text-indigo-700 bg-indigo-100 px-2.5 py-0.5 rounded-full shrink-0">
-                  Only Assigned Tests Visible
-                </span>
-              </div>
-            ) : (
-              <div className="bg-amber-50 border border-amber-300 rounded-xl p-6 text-center space-y-2">
-                <h3 className="font-extrabold text-amber-900 text-sm">
-                  No Mock Tests Assigned by {candidateSession.consultancyName}
-                </h3>
-                <p className="text-xs text-amber-800 max-w-md mx-auto">
-                  Per test centre protocol, candidates only see mock tests that have been reviewed and accepted by their consultancy director. Please contact your test centre administrator.
-                </p>
-              </div>
-            )
-          )}
+
 
           {/* FULL MOCK TESTS VIEW */}
           {moduleFilter === 'full' ? (
@@ -1351,6 +1715,8 @@ export const LandingPage: React.FC<LandingPageProps> = ({
           </div>
         </div>
       </footer>
+        </>
+      )}
 
       {/* Candidate Name Check-In Modal when clicking ANY test */}
       {isCheckInModalOpen && selectedTestForModal && (
