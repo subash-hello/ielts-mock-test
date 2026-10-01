@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 import {
   BookOpen,
   Headphones,
@@ -188,18 +188,38 @@ export const LandingPage: React.FC<LandingPageProps> = ({
           setActiveLaunchedTest(null);
           syncTest();
         }
-      } else if (event.type === 'STATION_COMMAND' || event.type === 'STATION_UPDATED') {
+      } else if (
+        event.type === 'STATION_COMMAND' ||
+        event.type === 'STATION_UPDATED' ||
+        event.type === 'STORAGE_SYNC' ||
+        event.type === 'WINDOW_FOCUSED'
+      ) {
         syncTest();
       }
     });
 
-    const interval = setInterval(syncTest, 1000);
+    // High-frequency responsive fallback interval (200ms) for instant detection
+    const interval = setInterval(syncTest, 200);
 
     return () => {
       unsubscribe();
       clearInterval(interval);
     };
   }, [candidateSession?.consultancyId, candidateSession?.stationName]);
+
+  // Auto-scroll to test station immediately when a test is launched by invigilator
+  const lastLaunchedIdRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (activeLaunchedTest?.testId && activeLaunchedTest.testId !== lastLaunchedIdRef.current) {
+      lastLaunchedIdRef.current = activeLaunchedTest.testId;
+      setTimeout(() => {
+        const el = document.getElementById('test-station');
+        if (el) {
+          el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+      }, 60);
+    }
+  }, [activeLaunchedTest?.testId]);
 
   // Resolve launched test or full mock
   const resolvedLaunchedTest = useMemo(() => {
@@ -692,6 +712,38 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                 Disconnect Station
               </button>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* Instant Live Exam Alert Ribbon */}
+      {activeLaunchedTest && (
+        <div className="bg-emerald-600 text-white px-4 py-2.5 shadow-md z-30 sticky top-16 sm:top-20 animate-in slide-in-from-top-2">
+          <div className="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-3 text-xs">
+            <div className="flex items-center gap-2.5">
+              <span className="relative flex h-2.5 w-2.5">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-amber-300"></span>
+              </span>
+              <span className="font-extrabold tracking-wide uppercase text-[11px] bg-white/20 px-2 py-0.5 rounded-md">
+                Live Test Ready
+              </span>
+              <span className="font-semibold truncate max-w-sm sm:max-w-md">
+                {resolvedLaunchedFullMock ? resolvedLaunchedFullMock.title : resolvedLaunchedTest ? resolvedLaunchedTest.title : activeLaunchedTest.title}
+              </span>
+            </div>
+            <button
+              onClick={() => {
+                const el = document.getElementById('test-station');
+                if (el) {
+                  el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }
+              }}
+              className="px-3 py-1 bg-white text-emerald-800 hover:bg-emerald-50 rounded-lg font-bold text-xs shadow-xs transition flex items-center gap-1.5 cursor-pointer"
+            >
+              <span>Go to Test Station</span>
+              <ArrowRight className="w-3.5 h-3.5" />
+            </button>
           </div>
         </div>
       )}

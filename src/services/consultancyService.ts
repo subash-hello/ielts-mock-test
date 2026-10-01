@@ -255,6 +255,7 @@ const BROADCAST_CHANNEL_NAME = 'ielts_lab_telemetry_bus';
 
 export class ConsultancyService {
   private static broadcastChannel: BroadcastChannel | null = null;
+  private static localListeners: Set<(event: { type: string; payload: any }) => void> = new Set();
 
   private static getChannel(): BroadcastChannel | null {
     if (typeof window !== 'undefined' && 'BroadcastChannel' in window) {
@@ -266,28 +267,110 @@ export class ConsultancyService {
     return null;
   }
 
-  // Broadcast event across browser tabs / windows in the lab
+  // Broadcast event across browser tabs / windows in the lab with 0ms latency
   public static broadcast(type: string, payload: any) {
+    const eventObj = { type, payload, timestamp: Date.now() };
+
+    // 1. Direct synchronous in-memory dispatch (0ms latency within the current process/page)
+    this.localListeners.forEach((listener) => {
+      try {
+        listener(eventObj);
+      } catch (err) {
+        console.error('Error in telemetry listener:', err);
+      }
+    });
+
+    // 2. Dispatch DOM CustomEvent on window for same-window DOM listeners (0ms)
+    if (typeof window !== 'undefined') {
+      try {
+        window.dispatchEvent(new CustomEvent('ielts_telemetry', { detail: eventObj }));
+      } catch {}
+    }
+
+    // 3. BroadcastChannel message across separate tabs/windows
     const channel = this.getChannel();
     if (channel) {
-      channel.postMessage({ type, payload, timestamp: Date.now() });
+      try {
+        channel.postMessage(eventObj);
+      } catch {}
     }
   }
 
-  // Subscribe to live telemetry events
+  // Subscribe to live telemetry events with multi-channel instant reaction
   public static subscribe(callback: (event: { type: string; payload: any }) => void): () => void {
-    const channel = this.getChannel();
-    if (!channel) return () => {};
+    // 1. Register local synchronous listener (0ms)
+    this.localListeners.add(callback);
 
-    const handler = (e: MessageEvent) => {
+    // 2. BroadcastChannel listener (cross-tab message)
+    const channel = this.getChannel();
+    const channelHandler = (e: MessageEvent) => {
       if (e.data) {
         callback(e.data);
       }
     };
+    if (channel) {
+      channel.addEventListener('message', channelHandler);
+    }
 
-    channel.addEventListener('message', handler);
+    // 3. CustomEvent listener (same window DOM event)
+    const customEventHandler = (e: Event) => {
+      const custom = e as CustomEvent;
+      if (custom.detail) {
+        callback(custom.detail);
+      }
+    };
+    if (typeof window !== 'undefined') {
+      window.addEventListener('ielts_telemetry', customEventHandler);
+    }
+
+    // 4. Native window storage event listener (cross-tab 0ms instant trigger, never throttled by browser)
+    const storageHandler = (e: StorageEvent) => {
+      if (!e.key) {
+        callback({ type: 'STORAGE_SYNC', payload: {} });
+        return;
+      }
+      if (
+        e.key.startsWith('ielts_launched_test_') ||
+        e.key === 'ielts_latest_launched_test'
+      ) {
+        try {
+          const parsed = e.newValue ? JSON.parse(e.newValue) : null;
+          callback({
+            type: 'BRANCH_TEST_LAUNCHED',
+            payload: parsed || { testId: null }
+          });
+        } catch {
+          callback({ type: 'BRANCH_TEST_LAUNCHED', payload: { testId: null } });
+        }
+      } else if (e.key.startsWith('ielts_stations_')) {
+        callback({ type: 'STATION_UPDATED', payload: {} });
+      } else if (e.key.startsWith('ielts_results_')) {
+        callback({ type: 'RESULT_SUBMITTED', payload: {} });
+      }
+    };
+
+    // 5. Visibility and focus listeners (instant sync when student switches to or refocuses tab)
+    const focusHandler = () => {
+      callback({ type: 'WINDOW_FOCUSED', payload: {} });
+    };
+
+    if (typeof window !== 'undefined') {
+      window.addEventListener('storage', storageHandler);
+      window.addEventListener('focus', focusHandler);
+      document.addEventListener('visibilitychange', focusHandler);
+    }
+
     return () => {
-      channel.removeEventListener('message', handler);
+      this.localListeners.delete(callback);
+      if (channel) {
+        channel.removeEventListener('message', channelHandler);
+      }
+      if (typeof window !== 'undefined') {
+        window.removeEventListener('ielts_telemetry', customEventHandler);
+        window.removeEventListener('storage', storageHandler);
+        window.removeEventListener('focus', focusHandler);
+        document.removeEventListener('visibilitychange', focusHandler);
+      }
     };
   }
 

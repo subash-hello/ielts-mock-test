@@ -229,7 +229,12 @@ export const StudentTerminalView: React.FC<StudentTerminalViewProps> = ({
         } else {
           syncActiveTest();
         }
-      } else if (event.type === 'STATION_COMMAND' || event.type === 'STATION_UPDATED') {
+      } else if (
+        event.type === 'STATION_COMMAND' ||
+        event.type === 'STATION_UPDATED' ||
+        event.type === 'STORAGE_SYNC' ||
+        event.type === 'WINDOW_FOCUSED'
+      ) {
         const cleanPc = ConsultancyService.normalizeStationName(pcNumber);
         const payload = event.payload;
         const targetStation = payload?.stationId || payload?.name || payload?.id;
@@ -239,8 +244,8 @@ export const StudentTerminalView: React.FC<StudentTerminalViewProps> = ({
       }
     });
 
-    // Polling sync every 1 second
-    const interval = setInterval(syncActiveTest, 1000);
+    // High-frequency responsive fallback interval (200ms) for instant test appearance
+    const interval = setInterval(syncActiveTest, 200);
 
     return () => {
       unsubscribe();
