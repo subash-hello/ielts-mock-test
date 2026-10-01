@@ -31,13 +31,11 @@ export const ListeningExamView: React.FC<ListeningExamViewProps> = ({
   onAnswerChange,
   settings,
   activePartIndex,
-  onSelectPart,
+  onSelectPart: _onSelectPart,
   onSelectQuestion,
   volume
 }) => {
   const activeSection = test.sections[activePartIndex] || test.sections[0];
-  const qStart = activePartIndex * 10 + 1;
-  const qEnd = (activePartIndex + 1) * 10;
 
   // Build candidate fallback sources for current part
   const getAudioSources = (): string[] => {
@@ -266,93 +264,115 @@ export const ListeningExamView: React.FC<ListeningExamViewProps> = ({
       const rawLines = group.clozeTemplate.trim().split('\n');
 
       return (
-        <div className="space-y-3 text-sm text-slate-800 leading-relaxed font-sans">
+        <div className="space-y-3.5 text-xs sm:text-sm text-slate-900 leading-loose font-sans max-w-3xl">
           {rawLines.map((rawLine, lIdx) => {
             const line = rawLine.trim();
 
             if (!line) {
-              return <div key={lIdx} className="h-2" />;
+              return <div key={lIdx} className="h-1.5" />;
             }
 
-            // Detect Subheadings
-            const isHeading =
-              line.startsWith('### ') ||
-              line.startsWith('**') ||
-              (line.endsWith(':') && !line.includes('{{')) ||
-              (!line.includes('{{') && line.length < 50 && /^[A-Z]/.test(line) && !line.startsWith('–') && !line.startsWith('-') && !line.startsWith('•') && !line.startsWith('●'));
-
-            if (isHeading && !line.includes('{{')) {
-              const cleanTitle = line.replace(/^###\s*/, '').replace(/\*\*/g, '');
-              return (
-                <h4
-                  key={lIdx}
-                  className="font-bold text-slate-900 text-base mt-5 mb-2 pb-1 border-b border-slate-200"
-                >
-                  {cleanTitle}
-                </h4>
-              );
-            }
-
-            const hasPlaceholder = /\{\{\s*\d+\s*\}\}/.test(line);
+            const hasPlaceholder = /(\{\{\s*\d+\s*\}\}|\[\s*\d+\s*\])/.test(line);
 
             if (!hasPlaceholder) {
-              const isBullet = line.startsWith('–') || line.startsWith('-') || line.startsWith('•') || line.startsWith('●');
+              const isBullet = line.startsWith('–') || line.startsWith('-') || line.startsWith('•') || line.startsWith('●') || line.startsWith('*');
+              const cleanLine = line.replace(/^[–\-•●*]\s*/, '').trim();
+
+              // Check if it's the main heading (first non-empty line or matches summaryTitle)
+              const isMainTitle = lIdx === 0 || cleanLine === group.summaryTitle;
+              if (isMainTitle) {
+                return (
+                  <h3 key={lIdx} className="font-bold text-slate-900 text-base sm:text-lg pt-1 pb-0.5">
+                    {cleanLine}
+                  </h3>
+                );
+              }
+
+              // Check if it's a section header (e.g. "Tiny Engineers (ages 4-5)")
+              const isAgeGroup = /^(Tiny|Junior|Senior|Young|Level|Ages?|Part|Stage)/i.test(cleanLine) || cleanLine.includes('(ages');
+              if (isAgeGroup) {
+                return (
+                  <h4 key={lIdx} className="font-bold text-slate-900 text-sm sm:text-base pt-3 pb-0.5">
+                    {cleanLine}
+                  </h4>
+                );
+              }
+
+              // Subsection or label (e.g. "Activities", "Activities:", "Cost:", "Schedule:", "Location:", "Parking:")
+              if (cleanLine.endsWith(':') || cleanLine.toLowerCase() === 'activities') {
+                return (
+                  <div key={lIdx} className="font-medium text-slate-800 text-xs sm:text-sm pt-1">
+                    {cleanLine}
+                  </div>
+                );
+              }
+
+              if (isBullet) {
+                return (
+                  <div key={lIdx} className="flex items-baseline gap-2 pl-3 sm:pl-4 text-slate-800">
+                    <span className="text-slate-500 select-none">•</span>
+                    <span>{cleanLine}</span>
+                  </div>
+                );
+              }
+
               return (
-                <p
-                  key={lIdx}
-                  className={`${isBullet ? 'pl-4 text-slate-800 font-medium' : 'text-slate-900 font-semibold'}`}
-                >
-                  {line}
-                </p>
+                <div key={lIdx} className="font-semibold text-slate-900">
+                  {cleanLine}
+                </div>
               );
             }
 
-            // Line with {{N}} placeholders
-            const parts = line.split(/(\{\{\s*\d+\s*\}\})/g);
-            const isBullet = line.startsWith('–') || line.startsWith('-') || line.startsWith('•') || line.startsWith('●');
+            // Line with placeholders
+            const isBullet = line.startsWith('–') || line.startsWith('-') || line.startsWith('•') || line.startsWith('●') || line.startsWith('*');
+            const cleanContent = line.replace(/^[–\-•●*]\s*/, '').trim();
+            const parts = cleanContent.split(/(\{\{\s*\d+\s*\}\}|\[\s*\d+\s*\])/g);
 
             return (
               <div
                 key={lIdx}
                 className={`flex flex-wrap items-center gap-1.5 leading-loose ${
-                  isBullet ? 'pl-4' : ''
+                  isBullet ? 'pl-3 sm:pl-4' : ''
                 }`}
               >
+                {isBullet && (
+                  <span className="text-slate-500 font-bold select-none mr-0.5">•</span>
+                )}
                 {parts.map((part, pIdx) => {
-                  const match = part.match(/\{\{\s*(\d+)\s*\}\}/);
+                  const match = part.match(/(?:\{\{\s*(\d+)\s*\}\}|\[\s*(\d+)\s*\])/);
                   if (match) {
-                    const qNum = parseInt(match[1], 10);
+                    const qNum = parseInt(match[1] || match[2], 10);
                     const val = (answers[qNum] as string) || '';
                     const isSelected = currentQuestion === qNum;
 
                     return (
-                      <span key={pIdx} className="inline-flex items-center gap-1.5 align-middle my-1">
+                      <span key={pIdx} className="inline-flex items-center align-middle mx-1 my-0.5">
                         {/* Authentic CD-IELTS Question Number Badge */}
                         <span
                           onClick={() => onSelectQuestion(qNum)}
-                          className={`inline-flex items-center justify-center font-bold text-xs px-2 py-0.5 rounded-xs select-none cursor-pointer transition ${
+                          className={`inline-flex items-center justify-center font-bold text-xs px-2 py-0.5 border rounded-xs select-none cursor-pointer transition ${
                             isSelected
-                              ? 'bg-red-600 text-white ring-2 ring-red-300'
+                              ? 'border-slate-900 bg-slate-900 text-white'
                               : val
-                              ? 'bg-slate-800 text-white'
-                              : 'bg-slate-200 text-slate-800 hover:bg-slate-300'
+                              ? 'border-slate-700 bg-slate-100 text-slate-900 font-bold'
+                              : 'border-slate-500 bg-white text-slate-800 hover:border-slate-700'
                           }`}
                         >
                           {qNum}
                         </span>
 
                         {/* Authentic CD-IELTS Input Box */}
-                        <div className="relative inline-flex items-center gap-1">
+                        <div className="relative inline-flex items-center ml-1">
                           <input
                             id={`listening-q-box-${qNum}`}
                             type="text"
                             value={val}
                             onChange={(e) => onAnswerChange(qNum, e.target.value)}
                             onFocus={() => onSelectQuestion(qNum)}
-                            className={`h-8 px-2.5 rounded-xs border bg-white text-sm text-slate-900 font-medium outline-none transition w-44 sm:w-56 inline-flex items-center align-middle ${
+                            className={`h-7.5 px-2 rounded-xs border text-xs sm:text-sm text-slate-900 font-medium outline-none bg-white transition w-36 sm:w-44 ${
                               isSelected
-                                ? 'border-red-600 ring-1 ring-red-500 bg-white'
-                                : 'border-slate-400 hover:border-slate-600 bg-white'
+                                ? 'border-slate-900 ring-1 ring-slate-900'
+                                : 'border-slate-300 hover:border-slate-500'
                             }`}
                           />
 
@@ -362,7 +382,7 @@ export const ListeningExamView: React.FC<ListeningExamViewProps> = ({
                             const words = countWords(val);
                             if (limit && words > limit) {
                               return (
-                                <span className="text-[10px] font-bold text-red-600 bg-red-50 border border-red-200 px-1 py-0.5 rounded animate-pulse whitespace-nowrap select-none">
+                                <span className="absolute -top-5 right-0 text-[10px] font-bold text-red-600 bg-red-50 border border-red-200 px-1 py-0.2 rounded shadow-2xs whitespace-nowrap select-none">
                                   ⚠️ {words}/{limit}w
                                 </span>
                               );
@@ -375,7 +395,7 @@ export const ListeningExamView: React.FC<ListeningExamViewProps> = ({
                   }
 
                   return (
-                    <span key={pIdx} className="text-slate-800 font-medium">
+                    <span key={pIdx} className="text-slate-800 font-medium text-xs sm:text-sm">
                       {part}
                     </span>
                   );
@@ -387,67 +407,119 @@ export const ListeningExamView: React.FC<ListeningExamViewProps> = ({
       );
     }
 
-    // Fallback if no clozeTemplate
+    // Fallback if no clozeTemplate: render authentic inline note prompts rather than wide cards
+    let lastPrefix = '';
     return (
-      <div className="space-y-4">
+      <div className="space-y-3 text-xs sm:text-sm text-slate-800 leading-loose max-w-3xl">
+        {group.summaryTitle && (
+          <h3 className="font-bold text-slate-900 text-base sm:text-lg mb-2">
+            {group.summaryTitle}
+          </h3>
+        )}
+
         {group.questions.map((q) => {
           const qNum = q.questionNumber;
           const val = (answers[qNum] as string) || '';
           const isSelected = currentQuestion === qNum;
 
-          return (
-            <div
-              id={`listening-q-box-${qNum}`}
-              key={qNum}
-              onClick={() => onSelectQuestion(qNum)}
-              className={`p-3.5 rounded border transition flex flex-wrap items-center gap-3 ${
-                isSelected
-                  ? 'border-red-500 bg-red-50/20'
-                  : 'border-slate-200 bg-white hover:border-slate-300'
-              }`}
-            >
-              <span
-                className={`font-bold text-xs px-2 py-0.5 rounded-xs select-none ${
-                  isSelected
-                    ? 'bg-red-600 text-white'
-                    : val
-                    ? 'bg-slate-800 text-white'
-                    : 'bg-slate-200 text-slate-800'
-                }`}
-              >
-                {qNum}
-              </span>
-              <span className="text-sm font-semibold text-slate-800 flex-1">
-                {q.prompt.replace(/\[\s*\d+\s*\]/, '').trim()}
-              </span>
-              <div className="flex items-center gap-1.5 w-full sm:w-auto">
-                <input
-                  type="text"
-                  value={val}
-                  onChange={(e) => onAnswerChange(qNum, e.target.value)}
-                  onFocus={() => onSelectQuestion(qNum)}
-                  className={`h-8 px-2.5 rounded-xs border text-sm text-slate-900 font-medium w-full sm:w-60 outline-none ${
-                    isSelected
-                      ? 'border-red-600 ring-1 ring-red-500 bg-white'
-                      : 'border-slate-400 bg-white'
-                  }`}
-                />
+          // Check for category prefix like "Junior Engineers (ages 6–8):"
+          let promptText = q.prompt;
+          let prefix = '';
+          const prefixMatch = promptText.match(/^([^:]+):\s*(.*)$/);
+          if (prefixMatch && prefixMatch[1].length < 40 && !prefixMatch[1].includes('[')) {
+            prefix = prefixMatch[1].trim();
+            promptText = prefixMatch[2].trim();
+          }
 
-                {/* Live Word Count Alert */}
-                {(() => {
-                  const limit = parseWordLimit(group.wordLimitRule);
-                  const words = countWords(val);
-                  if (limit && words > limit) {
+          const showNewPrefix = prefix && prefix !== lastPrefix;
+          if (prefix) lastPrefix = prefix;
+
+          const parts = promptText.split(/(\[\s*\d+\s*\]|\{\{\s*\d+\s*\}\}|_{2,})/);
+
+          return (
+            <React.Fragment key={qNum}>
+              {showNewPrefix && (
+                <h4 className="font-bold text-slate-900 text-sm sm:text-base pt-3 pb-0.5">
+                  {prefix}
+                </h4>
+              )}
+
+              <div
+                id={`listening-q-box-${qNum}`}
+                className="flex flex-wrap items-center gap-1.5 pl-3 sm:pl-4"
+              >
+                <span className="text-slate-500 font-bold select-none mr-0.5">•</span>
+
+                {parts.length > 1 ? (
+                  parts.map((p, pIdx) => {
+                    const isBlank = /^(?:\[\s*\d+\s*\]|\{\{\s*\d+\s*\}\}|_{2,})$/.test(p.trim());
+                    if (isBlank) {
+                      return (
+                        <span key={pIdx} className="inline-flex items-center align-middle mx-1 my-0.5">
+                          <span
+                            onClick={() => onSelectQuestion(qNum)}
+                            className={`inline-flex items-center justify-center font-bold text-xs px-2 py-0.5 border rounded-xs select-none cursor-pointer transition ${
+                              isSelected
+                                ? 'border-slate-900 bg-slate-900 text-white'
+                                : val
+                                ? 'border-slate-700 bg-slate-100 text-slate-900 font-bold'
+                                : 'border-slate-500 bg-white text-slate-800 hover:border-slate-700'
+                            }`}
+                          >
+                            {qNum}
+                          </span>
+                          <input
+                            type="text"
+                            value={val}
+                            onChange={(e) => onAnswerChange(qNum, e.target.value)}
+                            onFocus={() => onSelectQuestion(qNum)}
+                            className={`ml-1 h-7.5 px-2 rounded-xs border text-xs sm:text-sm text-slate-900 font-medium outline-none bg-white transition w-36 sm:w-44 ${
+                              isSelected
+                                ? 'border-slate-900 ring-1 ring-slate-900'
+                                : 'border-slate-300 hover:border-slate-500'
+                            }`}
+                          />
+                        </span>
+                      );
+                    }
                     return (
-                      <span className="text-[10px] font-bold text-red-600 bg-red-50 border border-red-200 px-1 py-0.5 rounded animate-pulse whitespace-nowrap select-none">
-                        ⚠️ {words}/{limit}w
+                      <span key={pIdx} className="text-slate-800 font-medium">
+                        {p}
                       </span>
                     );
-                  }
-                  return null;
-                })()}
+                  })
+                ) : (
+                  <>
+                    <span className="text-slate-800 font-medium">{promptText}</span>
+                    <span className="inline-flex items-center align-middle mx-1 my-0.5">
+                      <span
+                        onClick={() => onSelectQuestion(qNum)}
+                        className={`inline-flex items-center justify-center font-bold text-xs px-2 py-0.5 border rounded-xs select-none cursor-pointer transition ${
+                          isSelected
+                            ? 'border-slate-900 bg-slate-900 text-white'
+                            : val
+                            ? 'border-slate-700 bg-slate-100 text-slate-900 font-bold'
+                            : 'border-slate-500 bg-white text-slate-800 hover:border-slate-700'
+                        }`}
+                      >
+                        {qNum}
+                      </span>
+                      <input
+                        type="text"
+                        value={val}
+                        onChange={(e) => onAnswerChange(qNum, e.target.value)}
+                        onFocus={() => onSelectQuestion(qNum)}
+                        className={`ml-1 h-7.5 px-2 rounded-xs border text-xs sm:text-sm text-slate-900 font-medium outline-none bg-white transition w-36 sm:w-44 ${
+                          isSelected
+                            ? 'border-slate-900 ring-1 ring-slate-900'
+                            : 'border-slate-300 hover:border-slate-500'
+                        }`}
+                      />
+                    </span>
+                  </>
+                )}
               </div>
-            </div>
+            </React.Fragment>
           );
         })}
       </div>
@@ -1001,36 +1073,7 @@ export const ListeningExamView: React.FC<ListeningExamViewProps> = ({
 
   return (
     <div className="flex-1 flex flex-col overflow-hidden cd-ielts-font bg-white">
-      {/* 1. Official CD-IELTS Part Navigation Sub-Header (Full-Width) */}
-      <div className="bg-[#f2f2f2] border-b border-[#cfcfcf] px-3 sm:px-6 py-1.5 sm:py-2 flex items-center justify-between text-xs select-none">
-        <div className="flex items-center gap-1.5 sm:gap-2 overflow-x-auto pb-0.5 scrollbar-none w-full md:w-auto">
-          {test.sections.map((sec, idx) => {
-            const isActive = idx === activePartIndex;
-            const partQStart = idx * 10 + 1;
-            const partQEnd = (idx + 1) * 10;
-
-            return (
-              <button
-                key={idx}
-                onClick={() => onSelectPart(idx)}
-                className={`px-3 sm:px-5 py-1.5 sm:py-2 font-bold transition rounded-t-md text-[11px] sm:text-xs cursor-pointer shrink-0 ${
-                  isActive
-                    ? 'bg-white text-slate-950 border-t-3 border-red-600 shadow-xs'
-                    : 'text-slate-600 hover:text-black hover:bg-slate-200'
-                }`}
-              >
-                Part {sec.sectionNumber || idx + 1} (Q {partQStart} – {partQEnd})
-              </button>
-            );
-          })}
-        </div>
-
-        <div className="text-[11px] text-slate-500 italic hidden md:block shrink-0">
-          Official CD-IELTS Listening Simulator
-        </div>
-      </div>
-
-      {/* 2. Official Audio Control Bar (Full-Width, Clean, Non-intrusive) */}
+      {/* Official Audio Control Bar (Full-Width, Clean, Non-intrusive) */}
       <div className="bg-[#fafafa] border-b border-[#e5e5e5] px-3 sm:px-6 py-2 flex flex-wrap items-center justify-between gap-2 text-xs select-none">
         <div className="flex items-center gap-4">
           {/* Play/Pause Button */}
@@ -1146,20 +1189,7 @@ export const ListeningExamView: React.FC<ListeningExamViewProps> = ({
         ref={mainPaneRef}
         className="flex-1 overflow-y-auto px-3 sm:px-6 md:px-14 py-4 sm:py-8 bg-white"
       >
-        <div className="max-w-4xl space-y-8">
-          {/* Part Header */}
-          <div className="border-b border-slate-300 pb-4">
-            <span className="text-xs uppercase font-extrabold text-red-600 tracking-wider">
-              Listening Part {activeSection.sectionNumber || activePartIndex + 1}
-            </span>
-            <h2 className="text-xl md:text-2xl font-bold text-slate-900 mt-1">
-              {activeSection.subtitle || `Questions ${qStart} – ${qEnd}`}
-            </h2>
-            <p className="text-xs text-slate-600 italic mt-1 font-sans">
-              You should answer Questions {qStart} – {qEnd} while listening. The recording will only be played once.
-            </p>
-          </div>
-
+        <div className="max-w-4xl space-y-6">
           {/* Question Groups */}
           {activeSection.questionGroups.map((group) => {
             const isMap =
@@ -1190,18 +1220,27 @@ export const ListeningExamView: React.FC<ListeningExamViewProps> = ({
                 key={group.id}
                 className={`space-y-4 ${settings.fontSize === 'large' ? 'text-base' : 'text-sm'}`}
               >
-                {/* Instructions */}
-                <div className="bg-[#f8f9fa] border border-slate-300 p-4 rounded text-xs">
-                  <h3 className="font-bold text-slate-900 uppercase tracking-wide text-xs mb-1">
-                    {group.title}
-                  </h3>
-                  <p className="text-slate-700 font-medium">
-                    {group.instructions}
+                {/* Official CD-IELTS Header with Question Range & Badge */}
+                <div className="border-b border-slate-300 pb-2 flex items-center justify-between">
+                  <div className="flex items-center gap-2.5">
+                    <h3 className="font-bold text-slate-900 text-sm sm:text-base select-none">
+                      {group.title}
+                    </h3>
+                    <span className="text-[11px] font-semibold text-blue-700 bg-blue-50 border border-blue-200 px-2 py-0.5 rounded-full select-none">
+                      Practice this section only
+                    </span>
+                  </div>
+                </div>
+
+                {/* Instructions Text directly on white canvas */}
+                <div className="text-xs sm:text-sm text-slate-800 space-y-1 mb-4">
+                  <p className="font-normal text-slate-800">
+                    {group.instructions.replace(/\b(ONE WORD AND\/OR A NUMBER|ONE WORD ONLY|NO MORE THAN [A-Z\s]+ WORDS?)\b/gi, '').trim()}
                   </p>
                   {group.wordLimitRule && (
-                    <span className="inline-block mt-2 bg-white text-slate-900 border border-slate-300 px-2 py-0.5 rounded-xs font-bold text-[11px]">
-                      {group.wordLimitRule}
-                    </span>
+                    <p className="font-bold text-slate-900">
+                      Write {group.wordLimitRule} for each answer.
+                    </p>
                   )}
                 </div>
 

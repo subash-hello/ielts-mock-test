@@ -578,73 +578,101 @@ export const cambridge16Test1Listening: IELTSMockTest = {
           instructions: "Complete the notes below. Write ONE WORD AND/OR A NUMBER for each answer.",
           summaryTitle: "Children's Engineering Workshops",
           wordLimitRule: "ONE WORD AND/OR A NUMBER",
+          clozeTemplate: `Children's Engineering Workshops
+
+Tiny Engineers (ages 4-5)
+
+Activities
+• Create a cover for an {{1}} so they can drop it from a height without breaking it.
+• Take part in a competition to build the tallest {{2}}.
+• Make a {{3}} powered by a balloon.
+
+Junior Engineers (ages 6-8)
+
+Activities:
+• Build model cars, trucks and {{4}} and learn how to program them so they can move.
+• Take part in a competition to build the longest {{5}} using card and wood.
+• Create a short {{6}} with special software.
+• Build, {{7}} and program a humanoid robot.
+
+Cost:
+• £50 for a five-week block
+
+Schedule:
+• Held on {{8}} from 10 am to 11 am
+
+Location:
+• Building 10A, {{9}} Industrial Estate, Grasford
+
+Parking:
+• There is plenty of {{10}} available`,
           questions: [
             {
               questionNumber: 1,
-              prompt: "Tiny Engineers (ages 4–5): Create a cover for an [ 1 ] so they can drop it without breaking it",
+              prompt: "Create a cover for an [ 1 ] so they can drop it from a height without breaking it.",
               correctAnswer: "egg",
               acceptedVariants: ["egg"],
               explanation: "Transcript: 'design a protective cushion or special cover for a fresh egg'"
             },
             {
               questionNumber: 2,
-              prompt: "Take part in a competition to see who can build the highest [ 2 ]",
+              prompt: "Take part in a competition to see who can build the tallest [ 2 ].",
               correctAnswer: "tower",
               acceptedVariants: ["tower"],
               explanation: "Transcript: 'a friendly team competition to see who can build the highest tower'"
             },
             {
               questionNumber: 3,
-              prompt: "Make a [ 3 ] powered by a balloon",
+              prompt: "Make a [ 3 ] powered by a balloon.",
               correctAnswer: "car",
               acceptedVariants: ["car"],
               explanation: "Transcript: 'they make a model car that is actually powered across the floor by a balloon'"
             },
             {
               questionNumber: 4,
-              prompt: "Junior Engineers (ages 6–8): Build model vehicles such as trucks and [ 4 ]",
+              prompt: "Build model cars, trucks and [ 4 ] and learn how to program them so they can move.",
               correctAnswer: "animals",
               acceptedVariants: ["animals", "animal"],
               explanation: "Transcript: 'build various model vehicles like trucks, and they also build model animals'"
             },
             {
               questionNumber: 5,
-              prompt: "Build a [ 5 ] and test how much weight it will hold",
+              prompt: "Take part in a competition to build the longest [ 5 ] using card and wood.",
               correctAnswer: "bridge",
               acceptedVariants: ["bridge"],
               explanation: "Transcript: 'build a miniature bridge and test how much weight it can support'"
             },
             {
               questionNumber: 6,
-              prompt: "Plan and make a special [ 6 ] with animated characters",
+              prompt: "Create a short [ 6 ] with special software.",
               correctAnswer: "movie",
               acceptedVariants: ["movie", "film"],
               explanation: "Transcript: 'plan and make a short movie using stop-motion animation'"
             },
             {
               questionNumber: 7,
-              prompt: "Build a model of a fairground ride and [ 7 ] it with lights and paint",
+              prompt: "Build, [ 7 ] and program a humanoid robot.",
               correctAnswer: "decorate",
               acceptedVariants: ["decorate"],
               explanation: "Transcript: 'construct a model of a fairground ride and decorate it with paint and battery-powered mini LED lights'"
             },
             {
               questionNumber: 8,
-              prompt: "Workshops held on [ 8 ]",
+              prompt: "Held on [ 8 ] from 10 am to 11 am.",
               correctAnswer: "Wednesdays",
               acceptedVariants: ["Wednesdays", "Wednesday", "wednesdays", "wednesday"],
               explanation: "Transcript: 'Both workshops are held on Wednesdays after school'"
             },
             {
               questionNumber: 9,
-              prompt: "Location: Building 10A, [ 9 ] Industrial Estate",
+              prompt: "Building 10A, [ 9 ] Industrial Estate, Grasford.",
               correctAnswer: "Fradstone",
               acceptedVariants: ["Fradstone", "fradstone"],
               explanation: "Transcript: 'In Building 10A at the Fradstone Industrial Estate. That's F-R-A-D-S-T-O-N-E.'"
             },
             {
               questionNumber: 10,
-              prompt: "Transport: Plenty of free [ 10 ] available",
+              prompt: "There is plenty of [ 10 ] available.",
               correctAnswer: "parking",
               acceptedVariants: ["parking", "car parking"],
               explanation: "Transcript: 'plenty of free parking directly in front of the building'"
@@ -972,6 +1000,23 @@ export const cambridge16Test1Listening: IELTSMockTest = {
           instructions: "Complete the notes below. Write ONE WORD ONLY for each answer.",
           summaryTitle: "Stoicism",
           wordLimitRule: "ONE WORD ONLY",
+          clozeTemplate: `Stoicism
+
+Ancient Greek philosophy:
+• Stoicism was designed as a {{31}} guide for daily life.
+• Stoic ideas gained widespread popularity following the {{32}} of Seneca's letters.
+
+Core principles:
+• Epictetus emphasized that we should focus entirely on our own {{33}} and thoughts.
+• Stoics recommended the mental visualization of {{34}} events to foster resilience.
+• Human existence was compared to an actor playing an assigned role in a {{35}}.
+
+Historical influence and modern applications:
+• Early development of modern {{36}} was shaped by Stoic virtues of thrift and diligence.
+• Cognitive behavioural therapy drew on Stoic principles to treat conditions like {{37}}.
+• Patients are taught to apply {{38}} to dismantle irrational assumptions.
+• Stoicism teaches that every obstacle presents an {{39}} to cultivate virtue.
+• Achieving tranquility requires continuous, lifelong {{40}}.`,
           questions: [
             {
               questionNumber: 31,
