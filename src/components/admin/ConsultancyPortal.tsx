@@ -256,6 +256,8 @@ export const ConsultancyPortal: React.FC<ConsultancyPortalProps> = ({
     const chosenTest = tests.find((t) => t.id === assignForm.testId) || tests[0];
     if (!chosenTest) return;
 
+    const isFull = chosenTest.id.includes('full');
+
     if (selectedStationForAssign) {
       ConsultancyService.assignTestToStation(
         consultancy.id,
@@ -269,6 +271,14 @@ export const ConsultancyPortal: React.FC<ConsultancyPortalProps> = ({
           targetBand: assignForm.targetBand
         }
       );
+      // Sync branch-wide launch as well so student views immediately display Start Test
+      ConsultancyService.launchTestToBranch(consultancy.id, chosenTest.id, chosenTest.title, isFull);
+      setActiveLaunchedTest({
+        testId: chosenTest.id,
+        title: chosenTest.title,
+        launchedAt: new Date().toISOString(),
+        isFullMock: isFull
+      });
     } else {
       idleStations.forEach((st) => {
         ConsultancyService.assignTestToStation(
@@ -283,6 +293,14 @@ export const ConsultancyPortal: React.FC<ConsultancyPortalProps> = ({
             targetBand: assignForm.targetBand
           }
         );
+      });
+      // Set branch active launched test so all student terminals show Start Test immediately
+      ConsultancyService.launchTestToBranch(consultancy.id, chosenTest.id, chosenTest.title, isFull);
+      setActiveLaunchedTest({
+        testId: chosenTest.id,
+        title: chosenTest.title,
+        launchedAt: new Date().toISOString(),
+        isFullMock: isFull
       });
     }
 

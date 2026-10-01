@@ -101,6 +101,16 @@ export const StudentTerminalView: React.FC<StudentTerminalViewProps> = ({
     consultancyId?: string;
   } | null>(() => {
     const c = ConsultancyService.getConsultancyByBranchCode(branchCode);
+    const stationTest = ConsultancyService.getStationAssignedTest(c?.id, pcNumber);
+    if (stationTest) {
+      return {
+        testId: stationTest.testId,
+        title: stationTest.title,
+        launchedAt: stationTest.launchedAt,
+        isFullMock: stationTest.isFullMock,
+        consultancyId: stationTest.consultancyId
+      };
+    }
     return ConsultancyService.getActiveLaunchedTest(c?.id);
   });
 
@@ -136,27 +146,68 @@ export const StudentTerminalView: React.FC<StudentTerminalViewProps> = ({
     const found = ConsultancyService.getConsultancyByBranchCode(branchCode);
     setConsultancy(found);
     if (found) {
-      setActiveLaunchedTest(ConsultancyService.getActiveLaunchedTest(found.id));
+      const stationTest = ConsultancyService.getStationAssignedTest(found.id, pcNumber);
+      if (stationTest) {
+        setActiveLaunchedTest({
+          testId: stationTest.testId,
+          title: stationTest.title,
+          launchedAt: stationTest.launchedAt,
+          isFullMock: stationTest.isFullMock,
+          consultancyId: stationTest.consultancyId
+        });
+      } else {
+        setActiveLaunchedTest(ConsultancyService.getActiveLaunchedTest(found.id));
+      }
+
       if (pcNumber) {
         const stations = ConsultancyService.getStations(found.id);
-        const st = stations.find((s) => s.name.toUpperCase() === pcNumber.toUpperCase());
+        const normPc = ConsultancyService.normalizeStationName(pcNumber);
+        const st = stations.find((s) => ConsultancyService.normalizeStationName(s.name) === normPc);
         setCurrentStation(st);
       }
     }
   }, [branchCode, pcNumber, tests]);
 
-  // Subscribe to live branch launched test & teacher commands
+  // Subscribe to live branch launched test & teacher commands & station assignments
   useEffect(() => {
-    // Check immediately on mount
-    const initialActive = ConsultancyService.getActiveLaunchedTest(consultancy?.id);
-    setActiveLaunchedTest(initialActive);
-    if (initialActive?.consultancyId && (!consultancy || consultancy.id !== initialActive.consultancyId)) {
-      const targetC = ConsultancyService.getConsultancyById(initialActive.consultancyId);
-      if (targetC) {
-        setConsultancy(targetC);
-        if (targetC.branchCode) setBranchCode(targetC.branchCode);
+    const syncActiveTest = () => {
+      // 1. Station-specific test assigned by teacher
+      const stationTest = ConsultancyService.getStationAssignedTest(consultancy?.id, pcNumber);
+      if (stationTest) {
+        setActiveLaunchedTest({
+          testId: stationTest.testId,
+          title: stationTest.title,
+          launchedAt: stationTest.launchedAt,
+          isFullMock: stationTest.isFullMock,
+          consultancyId: stationTest.consultancyId
+        });
+        if (stationTest.candidate?.name && !candidateNameInput.trim()) {
+          setCandidateNameInput(stationTest.candidate.name);
+        }
+        if (stationTest.consultancyId && (!consultancy || consultancy.id !== stationTest.consultancyId)) {
+          const targetC = ConsultancyService.getConsultancyById(stationTest.consultancyId);
+          if (targetC) {
+            setConsultancy(targetC);
+            if (targetC.branchCode) setBranchCode(targetC.branchCode);
+          }
+        }
+        return;
       }
-    }
+
+      // 2. Branch-wide launched test
+      const branchActive = ConsultancyService.getActiveLaunchedTest(consultancy?.id);
+      setActiveLaunchedTest(branchActive);
+      if (branchActive?.consultancyId && (!consultancy || consultancy.id !== branchActive.consultancyId)) {
+        const targetC = ConsultancyService.getConsultancyById(branchActive.consultancyId);
+        if (targetC) {
+          setConsultancy(targetC);
+          if (targetC.branchCode) setBranchCode(targetC.branchCode);
+        }
+      }
+    };
+
+    // Check immediately on mount
+    syncActiveTest();
 
     const unsubscribe = ConsultancyService.subscribe((event) => {
       if (event.type === 'BRANCH_TEST_LAUNCHED') {
@@ -177,35 +228,20 @@ export const StudentTerminalView: React.FC<StudentTerminalViewProps> = ({
             }
           }
         } else {
-          const remaining = ConsultancyService.getActiveLaunchedTest(consultancy?.id);
-          setActiveLaunchedTest(remaining);
+          syncActiveTest();
         }
-      } else if (event.type === 'STATION_COMMAND') {
-        const { stationId, command, testId } = event.payload || {};
-        const cleanPc = pcNumber.trim().toUpperCase();
-        if (stationId === currentStation?.id || stationId === currentStation?.name || stationId === cleanPc) {
-          if (command === 'START_TEST') {
-            const foundTest = tests.find((t) => t.id === testId) || allMockTests.find((t) => t.id === testId) || tests[0];
-            if (foundTest) {
-              handleLaunchExam(foundTest);
-            }
-          }
+      } else if (event.type === 'STATION_COMMAND' || event.type === 'STATION_UPDATED') {
+        const cleanPc = ConsultancyService.normalizeStationName(pcNumber);
+        const payload = event.payload;
+        const targetStation = payload?.stationId || payload?.name || payload?.id;
+        if (!targetStation || ConsultancyService.normalizeStationName(targetStation) === cleanPc) {
+          syncActiveTest();
         }
       }
     });
 
     // Polling sync every 1 second
-    const interval = setInterval(() => {
-      const active = ConsultancyService.getActiveLaunchedTest(consultancy?.id);
-      setActiveLaunchedTest(active);
-      if (active?.consultancyId && (!consultancy || consultancy.id !== active.consultancyId)) {
-        const targetC = ConsultancyService.getConsultancyById(active.consultancyId);
-        if (targetC) {
-          setConsultancy(targetC);
-          if (targetC.branchCode) setBranchCode(targetC.branchCode);
-        }
-      }
-    }, 1000);
+    const interval = setInterval(syncActiveTest, 1000);
 
     return () => {
       unsubscribe();

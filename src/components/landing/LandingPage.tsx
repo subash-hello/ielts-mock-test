@@ -104,6 +104,19 @@ export const LandingPage: React.FC<LandingPageProps> = ({
     isFullMock?: boolean;
     consultancyId?: string;
   } | null>(() => {
+    const stationTest = ConsultancyService.getStationAssignedTest(
+      candidateSession?.consultancyId,
+      candidateSession?.stationName
+    );
+    if (stationTest) {
+      return {
+        testId: stationTest.testId,
+        title: stationTest.title,
+        launchedAt: stationTest.launchedAt,
+        isFullMock: stationTest.isFullMock,
+        consultancyId: stationTest.consultancyId
+      };
+    }
     return ConsultancyService.getActiveLaunchedTest(candidateSession?.consultancyId);
   });
 
@@ -114,12 +127,39 @@ export const LandingPage: React.FC<LandingPageProps> = ({
     }
   }, [candidateSession?.candidateName]);
 
-  // Subscribe and poll for active branch launched test
+  // Subscribe and poll for active branch launched test & station assignments
   useEffect(() => {
-    const cid = candidateSession?.consultancyId;
-    setActiveLaunchedTest(ConsultancyService.getActiveLaunchedTest(cid));
+    const syncTest = () => {
+      const cid = candidateSession?.consultancyId;
+      const stName = candidateSession?.stationName;
+
+      // 1. Station-specific assignment
+      if (stName) {
+        const stTest = ConsultancyService.getStationAssignedTest(cid, stName);
+        if (stTest) {
+          setActiveLaunchedTest({
+            testId: stTest.testId,
+            title: stTest.title,
+            launchedAt: stTest.launchedAt,
+            isFullMock: stTest.isFullMock,
+            consultancyId: stTest.consultancyId
+          });
+          if (stTest.candidate?.name && !candidateNameInput.trim()) {
+            setCandidateNameInput(stTest.candidate.name);
+          }
+          return;
+        }
+      }
+
+      // 2. Branch-wide launched test
+      const branchTest = ConsultancyService.getActiveLaunchedTest(cid);
+      setActiveLaunchedTest(branchTest);
+    };
+
+    syncTest();
 
     const unsubscribe = ConsultancyService.subscribe((event) => {
+      const cid = candidateSession?.consultancyId;
       if (event.type === 'BRANCH_TEST_LAUNCHED') {
         const payload = event.payload;
         if (payload?.testId) {
@@ -133,24 +173,20 @@ export const LandingPage: React.FC<LandingPageProps> = ({
             });
           }
         } else {
-          if (!cid || !payload.consultancyId || payload.consultancyId === cid) {
-            const remaining = ConsultancyService.getActiveLaunchedTest(cid);
-            setActiveLaunchedTest(remaining);
-          }
+          syncTest();
         }
+      } else if (event.type === 'STATION_COMMAND' || event.type === 'STATION_UPDATED') {
+        syncTest();
       }
     });
 
-    const interval = setInterval(() => {
-      const active = ConsultancyService.getActiveLaunchedTest(cid);
-      setActiveLaunchedTest(active);
-    }, 1000);
+    const interval = setInterval(syncTest, 1000);
 
     return () => {
       unsubscribe();
       clearInterval(interval);
     };
-  }, [candidateSession?.consultancyId]);
+  }, [candidateSession?.consultancyId, candidateSession?.stationName]);
 
   // Resolve launched test or full mock
   const resolvedLaunchedTest = useMemo(() => {

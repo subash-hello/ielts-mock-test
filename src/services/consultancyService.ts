@@ -640,41 +640,96 @@ export class ConsultancyService {
   }
 
   // --- LAB STATIONS MANAGEMENT ---
+  public static normalizeStationName(stationName: string): string {
+    const raw = stationName.trim().toUpperCase();
+    // Standardize PC1, PC01, PC-1 -> PC-01
+    const match = raw.match(/^PC-?0*(\d+)$/i);
+    if (match) {
+      const num = parseInt(match[1], 10);
+      return `PC-${num.toString().padStart(2, '0')}`;
+    }
+    return raw;
+  }
+
   public static getStations(consultancyId: string): LabStation[] {
     const raw = localStorage.getItem(`ielts_stations_${consultancyId}`);
+    let stationsList: LabStation[] = [];
     if (!raw) {
       if (consultancyId === 'apex-global') {
-        localStorage.setItem(`ielts_stations_${consultancyId}`, JSON.stringify(DEFAULT_STATIONS));
-        return DEFAULT_STATIONS;
+        stationsList = [...DEFAULT_STATIONS];
       }
-      return [];
+    } else {
+      try {
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed)) {
+          stationsList = parsed;
+        }
+      } catch {
+        stationsList = [];
+      }
     }
-    try {
-      return JSON.parse(raw);
-    } catch {
-      return [];
+
+    // Deduplicate by normalized station name (e.g. "PC-01")
+    const deduplicated: LabStation[] = [];
+    const seenNames = new Set<string>();
+
+    // Prioritize active/assigned stations or those with newer heartbeats
+    const sorted = [...stationsList].sort((a, b) => {
+      const aPriority = a.status === 'in_progress' ? 3 : a.status === 'assigned' ? 2 : a.status === 'paused' ? 1 : 0;
+      const bPriority = b.status === 'in_progress' ? 3 : b.status === 'assigned' ? 2 : b.status === 'paused' ? 1 : 0;
+      if (aPriority !== bPriority) return bPriority - aPriority;
+      return new Date(b.lastHeartbeat || 0).getTime() - new Date(a.lastHeartbeat || 0).getTime();
+    });
+
+    for (const st of sorted) {
+      const norm = this.normalizeStationName(st.name);
+      if (!seenNames.has(norm)) {
+        seenNames.add(norm);
+        deduplicated.push({ ...st, name: norm });
+      }
     }
+
+    // Sort in natural order: PC-01, PC-02, PC-03...
+    deduplicated.sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true, sensitivity: 'base' }));
+
+    // If cleaned list differs from raw, save back clean deduplicated list
+    if (deduplicated.length !== stationsList.length || !raw) {
+      localStorage.setItem(`ielts_stations_${consultancyId}`, JSON.stringify(deduplicated));
+    }
+
+    return deduplicated;
   }
 
   public static saveStation(station: LabStation): void {
+    const normName = this.normalizeStationName(station.name);
+    const stationWithNorm = { ...station, name: normName };
     const list = this.getStations(station.consultancyId);
-    const existingIdx = list.findIndex((s) => s.id === station.id);
+    const existingIdx = list.findIndex(
+      (s) => s.id === station.id || this.normalizeStationName(s.name) === normName
+    );
     if (existingIdx >= 0) {
-      list[existingIdx] = { ...list[existingIdx], ...station, lastHeartbeat: new Date().toISOString() };
+      list[existingIdx] = {
+        ...list[existingIdx],
+        ...stationWithNorm,
+        lastHeartbeat: new Date().toISOString()
+      };
     } else {
-      list.push({ ...station, lastHeartbeat: new Date().toISOString() });
+      list.push({ ...stationWithNorm, lastHeartbeat: new Date().toISOString() });
     }
     localStorage.setItem(`ielts_stations_${station.consultancyId}`, JSON.stringify(list));
-    this.broadcast('STATION_UPDATED', station);
+    this.broadcast('STATION_UPDATED', stationWithNorm);
   }
 
   public static updateStationHeartbeat(
     consultancyId: string,
-    stationId: string,
+    stationIdentifier: string,
     updates: Partial<LabStation>
   ): void {
     const list = this.getStations(consultancyId);
-    const existingIdx = list.findIndex((s) => s.id === stationId);
+    const normSearch = this.normalizeStationName(stationIdentifier);
+    const existingIdx = list.findIndex(
+      (s) => s.id === stationIdentifier || this.normalizeStationName(s.name) === normSearch
+    );
     if (existingIdx >= 0) {
       list[existingIdx] = {
         ...list[existingIdx],
@@ -683,15 +738,26 @@ export class ConsultancyService {
       };
       localStorage.setItem(`ielts_stations_${consultancyId}`, JSON.stringify(list));
       this.broadcast('STATION_HEARTBEAT', list[existingIdx]);
+      this.broadcast('STATION_UPDATED', list[existingIdx]);
     }
   }
 
   public static addStation(consultancyId: string, stationName: string): LabStation {
+    const normName = this.normalizeStationName(stationName);
     const list = this.getStations(consultancyId);
-    const id = `${consultancyId}-st-${Date.now().toString(36)}`;
+    
+    // Strict uniqueness check by normalized station name
+    const existing = list.find((s) => this.normalizeStationName(s.name) === normName);
+    if (existing) {
+      existing.lastHeartbeat = new Date().toISOString();
+      this.saveStation(existing);
+      return existing;
+    }
+
+    const id = `${consultancyId}-${normName.toLowerCase().replace(/[^a-z0-9]/g, '-')}`;
     const newStation: LabStation = {
       id,
-      name: stationName.trim(),
+      name: normName,
       consultancyId,
       status: 'idle',
       lastHeartbeat: new Date().toISOString()
@@ -710,13 +776,13 @@ export class ConsultancyService {
 
   public static assignTestToStation(
     consultancyId: string,
-    stationId: string,
+    stationIdentifier: string,
     testId: string,
     testTitle: string,
     module: 'reading' | 'listening' | 'writing',
     candidate?: { candidateId: string; name: string; targetBand?: number }
   ): void {
-    this.updateStationHeartbeat(consultancyId, stationId, {
+    this.updateStationHeartbeat(consultancyId, stationIdentifier, {
       status: 'assigned',
       assignedTestId: testId,
       testTitle,
@@ -730,7 +796,59 @@ export class ConsultancyService {
         name: 'Assigned Student'
       }
     });
-    this.broadcast('STATION_COMMAND', { stationId, command: 'START_TEST', testId });
+    this.broadcast('STATION_COMMAND', { stationId: stationIdentifier, command: 'START_TEST', testId });
+  }
+
+  public static getStationAssignedTest(
+    consultancyId?: string,
+    stationIdentifier?: string
+  ): {
+    consultancyId: string;
+    testId: string;
+    title: string;
+    module?: 'reading' | 'listening' | 'writing';
+    launchedAt: string;
+    candidate?: { candidateId: string; name: string; targetBand?: number };
+    isFullMock?: boolean;
+  } | null {
+    if (!stationIdentifier) return null;
+    const norm = this.normalizeStationName(stationIdentifier);
+
+    // If specific consultancyId is provided, check directly
+    if (consultancyId) {
+      const stations = this.getStations(consultancyId);
+      const matched = stations.find((s) => s.id === stationIdentifier || this.normalizeStationName(s.name) === norm);
+      if (matched && matched.assignedTestId && (matched.status === 'assigned' || matched.status === 'in_progress')) {
+        return {
+          consultancyId,
+          testId: matched.assignedTestId,
+          title: matched.testTitle || matched.assignedTestId,
+          module: matched.module,
+          launchedAt: matched.lastHeartbeat || new Date().toISOString(),
+          candidate: matched.currentCandidate,
+          isFullMock: matched.assignedTestId.includes('full')
+        };
+      }
+    }
+
+    // Otherwise scan all registered consultancies
+    const allConsultancies = this.getConsultancies();
+    for (const c of allConsultancies) {
+      const stations = this.getStations(c.id);
+      const matched = stations.find((s) => s.id === stationIdentifier || this.normalizeStationName(s.name) === norm);
+      if (matched && matched.assignedTestId && (matched.status === 'assigned' || matched.status === 'in_progress')) {
+        return {
+          consultancyId: c.id,
+          testId: matched.assignedTestId,
+          title: matched.testTitle || matched.assignedTestId,
+          module: matched.module,
+          launchedAt: matched.lastHeartbeat || new Date().toISOString(),
+          candidate: matched.currentCandidate,
+          isFullMock: matched.assignedTestId.includes('full')
+        };
+      }
+    }
+    return null;
   }
 
   // --- BRANCH ACTIVE LAUNCHED TEST (FOR ALL STUDENT TERMINALS) ---

@@ -404,6 +404,60 @@ suite('Suite 3: Consultancy Test Launch & Terminal Waiting Logic', () => {
     ConsultancyService.logoutCandidate();
     assertEqual(ConsultancyService.getCurrentCandidateSession(), null);
   });
+
+  test('Station deduplication: Multiple registrations of PC-01 result in strictly one unique station', () => {
+    const testCid = 'test-consultancy-dedup';
+    // Clean any prior state
+    localStorage.removeItem(`ielts_stations_${testCid}`);
+
+    // Register PC-01 three times with slight variations (e.g. pc-01, PC-1, PC-01)
+    const st1 = ConsultancyService.addStation(testCid, 'PC-01');
+    const st2 = ConsultancyService.addStation(testCid, 'pc-01');
+    const st3 = ConsultancyService.addStation(testCid, 'PC-1');
+
+    assertEqual(st1.name, 'PC-01', 'Standardized station name');
+    assertEqual(st2.name, 'PC-01', 'Case-insensitive match returns existing');
+    assertEqual(st3.name, 'PC-01', 'Variation match returns existing');
+
+    const stations = ConsultancyService.getStations(testCid);
+    assertEqual(stations.length, 1, 'Exactly 1 station exists, zero duplicates');
+    assertEqual(stations[0].name, 'PC-01');
+
+    // Add PC-02
+    ConsultancyService.addStation(testCid, 'PC-02');
+    const updated = ConsultancyService.getStations(testCid);
+    assertEqual(updated.length, 2, 'Two unique stations (PC-01, PC-02)');
+    assertEqual(updated[0].name, 'PC-01');
+    assertEqual(updated[1].name, 'PC-02');
+
+    // Cleanup
+    localStorage.removeItem(`ielts_stations_${testCid}`);
+  });
+
+  test('Station-specific assignment resolution: getStationAssignedTest detects assigned exam', () => {
+    const testCid = 'test-station-assign-sync';
+    ConsultancyService.addStation(testCid, 'PC-01');
+
+    // Assign test directly to PC-01
+    ConsultancyService.assignTestToStation(
+      testCid,
+      'PC-01',
+      'cambridge-16-test-1-reading',
+      'Cambridge 16 Academic Reading Test 1',
+      'reading',
+      { candidateId: '001234', name: 'Sujan Sharma', targetBand: 8.0 }
+    );
+
+    // Station lookup detects the assigned test
+    const assigned = ConsultancyService.getStationAssignedTest(testCid, 'PC-01');
+    assert(assigned !== null, 'Station assigned test resolved');
+    assertEqual(assigned?.testId, 'cambridge-16-test-1-reading');
+    assertEqual(assigned?.title, 'Cambridge 16 Academic Reading Test 1');
+    assertEqual(assigned?.candidate?.name, 'Sujan Sharma');
+
+    // Cleanup
+    localStorage.removeItem(`ielts_stations_${testCid}`);
+  });
 });
 
 // --- SUITE 4: WRITING SUBMISSION & EXAMINER EVALUATION WORKFLOW ---
