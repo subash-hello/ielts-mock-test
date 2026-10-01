@@ -1,6 +1,13 @@
 import type { IELTSMockTest, FullMockTest } from '../types/ielts';
 
 import {
+  cambridge16Test1Reading, cambridge16Test1Listening, cambridge16Test1Writing,
+  cambridge16Test2Reading, cambridge16Test2Listening, cambridge16Test2Writing,
+  cambridge16Test3Reading, cambridge16Test3Listening, cambridge16Test3Writing,
+  cambridge16Test4Reading, cambridge16Test4Listening, cambridge16Test4Writing,
+} from './cambridge16';
+
+import {
   cambridge18Test1Reading, cambridge18Test1Listening,
   cambridge18Test2Reading, cambridge18Test2Listening,
   cambridge18Test3Reading, cambridge18Test3Listening,
@@ -29,6 +36,10 @@ import {
 } from './cambridge21';
 
 export {
+  cambridge16Test1Reading, cambridge16Test1Listening, cambridge16Test1Writing,
+  cambridge16Test2Reading, cambridge16Test2Listening, cambridge16Test2Writing,
+  cambridge16Test3Reading, cambridge16Test3Listening, cambridge16Test3Writing,
+  cambridge16Test4Reading, cambridge16Test4Listening, cambridge16Test4Writing,
   cambridge18Test1Reading, cambridge18Test1Listening,
   cambridge18Test2Reading, cambridge18Test2Listening,
   cambridge18Test3Reading, cambridge18Test3Listening,
@@ -47,8 +58,14 @@ export {
   cambridge21Test4Reading, cambridge21Test4Listening,
 };
 
-// All 32 authentic official Cambridge Academic tests (Books 18, 19, 20, 21)
+// All 44 authentic official Cambridge Academic tests (Books 16, 18, 19, 20, 21)
 export const allMockTests: IELTSMockTest[] = [
+  // Cambridge 16 (Reading, Listening, Writing)
+  cambridge16Test1Reading, cambridge16Test1Listening, cambridge16Test1Writing,
+  cambridge16Test2Reading, cambridge16Test2Listening, cambridge16Test2Writing,
+  cambridge16Test3Reading, cambridge16Test3Listening, cambridge16Test3Writing,
+  cambridge16Test4Reading, cambridge16Test4Listening, cambridge16Test4Writing,
+
   // Cambridge 18
   cambridge18Test1Reading, cambridge18Test1Listening,
   cambridge18Test2Reading, cambridge18Test2Listening,
@@ -78,11 +95,11 @@ export function getMockTestById(id: string): IELTSMockTest | undefined {
   return allMockTests.find((t) => t.id === id);
 }
 
-export function getTestsByBookAndModule(book: number, module?: 'reading' | 'listening'): IELTSMockTest[] {
+export function getTestsByBookAndModule(book: number, module?: 'reading' | 'listening' | 'writing'): IELTSMockTest[] {
   return allMockTests.filter((t) => t.book === book && (!module || t.module === module));
 }
 
-// Build full mock test bundles (reading + listening from same book/test number)
+// Build full mock test bundles (reading + listening + optional writing from same book/test number)
 export function buildFullMockTests(testsPool: IELTSMockTest[] = allMockTests): FullMockTest[] {
   const fullTests: FullMockTest[] = [];
   const books = [...new Set(testsPool.map((t) => t.book))].sort();
@@ -94,6 +111,7 @@ export function buildFullMockTests(testsPool: IELTSMockTest[] = allMockTests): F
     for (const testNum of testNumbers) {
       const reading = bookTests.find((t) => t.testNumber === testNum && t.module === 'reading');
       const listening = bookTests.find((t) => t.testNumber === testNum && t.module === 'listening');
+      const writing = bookTests.find((t) => t.testNumber === testNum && t.module === 'writing');
 
       if (reading && listening) {
         fullTests.push({
@@ -103,7 +121,8 @@ export function buildFullMockTests(testsPool: IELTSMockTest[] = allMockTests): F
           title: `Cambridge ${book} Test ${testNum} — Full Mock`,
           readingTest: reading,
           listeningTest: listening,
-          totalDurationMinutes: reading.durationMinutes + listening.durationMinutes,
+          writingTest: writing || undefined,
+          totalDurationMinutes: reading.durationMinutes + listening.durationMinutes + (writing ? writing.durationMinutes : 0),
         });
       }
     }
@@ -113,4 +132,3 @@ export function buildFullMockTests(testsPool: IELTSMockTest[] = allMockTests): F
 }
 
 export const allFullMockTests: FullMockTest[] = buildFullMockTests();
-

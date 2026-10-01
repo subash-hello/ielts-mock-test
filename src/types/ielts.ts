@@ -1,4 +1,4 @@
-export type IELTSModule = 'reading' | 'listening';
+export type IELTSModule = 'reading' | 'listening' | 'writing';
 
 export type IELTSQuestionType =
   | 'true_false_not_given'
@@ -17,7 +17,9 @@ export type IELTSQuestionType =
   | 'form_completion'
   | 'note_completion'
   | 'flow_chart_completion'
-  | 'map_labelling';
+  | 'map_labelling'
+  | 'writing_task_1'
+  | 'writing_task_2';
 
 export interface IELTSQuestion {
   questionNumber: number; // 1 to 40
@@ -75,6 +77,21 @@ export type CandidateAnswers = Record<number, string | string[]>;
 
 export type ReviewStatus = Record<number, boolean>;
 
+// Writing module submission (Task 1 + Task 2 essays)
+export interface WritingSubmission {
+  task1Essay: string;        // Student's Task 1 response (150+ words)
+  task1WordCount: number;
+  task2Essay: string;        // Student's Task 2 response (250+ words)
+  task2WordCount: number;
+  // Admin-assigned scores (filled by consultancy admin after review)
+  task1Band?: number;        // 0-9 band score for Task 1
+  task2Band?: number;        // 0-9 band score for Task 2
+  overallWritingBand?: number; // Weighted: Task 2 counts double
+  adminFeedback?: string;    // Optional admin feedback
+  reviewedBy?: string;       // Admin who reviewed
+  reviewedAt?: string;       // Timestamp
+}
+
 export interface TestResult {
   testId: string;
   book: number;
@@ -93,6 +110,8 @@ export interface TestResult {
   targetBand?: number;
   isPublished?: boolean; // When false, result is pending release by consultancy admin
   publishedAt?: string; // Timestamp when consultancy admin published the result
+  // Writing-specific fields
+  writingSubmission?: WritingSubmission;
 }
 
 export interface ExamSettings {
@@ -101,7 +120,7 @@ export interface ExamSettings {
   showTimer: boolean;
 }
 
-// A full mock test bundles a reading + listening test pair from the same Cambridge book & test number
+// A full mock test bundles reading + listening + writing from the same Cambridge book & test number
 export interface FullMockTest {
   id: string; // e.g. "cambridge-19-test-1-full"
   book: number;
@@ -109,5 +128,7 @@ export interface FullMockTest {
   title: string; // e.g. "Cambridge 19 Test 1 — Full Mock"
   readingTest: IELTSMockTest;
   listeningTest: IELTSMockTest;
-  totalDurationMinutes: number; // 60 + 35 = 95
+  writingTest?: IELTSMockTest; // Optional writing test
+  totalDurationMinutes: number; // 60 + 35 + 60 = 155 (or 95 without writing)
 }
+

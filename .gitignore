@@ -30,5 +30,7 @@ dist-ssr
 
 # Scraper cache
 cache_html/
+__pycache__/
+*.pyc
 
 .vercel

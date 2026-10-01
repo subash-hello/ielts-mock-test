@@ -30,7 +30,7 @@ export const ResultReport: React.FC<ResultReportProps> = ({
 }) => {
   const [filterMode, setFilterMode] = useState<'all' | 'incorrect' | 'correct'>('all');
   const [showDiagnosticModal, setShowDiagnosticModal] = useState<boolean>(false);
-  const [activeReviewModule, setActiveReviewModule] = useState<'listening' | 'reading'>(() => {
+  const [activeReviewModule, setActiveReviewModule] = useState<'listening' | 'reading' | 'writing'>(() => {
     return fullMockDetails ? 'listening' : test.module;
   });
 

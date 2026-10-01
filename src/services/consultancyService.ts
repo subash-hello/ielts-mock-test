@@ -713,7 +713,7 @@ export class ConsultancyService {
     stationId: string,
     testId: string,
     testTitle: string,
-    module: 'reading' | 'listening',
+    module: 'reading' | 'listening' | 'writing',
     candidate?: { candidateId: string; name: string; targetBand?: number }
   ): void {
     this.updateStationHeartbeat(consultancyId, stationId, {
@@ -724,13 +724,50 @@ export class ConsultancyService {
       currentQuestion: 1,
       totalQuestions: 40,
       answeredCount: 0,
-      remainingSeconds: module === 'reading' ? 3600 : 2100,
+      remainingSeconds: module === 'reading' || module === 'writing' ? 3600 : 2100,
       currentCandidate: candidate || {
         candidateId: '00' + Math.floor(1000 + Math.random() * 9000),
         name: 'Assigned Student'
       }
     });
     this.broadcast('STATION_COMMAND', { stationId, command: 'START_TEST', testId });
+  }
+
+  // --- BRANCH ACTIVE LAUNCHED TEST (FOR ALL STUDENT TERMINALS) ---
+  public static getActiveLaunchedTest(consultancyId: string): {
+    testId: string;
+    title: string;
+    launchedAt: string;
+    isFullMock?: boolean;
+  } | null {
+    const raw = localStorage.getItem(`ielts_launched_test_${consultancyId}`);
+    if (!raw) return null;
+    try {
+      return JSON.parse(raw);
+    } catch {
+      return null;
+    }
+  }
+
+  public static launchTestToBranch(
+    consultancyId: string,
+    testId: string | null,
+    title?: string,
+    isFullMock?: boolean
+  ): void {
+    if (!testId) {
+      localStorage.removeItem(`ielts_launched_test_${consultancyId}`);
+      this.broadcast('BRANCH_TEST_LAUNCHED', { consultancyId, testId: null });
+      return;
+    }
+    const data = {
+      testId,
+      title: title || testId,
+      launchedAt: new Date().toISOString(),
+      isFullMock: isFullMock ?? testId.includes('full')
+    };
+    localStorage.setItem(`ielts_launched_test_${consultancyId}`, JSON.stringify(data));
+    this.broadcast('BRANCH_TEST_LAUNCHED', { consultancyId, ...data });
   }
 
   public static forceSubmitStation(consultancyId: string, stationId: string): void {
@@ -989,15 +1026,59 @@ export class ConsultancyService {
     this.broadcast('ALL_RESULTS_PUBLISHED', { consultancyId });
   }
 
-  // Look up candidate results by Candidate Number (for verification portal)
-  public static getCandidateResults(candidateId: string, consultancyId?: string): {
+  // --- WRITING MODULE EVALUATION & SCORING (CONSULTANCY ADMIN) ---
+  public static gradeWritingSubmission(
+    consultancyId: string,
+    testId: string,
+    candidateId: string,
+    completedAt: string,
+    evaluation: {
+      task1Band: number;
+      task2Band: number;
+      overallWritingBand: number;
+      adminFeedback?: string;
+      reviewedBy?: string;
+    }
+  ): void {
+    const list = this.getResults(consultancyId);
+    let updated = false;
+
+    for (const item of list) {
+      if (item.testId === testId && item.candidateId === candidateId && item.completedAt === completedAt) {
+        if (!item.writingSubmission) {
+          item.writingSubmission = {
+            task1Essay: '',
+            task1WordCount: 0,
+            task2Essay: '',
+            task2WordCount: 0
+          };
+        }
+        item.writingSubmission.task1Band = evaluation.task1Band;
+        item.writingSubmission.task2Band = evaluation.task2Band;
+        item.writingSubmission.overallWritingBand = evaluation.overallWritingBand;
+        item.writingSubmission.adminFeedback = evaluation.adminFeedback;
+        item.writingSubmission.reviewedBy = evaluation.reviewedBy || 'Academic Admin';
+        item.writingSubmission.reviewedAt = new Date().toISOString();
+        item.bandScore = evaluation.overallWritingBand;
+        updated = true;
+      }
+    }
+
+    if (updated) {
+      localStorage.setItem(`ielts_results_${consultancyId}`, JSON.stringify(list));
+      this.broadcast('RESULT_UPDATED', { consultancyId, testId, candidateId });
+    }
+  }
+
+  // Look up candidate results by Candidate Name OR Candidate Number
+  public static getCandidateResults(query: string, consultancyId?: string): {
     found: boolean;
     allResults: TestResult[];
     publishedResults: TestResult[];
     pendingResults: TestResult[];
   } {
-    const cleanCandId = candidateId.trim().replace(/^#/, '');
-    if (!cleanCandId) {
+    const cleanQuery = query.trim().replace(/^#/, '').toLowerCase();
+    if (!cleanQuery) {
       return { found: false, allResults: [], publishedResults: [], pendingResults: [] };
     }
 
@@ -1012,7 +1093,9 @@ export class ConsultancyService {
       if (!c) continue;
       const cResults = this.getResults(c.id);
       const matched = cResults.filter((r) => {
-        return (r.candidateId || '').trim().toLowerCase() === cleanCandId.toLowerCase();
+        const idMatch = (r.candidateId || '').trim().toLowerCase() === cleanQuery;
+        const nameMatch = (r.candidateName || '').toLowerCase().includes(cleanQuery);
+        return idMatch || nameMatch;
       });
       allMatching = allMatching.concat(matched);
     }
@@ -1023,8 +1106,10 @@ export class ConsultancyService {
       if (rawPast) {
         const parsed: TestResult[] = JSON.parse(rawPast);
         for (const pr of parsed) {
+          const idMatch = (pr.candidateId || '').trim().toLowerCase() === cleanQuery;
+          const nameMatch = (pr.candidateName || '').toLowerCase().includes(cleanQuery);
           if (
-            (pr.candidateId || '').trim().toLowerCase() === cleanCandId.toLowerCase() &&
+            (idMatch || nameMatch) &&
             !allMatching.some((m) => m.testId === pr.testId && m.completedAt === pr.completedAt)
           ) {
             allMatching.push(pr);
@@ -1178,7 +1263,7 @@ export class ConsultancyService {
     return {
       studentName,
       candidateId: '00' + Math.floor(1000 + Math.random() * 9000),
-      testTitle: `Cambridge ${result.book} Test ${result.testNumber} (${result.module === 'reading' ? 'Reading' : 'Listening'})`,
+      testTitle: `Cambridge ${result.book} Test ${result.testNumber} (${result.module === 'reading' ? 'Reading' : result.module === 'writing' ? 'Writing' : 'Listening'})`,
       module: result.module,
       date: new Date(result.completedAt).toLocaleDateString('en-US', {
         month: 'short',

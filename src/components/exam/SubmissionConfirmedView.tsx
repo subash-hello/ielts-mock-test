@@ -10,7 +10,8 @@ import {
   LogOut,
   ExternalLink,
   BookOpen,
-  Headphones
+  Headphones,
+  PenTool
 } from 'lucide-react';
 import type { IELTSMockTest, TestResult } from '../../types/ielts';
 
@@ -107,7 +108,9 @@ export const SubmissionConfirmedView: React.FC<SubmissionConfirmedViewProps> = (
                 <div>
                   <span className="text-slate-500 block text-[11px] font-medium">Test Taken</span>
                   <div className="flex items-center gap-1.5 font-bold text-slate-900 mt-0.5">
-                    {test.module === 'reading' ? (
+                    {test.module === 'writing' ? (
+                      <PenTool className="w-3.5 h-3.5 text-emerald-600" />
+                    ) : test.module === 'reading' ? (
                       <BookOpen className="w-3.5 h-3.5 text-blue-600" />
                     ) : (
                       <Headphones className="w-3.5 h-3.5 text-indigo-600" />
@@ -156,7 +159,11 @@ export const SubmissionConfirmedView: React.FC<SubmissionConfirmedViewProps> = (
                 Per official Computer-Delivered IELTS standards, band scores are not released immediately on candidate test station screens upon submission. Your exam data has been forwarded directly to your Consultancy Test Centre Administrator.
               </p>
               <p className="text-xs text-amber-900/90 leading-relaxed">
-                As soon as the test centre administrator verifies your submission and clicks <strong>"Publish"</strong> on the centre director portal, you can input your Candidate ID (<strong className="font-mono font-bold text-amber-950">{candidateInfo.candidateId}</strong>) to view your verified Band Score and comprehensive diagnostic report.
+                {test.module === 'writing' ? (
+                  <>For <strong>IELTS Academic Writing</strong>, your Task 1 and Task 2 essays are reviewed by your test centre examiners. As soon as your invigilator assigns scores and clicks <strong>"Publish"</strong>, you can easily check your score by entering your <strong>Name</strong> ({candidateInfo.name}) or Candidate ID (<strong className="font-mono">{candidateInfo.candidateId}</strong>).</>
+                ) : (
+                  <>As soon as the test centre administrator verifies your submission and clicks <strong>"Publish"</strong> on the centre director portal, you can input your <strong>Name</strong> ({candidateInfo.name}) or Candidate ID (<strong className="font-mono">{candidateInfo.candidateId}</strong>) to view your verified Band Score and comprehensive diagnostic report.</>
+                )}
               </p>
             </div>
 
@@ -167,7 +174,7 @@ export const SubmissionConfirmedView: React.FC<SubmissionConfirmedViewProps> = (
                 className="w-full py-4 px-6 bg-indigo-600 hover:bg-indigo-700 text-white font-extrabold text-sm rounded-xl transition shadow-md hover:shadow-lg flex items-center justify-center gap-2.5 cursor-pointer group"
               >
                 <Search className="w-4 h-4" />
-                <span>Check Published Result (Enter Candidate ID)</span>
+                <span>Check Official Result (Enter Name or ID)</span>
               </button>
 
               <button

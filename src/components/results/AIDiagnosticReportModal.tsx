@@ -15,7 +15,7 @@ interface AIDiagnosticReportModalProps {
   reportData: {
     studentName: string;
     bandScore: number;
-    module: 'reading' | 'listening';
+    module: 'reading' | 'listening' | 'writing';
     testTitle: string;
     correctCount: number;
     totalQuestions: number;

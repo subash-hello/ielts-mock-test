@@ -10,7 +10,8 @@ import {
   RotateCw,
   X,
   Award,
-  Sparkles
+  Sparkles,
+  PenTool
 } from 'lucide-react';
 import type { TestResult } from '../../types/ielts';
 import { ConsultancyService } from '../../services/consultancyService';
@@ -96,14 +97,14 @@ export const CandidateResultLookupModal: React.FC<CandidateResultLookupModalProp
             <div>
               <div className="flex items-center gap-2">
                 <h3 className="font-extrabold text-slate-900 text-sm sm:text-base leading-tight">
-                  IELTS Result Verification
+                  IELTS Result & Scorecard Verification
                 </h3>
                 <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-indigo-100 text-indigo-800 uppercase tracking-wider">
                   Official TRF
                 </span>
               </div>
               <p className="text-xs text-slate-500 mt-0.5">
-                Enter your Candidate ID to view verified scorecards released by your test centre.
+                Enter your Candidate Name or ID to retrieve verified test scorecards published by your centre.
               </p>
             </div>
           </div>
@@ -121,7 +122,7 @@ export const CandidateResultLookupModal: React.FC<CandidateResultLookupModalProp
           <form onSubmit={handleSearch} className="space-y-3">
             <div>
               <label className="block text-xs font-bold text-slate-800 mb-1.5">
-                Candidate Identification Number (ID)
+                Candidate Full Name or ID Number
               </label>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -130,10 +131,10 @@ export const CandidateResultLookupModal: React.FC<CandidateResultLookupModalProp
                 <input
                   type="text"
                   required
-                  placeholder="e.g. 004128 or PC Station ID"
+                  placeholder="Enter your name (e.g. Sujan Sharma) or Candidate ID"
                   value={candidateIdInput}
                   onChange={(e) => setCandidateIdInput(e.target.value)}
-                  className="w-full pl-9 pr-4 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm font-mono font-bold text-slate-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition"
+                  className="w-full pl-9 pr-4 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm font-semibold text-slate-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition"
                   autoFocus
                 />
               </div>
@@ -203,10 +204,10 @@ export const CandidateResultLookupModal: React.FC<CandidateResultLookupModalProp
             <div className="bg-red-50 border border-red-200 rounded-xl p-4 text-center space-y-2 animate-in fade-in">
               <AlertCircle className="w-8 h-8 text-red-600 mx-auto" />
               <h4 className="font-bold text-red-900 text-sm">
-                No Records Found for Candidate ID #{candidateIdInput}
+                No Records Found for Candidate "{candidateIdInput}"
               </h4>
               <p className="text-xs text-red-700 max-w-sm mx-auto">
-                Please ensure you entered the exact Candidate ID assigned during test check-in, or ask your test centre invigilator to verify your test submission.
+                Please ensure you entered the exact candidate full name (or ID) entered at the terminal, or ask your test centre invigilator to verify and publish your test.
               </p>
             </div>
           )}
@@ -241,17 +242,30 @@ export const CandidateResultLookupModal: React.FC<CandidateResultLookupModalProp
                 {pendingResults.map((pr, idx) => (
                   <div
                     key={idx}
-                    className="bg-white/80 border border-amber-200 rounded-lg p-2.5 flex items-center justify-between text-xs"
+                    className="bg-white/80 border border-amber-200 rounded-lg p-2.5 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs"
                   >
                     <div>
-                      <span className="font-bold text-slate-900 block">
-                        Cambridge {pr.book} Test {pr.testNumber} ({pr.module.toUpperCase()})
-                      </span>
+                      <div className="flex items-center gap-1.5">
+                        <span className="font-bold text-slate-900 block">
+                          Cambridge {pr.book} Test {pr.testNumber} ({pr.module.toUpperCase()})
+                        </span>
+                        {pr.module === 'writing' && (
+                          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-indigo-50 text-indigo-700 border border-indigo-200 flex items-center gap-1">
+                            <PenTool className="w-2.5 h-2.5" />
+                            Writing Submission
+                          </span>
+                        )}
+                      </div>
                       <span className="text-[10px] text-slate-500">
-                        Submitted: {new Date(pr.completedAt).toLocaleString()} • {pr.consultancyName || 'Test Centre'}
+                        Candidate: {pr.candidateName || 'Candidate'} • Submitted: {new Date(pr.completedAt).toLocaleString()} • {pr.consultancyName || 'Test Centre'}
                       </span>
+                      {pr.module === 'writing' && (
+                        <p className="text-[11px] text-amber-800 mt-1 font-medium">
+                          Writing Evaluation in Progress: Your essays have been submitted to your consultancy. Your examiner is reviewing your submission and your band score will appear here once published.
+                        </p>
+                      )}
                     </div>
-                    <span className="text-[11px] font-semibold text-amber-700 bg-amber-100 px-2 py-0.5 rounded-md">
+                    <span className="text-[11px] font-semibold text-amber-700 bg-amber-100 px-2 py-0.5 rounded-md shrink-0">
                       Awaiting Publication
                     </span>
                   </div>
@@ -290,53 +304,87 @@ export const CandidateResultLookupModal: React.FC<CandidateResultLookupModalProp
                 {publishedResults.map((res, idx) => (
                   <div
                     key={idx}
-                    className="p-4 rounded-xl border border-slate-200 bg-white hover:border-indigo-400 hover:shadow-md transition flex flex-col sm:flex-row sm:items-center justify-between gap-3 group"
+                    className="p-4 rounded-xl border border-slate-200 bg-white hover:border-indigo-400 hover:shadow-md transition flex flex-col gap-3 group"
                   >
-                    <div className="space-y-1">
-                      <div className="flex items-center gap-2">
-                        <span className="text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-md bg-indigo-50 text-indigo-700 border border-indigo-200">
-                          {res.module.toUpperCase()}
-                        </span>
-                        <span className="font-bold text-slate-900 text-sm">
-                          Cambridge {res.book} • Academic Test {res.testNumber}
-                        </span>
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                      <div className="space-y-1">
+                        <div className="flex items-center gap-2">
+                          <span className={`text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-md border ${
+                            res.module === 'writing'
+                              ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                              : 'bg-indigo-50 text-indigo-700 border-indigo-200'
+                          }`}>
+                            {res.module.toUpperCase()}
+                          </span>
+                          <span className="font-bold text-slate-900 text-sm">
+                            Cambridge {res.book} • Academic Test {res.testNumber}
+                          </span>
+                        </div>
+                        <div className="flex flex-wrap items-center gap-2 text-[11px] text-slate-500">
+                          <span className="font-medium text-slate-700">Candidate: {res.candidateName}</span>
+                          <span>•</span>
+                          <span>ID: <strong className="font-mono text-slate-900">{res.candidateId}</strong></span>
+                          <span>•</span>
+                          <span className="flex items-center gap-1">
+                            <Building2 className="w-3 h-3 text-slate-400" />
+                            {res.consultancyName || 'Apex Global Education'}
+                          </span>
+                        </div>
+                        <div className="text-[10px] text-slate-400">
+                          Published: {res.publishedAt ? new Date(res.publishedAt).toLocaleString() : new Date(res.completedAt).toLocaleString()}
+                        </div>
                       </div>
-                      <div className="flex flex-wrap items-center gap-2 text-[11px] text-slate-500">
-                        <span className="font-medium text-slate-700">Candidate: {res.candidateName}</span>
-                        <span>•</span>
-                        <span>ID: <strong className="font-mono text-slate-900">{res.candidateId}</strong></span>
-                        <span>•</span>
-                        <span className="flex items-center gap-1">
-                          <Building2 className="w-3 h-3 text-slate-400" />
-                          {res.consultancyName || 'Apex Global Education'}
-                        </span>
-                      </div>
-                      <div className="text-[10px] text-slate-400">
-                        Published: {res.publishedAt ? new Date(res.publishedAt).toLocaleString() : new Date(res.completedAt).toLocaleString()}
+
+                      <div className="flex items-center justify-between sm:justify-end gap-3 pt-2 sm:pt-0 border-t sm:border-t-0 border-slate-100">
+                        <div className="text-right">
+                          <span className="text-[10px] uppercase font-bold text-slate-400 block leading-tight">
+                            Band Score
+                          </span>
+                          <span className="text-xl sm:text-2xl font-black text-indigo-600 font-mono">
+                            {res.bandScore.toFixed(1)}
+                          </span>
+                        </div>
+
+                        <button
+                          onClick={() => {
+                            onViewResult(res);
+                            onClose();
+                          }}
+                          className="py-2 px-3.5 bg-slate-900 hover:bg-indigo-600 text-white font-bold text-xs rounded-xl transition cursor-pointer shadow-xs flex items-center gap-1.5 shrink-0"
+                        >
+                          <span>View TRF Report</span>
+                          <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
+                        </button>
                       </div>
                     </div>
 
-                    <div className="flex items-center justify-between sm:justify-end gap-3 pt-2 sm:pt-0 border-t sm:border-t-0 border-slate-100">
-                      <div className="text-right">
-                        <span className="text-[10px] uppercase font-bold text-slate-400 block leading-tight">
-                          Band Score
-                        </span>
-                        <span className="text-xl sm:text-2xl font-black text-indigo-600 font-mono">
-                          {res.bandScore.toFixed(1)}
-                        </span>
-                      </div>
+                    {/* Writing Breakdown and Examiner Feedback (if writing submission) */}
+                    {res.writingSubmission && (
+                      <div className="mt-1 pt-2 border-t border-slate-100 space-y-2">
+                        <div className="flex flex-wrap items-center gap-2 text-xs">
+                          <span className="text-[11px] font-semibold px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-800 border border-emerald-200">
+                            Task 1 Band: <strong className="font-mono">{res.writingSubmission.task1Band ?? '—'}</strong> ({res.writingSubmission.task1WordCount} words)
+                          </span>
+                          <span className="text-[11px] font-semibold px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-800 border border-emerald-200">
+                            Task 2 Band: <strong className="font-mono">{res.writingSubmission.task2Band ?? '—'}</strong> ({res.writingSubmission.task2WordCount} words)
+                          </span>
+                        </div>
 
-                      <button
-                        onClick={() => {
-                          onViewResult(res);
-                          onClose();
-                        }}
-                        className="py-2 px-3.5 bg-slate-900 hover:bg-indigo-600 text-white font-bold text-xs rounded-xl transition cursor-pointer shadow-xs flex items-center gap-1.5 shrink-0"
-                      >
-                        <span>View TRF Report</span>
-                        <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
-                      </button>
-                    </div>
+                        {res.writingSubmission.adminFeedback && (
+                          <div className="p-2.5 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-700">
+                            <span className="font-bold text-slate-900 block mb-0.5">Examiner Evaluation:</span>
+                            <p className="italic text-slate-600 text-[11px] leading-relaxed">
+                              "{res.writingSubmission.adminFeedback}"
+                            </p>
+                            {res.writingSubmission.reviewedBy && (
+                              <span className="text-[10px] text-slate-400 mt-1 block">
+                                Evaluated by: {res.writingSubmission.reviewedBy}
+                              </span>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>

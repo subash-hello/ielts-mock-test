@@ -25,7 +25,8 @@ import {
   CheckCircle2,
   Eye,
   Library,
-  Send
+  Send,
+  PenTool
 } from 'lucide-react';
 import type {
   Consultancy,
@@ -73,7 +74,7 @@ export const ConsultancyPortal: React.FC<ConsultancyPortalProps> = ({
   const [copiedLink, setCopiedLink] = useState(false);
   const [searchStudent, setSearchStudent] = useState('');
   const [searchResult, setSearchResult] = useState('');
-  const [resultModuleFilter, setResultModuleFilter] = useState<'all' | 'reading' | 'listening'>('all');
+  const [resultModuleFilter, setResultModuleFilter] = useState<'all' | 'reading' | 'listening' | 'writing'>('all');
   const [resultBandFilter, setResultBandFilter] = useState<'all' | '7.5' | '6.5' | 'below'>('all');
   const [scorecardModalResult, setScorecardModalResult] = useState<TestResult | null>(null);
 
@@ -107,7 +108,7 @@ export const ConsultancyPortal: React.FC<ConsultancyPortalProps> = ({
     visible: boolean;
     studentName: string;
     bandScore: number;
-    module: 'reading' | 'listening';
+    module: 'reading' | 'listening' | 'writing';
     testTitle: string;
     correctCount: number;
     totalQuestions: number;
@@ -119,6 +120,32 @@ export const ConsultancyPortal: React.FC<ConsultancyPortalProps> = ({
     ConsultancyService.getAssignedTestIds(consultancyId)
   );
 
+  // Active launched test for all student terminals
+  const [activeLaunchedTest, setActiveLaunchedTest] = useState<{
+    testId: string;
+    title: string;
+    launchedAt: string;
+    isFullMock?: boolean;
+  } | null>(() => ConsultancyService.getActiveLaunchedTest(consultancyId));
+
+  const [selectedTestToLaunch, setSelectedTestToLaunch] = useState<string>(
+    tests.find((t) => t.id === 'cambridge-16-test-1-writing')?.id || 'cambridge-16-test-1-writing'
+  );
+
+  // Writing evaluation modal state
+  const [writingModalResult, setWritingModalResult] = useState<TestResult | null>(null);
+  const [writingGradeForm, setWritingGradeForm] = useState<{
+    task1Band: number;
+    task2Band: number;
+    overallWritingBand: number;
+    adminFeedback: string;
+  }>({
+    task1Band: 6.5,
+    task2Band: 6.5,
+    overallWritingBand: 6.5,
+    adminFeedback: ''
+  });
+
   // Reload local state from service
   const reloadAll = () => {
     setConsultancy(ConsultancyService.getConsultancyById(consultancyId));
@@ -127,6 +154,7 @@ export const ConsultancyPortal: React.FC<ConsultancyPortalProps> = ({
     setAiReports(ConsultancyService.getReports(consultancyId));
     setTestResults(ConsultancyService.getResults(consultancyId));
     setAssignedTestIds(ConsultancyService.getAssignedTestIds(consultancyId));
+    setActiveLaunchedTest(ConsultancyService.getActiveLaunchedTest(consultancyId));
   };
 
   // Real-time telemetry subscription
@@ -143,11 +171,28 @@ export const ConsultancyPortal: React.FC<ConsultancyPortalProps> = ({
       } else if (
         event.type === 'REPORT_ADDED' ||
         event.type === 'RESULT_ADDED' ||
+        event.type === 'RESULT_UPDATED' ||
+        event.type === 'RESULT_PUBLISHED' ||
+        event.type === 'RESULT_UNPUBLISHED' ||
+        event.type === 'ALL_RESULTS_PUBLISHED' ||
         event.type === 'STUDENT_UPDATED'
       ) {
         setAiReports(ConsultancyService.getReports(consultancyId));
         setStudents(ConsultancyService.getStudents(consultancyId));
         setTestResults(ConsultancyService.getResults(consultancyId));
+      } else if (event.type === 'BRANCH_TEST_LAUNCHED') {
+        if (event.payload?.consultancyId === consultancyId) {
+          if (event.payload.testId) {
+            setActiveLaunchedTest({
+              testId: event.payload.testId,
+              title: event.payload.title || event.payload.testId,
+              launchedAt: event.payload.launchedAt || new Date().toISOString(),
+              isFullMock: event.payload.isFullMock
+            });
+          } else {
+            setActiveLaunchedTest(null);
+          }
+        }
       }
     });
 
@@ -156,7 +201,8 @@ export const ConsultancyPortal: React.FC<ConsultancyPortalProps> = ({
       setAiReports(ConsultancyService.getReports(consultancyId));
       setStudents(ConsultancyService.getStudents(consultancyId));
       setTestResults(ConsultancyService.getResults(consultancyId));
-    }, 4000);
+      setActiveLaunchedTest(ConsultancyService.getActiveLaunchedTest(consultancyId));
+    }, 3000);
 
     return () => {
       unsubscribe();
@@ -256,6 +302,73 @@ export const ConsultancyPortal: React.FC<ConsultancyPortalProps> = ({
 
   const handlePublishAll = () => {
     ConsultancyService.publishAllResults(consultancyId);
+    reloadAll();
+  };
+
+  const handleLaunchTestToBranch = (testId: string) => {
+    const fullMock = allFullMockTests.find((fm) => fm.id === testId);
+    const standardTest = tests.find((t) => t.id === testId);
+    const title = fullMock ? fullMock.title : standardTest ? standardTest.title : testId;
+    const isFull = !!fullMock || testId.includes('full');
+
+    ConsultancyService.launchTestToBranch(consultancyId, testId, title, isFull);
+    setActiveLaunchedTest({
+      testId,
+      title,
+      launchedAt: new Date().toISOString(),
+      isFullMock: isFull
+    });
+    reloadAll();
+  };
+
+  const handleStopBranchTest = () => {
+    ConsultancyService.launchTestToBranch(consultancyId, null);
+    setActiveLaunchedTest(null);
+    reloadAll();
+  };
+
+  const handleOpenWritingEvaluation = (result: TestResult) => {
+    const existing = result.writingSubmission;
+    const t1 = existing?.task1Band ?? 6.5;
+    const t2 = existing?.task2Band ?? 6.5;
+    const calcOverall = existing?.overallWritingBand ?? Math.round(((t1 + 2 * t2) / 3) * 2) / 2;
+
+    setWritingGradeForm({
+      task1Band: t1,
+      task2Band: t2,
+      overallWritingBand: calcOverall,
+      adminFeedback: existing?.adminFeedback || ''
+    });
+    setWritingModalResult(result);
+  };
+
+  const handleSaveWritingGrade = (publishImmediately: boolean = false) => {
+    if (!writingModalResult) return;
+
+    ConsultancyService.gradeWritingSubmission(
+      consultancyId,
+      writingModalResult.testId,
+      writingModalResult.candidateId || '',
+      writingModalResult.completedAt,
+      {
+        task1Band: writingGradeForm.task1Band,
+        task2Band: writingGradeForm.task2Band,
+        overallWritingBand: writingGradeForm.overallWritingBand,
+        adminFeedback: writingGradeForm.adminFeedback,
+        reviewedBy: `${consultancy?.name || 'Academic Admin'}`
+      }
+    );
+
+    if (publishImmediately) {
+      ConsultancyService.publishTestResult(
+        consultancyId,
+        writingModalResult.testId,
+        writingModalResult.candidateId,
+        writingModalResult.completedAt
+      );
+    }
+
+    setWritingModalResult(null);
     reloadAll();
   };
 
@@ -476,6 +589,122 @@ export const ConsultancyPortal: React.FC<ConsultancyPortalProps> = ({
 
       {/* 3. Tab Contents */}
       <main className="flex-1 p-6 md:p-8 max-w-7xl w-full mx-auto space-y-6">
+        {/* ================= BRANCH EXAM LAUNCH CONTROL (BROADCAST TO ALL STUDENT TERMINALS) ================= */}
+        <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-xs">
+          {activeLaunchedTest ? (
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 bg-emerald-50/80 border border-emerald-300 rounded-xl">
+              <div className="flex items-start sm:items-center gap-3">
+                <span className="relative flex h-3.5 w-3.5 mt-0.5 sm:mt-0">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-3.5 w-3.5 bg-emerald-500"></span>
+                </span>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-[11px] font-black uppercase tracking-wider text-emerald-800">
+                      Live Exam Session Active on All Student Terminals
+                    </span>
+                    <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-emerald-200/80 text-emerald-900 font-mono">
+                      Launched {new Date(activeLaunchedTest.launchedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                    </span>
+                  </div>
+                  <h4 className="text-base font-extrabold text-slate-900 mt-0.5">
+                    {activeLaunchedTest.title}
+                  </h4>
+                  <p className="text-xs text-slate-600">
+                    All connected student workstations in this branch are displaying the "Start Test" button. Candidates only need to enter their name to begin.
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2 shrink-0">
+                <button
+                  onClick={handleStopBranchTest}
+                  className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-xl text-xs font-bold transition shadow-xs cursor-pointer flex items-center gap-1.5"
+                >
+                  <X className="w-3.5 h-3.5" />
+                  <span>End / Stop Session</span>
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+              <div className="space-y-1">
+                <div className="flex items-center gap-2">
+                  <Play className="w-4 h-4 text-blue-600 fill-blue-600" />
+                  <span className="text-xs font-bold uppercase tracking-wider text-blue-700">
+                    Launch Exam Session to All Terminals
+                  </span>
+                </div>
+                <h4 className="text-base font-bold text-slate-900">
+                  Broadcast Test to All Student Workstations
+                </h4>
+                <p className="text-xs text-slate-500 max-w-xl">
+                  Select an authentic Cambridge test below and click <strong>Launch Test</strong>. All connected student terminals will immediately display the "Start Test" button without seeing any other papers.
+                </p>
+              </div>
+
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5">
+                <select
+                  value={selectedTestToLaunch}
+                  onChange={(e) => setSelectedTestToLaunch(e.target.value)}
+                  className="bg-slate-50 border border-slate-300 font-bold text-slate-900 rounded-xl px-3.5 py-2.5 text-xs outline-none focus:border-blue-600 focus:bg-white cursor-pointer min-w-[280px]"
+                >
+                  <optgroup label="Cambridge 16 Academic">
+                    <option value="cambridge-16-test-1-writing">Cambridge 16 Test 1 — Writing</option>
+                    <option value="cambridge-16-test-1-reading">Cambridge 16 Test 1 — Reading</option>
+                    <option value="cambridge-16-test-1-listening">Cambridge 16 Test 1 — Listening</option>
+                    <option value="cambridge-16-test-1-full">Cambridge 16 Test 1 — Full Mock (L+R+W)</option>
+                    <option value="cambridge-16-test-2-writing">Cambridge 16 Test 2 — Writing</option>
+                    <option value="cambridge-16-test-2-reading">Cambridge 16 Test 2 — Reading</option>
+                    <option value="cambridge-16-test-2-listening">Cambridge 16 Test 2 — Listening</option>
+                    <option value="cambridge-16-test-2-full">Cambridge 16 Test 2 — Full Mock (L+R+W)</option>
+                    <option value="cambridge-16-test-3-writing">Cambridge 16 Test 3 — Writing</option>
+                    <option value="cambridge-16-test-3-reading">Cambridge 16 Test 3 — Reading</option>
+                    <option value="cambridge-16-test-3-listening">Cambridge 16 Test 3 — Listening</option>
+                    <option value="cambridge-16-test-3-full">Cambridge 16 Test 3 — Full Mock (L+R+W)</option>
+                    <option value="cambridge-16-test-4-writing">Cambridge 16 Test 4 — Writing</option>
+                    <option value="cambridge-16-test-4-reading">Cambridge 16 Test 4 — Reading</option>
+                    <option value="cambridge-16-test-4-listening">Cambridge 16 Test 4 — Listening</option>
+                    <option value="cambridge-16-test-4-full">Cambridge 16 Test 4 — Full Mock (L+R+W)</option>
+                  </optgroup>
+                  <optgroup label="Cambridge 18 Academic">
+                    <option value="cambridge-18-test-1-reading">Cambridge 18 Test 1 — Reading</option>
+                    <option value="cambridge-18-test-1-listening">Cambridge 18 Test 1 — Listening</option>
+                    <option value="cambridge-18-test-1-full">Cambridge 18 Test 1 — Full Mock</option>
+                    <option value="cambridge-18-test-2-reading">Cambridge 18 Test 2 — Reading</option>
+                    <option value="cambridge-18-test-2-listening">Cambridge 18 Test 2 — Listening</option>
+                  </optgroup>
+                  <optgroup label="Cambridge 19 Academic">
+                    <option value="cambridge-19-test-1-reading">Cambridge 19 Test 1 — Reading</option>
+                    <option value="cambridge-19-test-1-listening">Cambridge 19 Test 1 — Listening</option>
+                    <option value="cambridge-19-test-1-full">Cambridge 19 Test 1 — Full Mock</option>
+                    <option value="cambridge-19-test-2-reading">Cambridge 19 Test 2 — Reading</option>
+                    <option value="cambridge-19-test-2-listening">Cambridge 19 Test 2 — Listening</option>
+                  </optgroup>
+                  <optgroup label="Cambridge 20 Academic">
+                    <option value="cambridge-20-test-1-reading">Cambridge 20 Test 1 — Reading</option>
+                    <option value="cambridge-20-test-1-listening">Cambridge 20 Test 1 — Listening</option>
+                    <option value="cambridge-20-test-1-full">Cambridge 20 Test 1 — Full Mock</option>
+                  </optgroup>
+                  <optgroup label="Cambridge 21 Academic">
+                    <option value="cambridge-21-test-1-reading">Cambridge 21 Test 1 — Reading</option>
+                    <option value="cambridge-21-test-1-listening">Cambridge 21 Test 1 — Listening</option>
+                    <option value="cambridge-21-test-1-full">Cambridge 21 Test 1 — Full Mock</option>
+                  </optgroup>
+                </select>
+
+                <button
+                  onClick={() => handleLaunchTestToBranch(selectedTestToLaunch)}
+                  className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl transition shadow-xs cursor-pointer flex items-center justify-center gap-2 shrink-0"
+                >
+                  <Play className="w-3.5 h-3.5 fill-white" />
+                  <span>Launch Test to All Terminals</span>
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+
         {/* ================= TAB 0: STUDENT TEST RESULTS ================= */}
         {activeTab === 'results' && (
           <div className="space-y-6">
@@ -609,6 +838,15 @@ export const ConsultancyPortal: React.FC<ConsultancyPortalProps> = ({
                     <Headphones className="w-3 h-3 text-blue-600" />
                     <span>Listening</span>
                   </button>
+                  <button
+                    onClick={() => setResultModuleFilter('writing')}
+                    className={`px-2.5 py-1 rounded-md transition cursor-pointer flex items-center gap-1 ${
+                      resultModuleFilter === 'writing' ? 'bg-white shadow-xs text-emerald-700' : 'hover:text-slate-900'
+                    }`}
+                  >
+                    <PenTool className="w-3 h-3 text-emerald-600" />
+                    <span>Writing</span>
+                  </button>
                 </div>
 
                 {/* Band Score Filter */}
@@ -668,6 +906,7 @@ export const ConsultancyPortal: React.FC<ConsultancyPortalProps> = ({
                         })
                         .map((res, idx) => {
                           const isReading = res.module === 'reading';
+                          const isWriting = res.module === 'writing';
                           const timeMins = Math.floor(res.timeTakenSeconds / 60);
                           const timeSecs = res.timeTakenSeconds % 60;
                           const accuracyPercent = res.totalQuestions
@@ -699,42 +938,66 @@ export const ConsultancyPortal: React.FC<ConsultancyPortalProps> = ({
                                   </div>
                                   <span
                                     className={`inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full mt-0.5 border ${
-                                      isReading
+                                      isWriting
+                                        ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                                        : isReading
                                         ? 'bg-red-50 text-red-700 border-red-200'
                                         : 'bg-blue-50 text-blue-700 border-blue-200'
                                     }`}
                                   >
-                                    {isReading ? (
+                                    {isWriting ? (
+                                      <PenTool className="w-2.5 h-2.5" />
+                                    ) : isReading ? (
                                       <BookOpen className="w-2.5 h-2.5" />
                                     ) : (
                                       <Headphones className="w-2.5 h-2.5" />
                                     )}
-                                    <span>Academic {isReading ? 'Reading' : 'Listening'}</span>
+                                    <span>Academic {isWriting ? 'Writing' : isReading ? 'Reading' : 'Listening'}</span>
                                   </span>
                                 </div>
                               </td>
 
                               <td className="px-6 py-4 text-center">
-                                <span
-                                  className={`inline-flex items-center justify-center font-black text-sm px-3 py-1 rounded-xl shadow-xs border ${
-                                    res.bandScore >= 7.5
-                                      ? 'bg-emerald-50 text-emerald-800 border-emerald-300'
-                                      : res.bandScore >= 6.5
-                                      ? 'bg-blue-50 text-blue-800 border-blue-300'
-                                      : 'bg-amber-50 text-amber-800 border-amber-300'
-                                  }`}
-                                >
-                                  Band {res.bandScore.toFixed(1)}
-                                </span>
+                                {isWriting && (!res.writingSubmission?.overallWritingBand || res.writingSubmission.overallWritingBand === 0) ? (
+                                  <span className="inline-flex items-center gap-1 font-bold text-xs px-2.5 py-1 rounded-xl bg-amber-50 text-amber-800 border border-amber-300">
+                                    <PenTool className="w-3 h-3 text-amber-600" />
+                                    <span>Needs Grade</span>
+                                  </span>
+                                ) : (
+                                  <span
+                                    className={`inline-flex items-center justify-center font-black text-sm px-3 py-1 rounded-xl shadow-xs border ${
+                                      res.bandScore >= 7.5
+                                        ? 'bg-emerald-50 text-emerald-800 border-emerald-300'
+                                        : res.bandScore >= 6.5
+                                        ? 'bg-blue-50 text-blue-800 border-blue-300'
+                                        : 'bg-amber-50 text-amber-800 border-amber-300'
+                                    }`}
+                                  >
+                                    Band {res.bandScore.toFixed(1)}
+                                  </span>
+                                )}
                               </td>
 
                               <td className="px-6 py-4 text-center">
-                                <div className="font-bold text-slate-900 text-xs">
-                                  {res.correctCount} / {res.totalQuestions || 40}
-                                </div>
-                                <div className="text-[10px] text-slate-500 font-medium">
-                                  {accuracyPercent}% Correct
-                                </div>
+                                {isWriting ? (
+                                  <div>
+                                    <div className="font-bold text-slate-900 text-xs">
+                                      T1: {res.writingSubmission?.task1WordCount || 0}w • T2: {res.writingSubmission?.task2WordCount || 0}w
+                                    </div>
+                                    <div className="text-[10px] text-slate-500 font-medium">
+                                      {(res.writingSubmission?.task1WordCount || 0) + (res.writingSubmission?.task2WordCount || 0)} Total Words
+                                    </div>
+                                  </div>
+                                ) : (
+                                  <div>
+                                    <div className="font-bold text-slate-900 text-xs">
+                                      {res.correctCount} / {res.totalQuestions || 40}
+                                    </div>
+                                    <div className="text-[10px] text-slate-500 font-medium">
+                                      {accuracyPercent}% Correct
+                                    </div>
+                                  </div>
+                                )}
                               </td>
 
                               <td className="px-6 py-4 text-center font-mono text-slate-600 text-xs">
@@ -776,6 +1039,18 @@ export const ConsultancyPortal: React.FC<ConsultancyPortalProps> = ({
 
                               <td className="px-6 py-4 text-right">
                                 <div className="flex items-center justify-end gap-1.5">
+                                  {/* Grade Writing button */}
+                                  {(isWriting || res.writingSubmission) && (
+                                    <button
+                                      onClick={() => handleOpenWritingEvaluation(res)}
+                                      className="inline-flex items-center gap-1 px-2.5 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-bold shadow-xs transition cursor-pointer"
+                                      title="Review student essays and input band scores"
+                                    >
+                                      <PenTool className="w-3 h-3" />
+                                      <span>{res.writingSubmission?.overallWritingBand ? 'Edit Grade' : 'Grade Writing'}</span>
+                                    </button>
+                                  )}
+
                                   {res.isPublished ? (
                                     <button
                                       onClick={() => handleUnpublishResult(res)}
@@ -789,7 +1064,7 @@ export const ConsultancyPortal: React.FC<ConsultancyPortalProps> = ({
                                     <button
                                       onClick={() => handlePublishResult(res)}
                                       className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold shadow-xs transition cursor-pointer"
-                                      title="Publish result so candidate can view scorecard with their Candidate ID"
+                                      title="Publish result so candidate can view scorecard with their Candidate ID or Name"
                                     >
                                       <Send className="w-3 h-3" />
                                       <span>Publish</span>
@@ -803,7 +1078,7 @@ export const ConsultancyPortal: React.FC<ConsultancyPortalProps> = ({
                                         studentName: res.candidateName || 'Candidate',
                                         bandScore: res.bandScore,
                                         module: res.module,
-                                        testTitle: `Cambridge ${res.book} Test ${res.testNumber} (${res.module === 'reading' ? 'Reading' : 'Listening'})`,
+                                        testTitle: `Cambridge ${res.book} Test ${res.testNumber} (${res.module === 'reading' ? 'Reading' : res.module === 'writing' ? 'Writing' : 'Listening'})`,
                                         correctCount: res.correctCount,
                                         totalQuestions: res.totalQuestions || 40,
                                         timeTakenSeconds: res.timeTakenSeconds
@@ -1962,6 +2237,191 @@ export const ConsultancyPortal: React.FC<ConsultancyPortalProps> = ({
               >
                 Close Scorecard
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* WRITING MODULE EVALUATION MODAL */}
+      {writingModalResult && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center z-50 p-3 sm:p-4 animate-in fade-in">
+          <div className="bg-white border border-slate-200 max-w-3xl w-full rounded-2xl shadow-2xl space-y-4 max-h-[92vh] flex flex-col overflow-hidden">
+            {/* Modal Header */}
+            <div className="p-4 sm:p-5 border-b border-slate-200 bg-slate-50 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-emerald-50 border border-emerald-200 flex items-center justify-center text-emerald-700 shadow-xs">
+                  <PenTool className="w-5 h-5" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h3 className="font-extrabold text-slate-900 text-sm sm:text-base">
+                      Writing Submission Evaluation & Scoring
+                    </h3>
+                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800">
+                      Official CD-IELTS Rubric
+                    </span>
+                  </div>
+                  <p className="text-xs text-slate-500">
+                    Candidate: <strong className="text-slate-900">{writingModalResult.candidateName || 'Candidate'}</strong> (#{writingModalResult.candidateId}) • Cambridge {writingModalResult.book} Test {writingModalResult.testNumber} Writing
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => setWritingModalResult(null)}
+                className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-200 transition cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Body */}
+            <div className="p-4 sm:p-6 overflow-y-auto space-y-6 flex-1 text-xs">
+              {/* Task 1 Section */}
+              <div className="border border-slate-200 rounded-2xl p-4 sm:p-5 bg-white space-y-3 shadow-xs">
+                <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 pb-2.5">
+                  <div className="flex items-center gap-2">
+                    <span className="font-bold text-sm text-slate-900">Task 1 Response (Report / Summary)</span>
+                    <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full border ${
+                      (writingModalResult.writingSubmission?.task1WordCount || 0) >= 150
+                        ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                        : 'bg-red-50 text-red-700 border-red-200'
+                    }`}>
+                      {writingModalResult.writingSubmission?.task1WordCount || 0} words (Min: 150)
+                    </span>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <label className="font-bold text-slate-700">Task 1 Band Score:</label>
+                    <select
+                      value={writingGradeForm.task1Band}
+                      onChange={(e) => {
+                        const val = Number(e.target.value);
+                        const newOverall = Math.round(((val + 2 * writingGradeForm.task2Band) / 3) * 2) / 2;
+                        setWritingGradeForm((prev) => ({
+                          ...prev,
+                          task1Band: val,
+                          overallWritingBand: newOverall
+                        }));
+                      }}
+                      className="bg-slate-50 border border-slate-300 font-bold text-slate-900 rounded-lg px-2.5 py-1 text-xs outline-none focus:border-emerald-600 cursor-pointer"
+                    >
+                      {[0, 1, 2, 3, 3.5, 4, 4.5, 5, 5.5, 6, 6.5, 7, 7.5, 8, 8.5, 9].map((b) => (
+                        <option key={b} value={b}>Band {b.toFixed(1)}</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+
+                <div className="bg-slate-50 border border-slate-200 rounded-xl p-3.5 max-h-48 overflow-y-auto whitespace-pre-wrap font-sans text-xs text-slate-800 leading-relaxed select-text">
+                  {writingModalResult.writingSubmission?.task1Essay || (
+                    <span className="text-slate-400 italic">No essay text provided by candidate for Task 1.</span>
+                  )}
+                </div>
+              </div>
+
+              {/* Task 2 Section */}
+              <div className="border border-slate-200 rounded-2xl p-4 sm:p-5 bg-white space-y-3 shadow-xs">
+                <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 pb-2.5">
+                  <div className="flex items-center gap-2">
+                    <span className="font-bold text-sm text-slate-900">Task 2 Response (Discursive Essay)</span>
+                    <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full border ${
+                      (writingModalResult.writingSubmission?.task2WordCount || 0) >= 250
+                        ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                        : 'bg-red-50 text-red-700 border-red-200'
+                    }`}>
+                      {writingModalResult.writingSubmission?.task2WordCount || 0} words (Min: 250)
+                    </span>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <label className="font-bold text-slate-700">Task 2 Band Score:</label>
+                    <select
+                      value={writingGradeForm.task2Band}
+                      onChange={(e) => {
+                        const val = Number(e.target.value);
+                        const newOverall = Math.round(((writingGradeForm.task1Band + 2 * val) / 3) * 2) / 2;
+                        setWritingGradeForm((prev) => ({
+                          ...prev,
+                          task2Band: val,
+                          overallWritingBand: newOverall
+                        }));
+                      }}
+                      className="bg-slate-50 border border-slate-300 font-bold text-slate-900 rounded-lg px-2.5 py-1 text-xs outline-none focus:border-emerald-600 cursor-pointer"
+                    >
+                      {[0, 1, 2, 3, 3.5, 4, 4.5, 5, 5.5, 6, 6.5, 7, 7.5, 8, 8.5, 9].map((b) => (
+                        <option key={b} value={b}>Band {b.toFixed(1)}</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+
+                <div className="bg-slate-50 border border-slate-200 rounded-xl p-3.5 max-h-56 overflow-y-auto whitespace-pre-wrap font-sans text-xs text-slate-800 leading-relaxed select-text">
+                  {writingModalResult.writingSubmission?.task2Essay || (
+                    <span className="text-slate-400 italic">No essay text provided by candidate for Task 2.</span>
+                  )}
+                </div>
+              </div>
+
+              {/* Overall Band & Examiner Feedback */}
+              <div className="bg-emerald-50/60 border border-emerald-200 rounded-2xl p-4 sm:p-5 space-y-3">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                  <div>
+                    <span className="text-[11px] font-bold uppercase tracking-wider text-emerald-800 block">
+                      Calculated Overall Writing Band Score
+                    </span>
+                    <p className="text-[11px] text-slate-500">
+                      Official IELTS weighting: Task 2 is weighted double Task 1 ((T1 + 2×T2) / 3 rounded to nearest 0.5 band).
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-2xl font-black text-emerald-800 font-mono">
+                      Band {writingGradeForm.overallWritingBand.toFixed(1)}
+                    </span>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="font-bold text-slate-800 block mb-1">
+                    Examiner Diagnostic Feedback & Rubric Remarks
+                  </label>
+                  <textarea
+                    rows={3}
+                    value={writingGradeForm.adminFeedback}
+                    onChange={(e) => setWritingGradeForm({ ...writingGradeForm, adminFeedback: e.target.value })}
+                    placeholder="e.g. Task 1 provides clear overview with accurate trend synthesis. Task 2 exhibits strong paragraph coherence and good lexical range, though complex grammatical accuracy can be polished."
+                    className="w-full p-3 bg-white border border-slate-300 rounded-xl outline-none focus:border-emerald-600 text-xs text-slate-900"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Footer Actions */}
+            <div className="p-4 sm:p-5 bg-slate-50 border-t border-slate-200 flex flex-wrap items-center justify-between gap-3">
+              <button
+                type="button"
+                onClick={() => setWritingModalResult(null)}
+                className="px-4 py-2 border border-slate-300 bg-white hover:bg-slate-100 text-slate-700 font-semibold rounded-xl text-xs cursor-pointer"
+              >
+                Cancel
+              </button>
+
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => handleSaveWritingGrade(false)}
+                  className="px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white font-bold rounded-xl text-xs cursor-pointer shadow-xs"
+                >
+                  Save Evaluation (Draft)
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleSaveWritingGrade(true)}
+                  className="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-xs cursor-pointer shadow-md flex items-center gap-1.5"
+                >
+                  <Send className="w-3.5 h-3.5" />
+                  <span>Save & Publish Result to Candidate</span>
+                </button>
+              </div>
             </div>
           </div>
         </div>

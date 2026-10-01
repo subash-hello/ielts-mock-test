@@ -45,9 +45,10 @@ export function calculateListeningBand(rawScore: number): number {
 }
 
 export function calculateBandScore(module: IELTSModule, rawScore: number): number {
-  return module === 'reading'
-    ? calculateAcademicReadingBand(rawScore)
-    : calculateListeningBand(rawScore);
+  if (module === 'reading') return calculateAcademicReadingBand(rawScore);
+  if (module === 'listening') return calculateListeningBand(rawScore);
+  // Writing band scores are assigned manually by consultancy admin
+  return 0;
 }
 
 /**

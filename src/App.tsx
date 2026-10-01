@@ -1,10 +1,11 @@
 import React, { useState, useEffect, useRef } from 'react';
-import type { IELTSMockTest, CandidateAnswers, ReviewStatus, ExamSettings, TestResult, FullMockTest } from './types/ielts';
+import type { IELTSMockTest, CandidateAnswers, ReviewStatus, ExamSettings, TestResult, FullMockTest, WritingSubmission } from './types/ielts';
 import type { AdminUser, CandidateSession } from './types/consultancy';
 import { LandingPage } from './components/landing/LandingPage';
 import { CDHeader } from './components/exam/CDHeader';
 import { ReadingExamView } from './components/exam/ReadingExamView';
 import { ListeningExamView } from './components/exam/ListeningExamView';
+import { WritingExamView } from './components/exam/WritingExamView';
 import { QuestionPalette } from './components/exam/QuestionPalette';
 import { ResultReport } from './components/results/ResultReport';
 import { SuperAdminPortal } from './components/admin/SuperAdminPortal';
@@ -459,7 +460,7 @@ export const App: React.FC = () => {
   };
 
   // Calculate score and finalize test
-  const finishExam = () => {
+  const finishExam = (writingSub?: WritingSubmission) => {
     const activeTest = currentTestRef.current;
     if (!activeTest) return;
 
@@ -470,10 +471,11 @@ export const App: React.FC = () => {
       s.questionGroups.flatMap((g) => g.questions)
     );
 
-    const { correctCount } = evaluateTestAnswers(activeTest, curAnswers);
+    const isWriting = activeTest.module === 'writing';
+    const { correctCount } = isWriting ? { correctCount: 0 } : evaluateTestAnswers(activeTest, curAnswers);
 
-    const totalQuestions = allQuestions.length || 40;
-    const bandScore = calculateBandScore(activeTest.module, correctCount);
+    const totalQuestions = isWriting ? 2 : (allQuestions.length || 40);
+    const bandScore = isWriting ? (writingSub?.overallWritingBand || 0) : calculateBandScore(activeTest.module, correctCount);
     const timeTaken = activeTest.durationMinutes * 60 - curRemaining;
 
     const studentName =
@@ -509,7 +511,8 @@ export const App: React.FC = () => {
       consultancyId: cid,
       consultancyName: consultancyName,
       targetBand: activeCandidateInfo?.targetBand || candidateSession?.targetBand || 7.5,
-      isPublished: false
+      isPublished: false,
+      writingSubmission: writingSub
     };
 
     setActiveResult(newResult);
@@ -582,6 +585,16 @@ export const App: React.FC = () => {
 
     // Official IELTS protocol: Band score is withheld at the terminal and sent to consultancy admin portal
     setActiveScreen('submission-confirmed');
+  };
+
+  const handleWritingSubmit = (submission: { task1Essay: string; task1WordCount: number; task2Essay: string; task2WordCount: number }) => {
+    const writingSub: WritingSubmission = {
+      task1Essay: submission.task1Essay,
+      task1WordCount: submission.task1WordCount,
+      task2Essay: submission.task2Essay,
+      task2WordCount: submission.task2WordCount
+    };
+    finishExam(writingSub);
   };
 
   // Open Candidate ID result verification modal
@@ -858,45 +871,55 @@ export const App: React.FC = () => {
             }
           />
 
-          {/* Reading or Listening View */}
-          {currentTest.module === 'reading' ? (
-            <ReadingExamView
+          {/* Exam View based on module: reading, listening, or writing */}
+          {currentTest.module === 'writing' ? (
+            <WritingExamView
               test={currentTest}
-              currentQuestion={currentQuestion}
-              answers={answers}
-              onAnswerChange={handleAnswerChange}
               settings={settings}
-              activePassageIndex={activeSectionIndex}
-              onSelectPassage={handleSelectSection}
-              onSelectQuestion={handleSelectQuestion}
+              onSubmitWriting={handleWritingSubmit}
             />
           ) : (
-            <ListeningExamView
-              test={currentTest}
-              currentQuestion={currentQuestion}
-              answers={answers}
-              onAnswerChange={handleAnswerChange}
-              settings={settings}
-              activePartIndex={activeSectionIndex}
-              onSelectPart={handleSelectSection}
-              onSelectQuestion={handleSelectQuestion}
-              volume={audioVolume}
-            />
-          )}
+            <>
+              {currentTest.module === 'reading' ? (
+                <ReadingExamView
+                  test={currentTest}
+                  currentQuestion={currentQuestion}
+                  answers={answers}
+                  onAnswerChange={handleAnswerChange}
+                  settings={settings}
+                  activePassageIndex={activeSectionIndex}
+                  onSelectPassage={handleSelectSection}
+                  onSelectQuestion={handleSelectQuestion}
+                />
+              ) : (
+                <ListeningExamView
+                  test={currentTest}
+                  currentQuestion={currentQuestion}
+                  answers={answers}
+                  onAnswerChange={handleAnswerChange}
+                  settings={settings}
+                  activePartIndex={activeSectionIndex}
+                  onSelectPart={handleSelectSection}
+                  onSelectQuestion={handleSelectQuestion}
+                  volume={audioVolume}
+                />
+              )}
 
-          {/* 40 Question Palette & Navigation */}
-          <QuestionPalette
-            currentQuestion={currentQuestion}
-            totalQuestions={40}
-            answers={answers}
-            reviewStatus={reviewStatus}
-            onSelectQuestion={handleSelectQuestion}
-            onToggleReview={handleToggleReview}
-            onFinishTest={finishExam}
-            module={currentTest.module}
-            activeSectionIndex={activeSectionIndex}
-            onSelectSection={handleSelectSection}
-          />
+              {/* 40 Question Palette & Navigation */}
+              <QuestionPalette
+                currentQuestion={currentQuestion}
+                totalQuestions={40}
+                answers={answers}
+                reviewStatus={reviewStatus}
+                onSelectQuestion={handleSelectQuestion}
+                onToggleReview={handleToggleReview}
+                onFinishTest={() => finishExam()}
+                module={currentTest.module}
+                activeSectionIndex={activeSectionIndex}
+                onSelectSection={handleSelectSection}
+              />
+            </>
+          )}
         </div>
       )}
 

@@ -26,6 +26,7 @@ import {
   ExternalLink,
   ShieldCheck,
   FileCheck,
+  PenTool,
   Menu,
   X
 } from 'lucide-react';
@@ -133,7 +134,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
     }
   };
 
-  const books = [18, 19, 20, 21];
+  const books = [16, 18, 19, 20, 21];
 
   const filteredTests = useMemo(() => {
     if (moduleFilter === 'full') return [];
@@ -227,7 +228,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
           <div className="flex items-center justify-center sm:justify-start gap-2">
             <span className="w-2 h-2 rounded-full bg-emerald-600 animate-pulse shrink-0" />
             <span className="text-[11px] sm:text-xs">
-              Computer-Delivered IELTS (CD-IELTS) Simulator • <strong className="text-slate-900">Cambridge Academic 18–21</strong>
+              Computer-Delivered IELTS (CD-IELTS) Simulator • <strong className="text-slate-900">Cambridge Academic 16–21</strong>
             </span>
           </div>
           <div className="hidden sm:flex items-center gap-3 text-[11px] sm:text-xs text-slate-600">
@@ -267,7 +268,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                   MOCK TEST
                 </span>
                 <span className="hidden sm:inline-flex text-[9px] sm:text-[10px] font-bold uppercase tracking-wider px-1.5 sm:px-2 py-0.5 rounded-md bg-indigo-50 text-indigo-700 border border-indigo-200">
-                  Cambridge 18–21
+                  Cambridge 16–21
                 </span>
               </div>
               <span className="text-[10px] sm:text-[11px] text-slate-500 font-medium leading-none mt-0.5">
@@ -289,7 +290,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
           <div className="hidden lg:flex items-center gap-6 xl:gap-8 text-xs font-bold text-slate-700">
             <a href="#test-catalog" className="text-slate-900 hover:text-indigo-600 transition flex items-center gap-1.5">
               <span>Mock Tests</span>
-              <span className="px-1.5 py-0.2 rounded text-[10px] bg-red-600 text-white font-black">32 PAPERS</span>
+              <span className="px-1.5 py-0.2 rounded text-[10px] bg-red-600 text-white font-black">44 PAPERS</span>
             </a>
             <a href="#cd-features" className="hover:text-indigo-600 transition">CD-IELTS Format</a>
             <a href="#consultancy-lab" className="hover:text-indigo-600 transition">Consultancy Network</a>
@@ -407,7 +408,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                 className="p-2.5 rounded-lg bg-slate-50 hover:bg-indigo-50 hover:text-indigo-600 flex items-center justify-between"
               >
                 <span>Mock Tests</span>
-                <span className="px-1.5 py-0.2 rounded text-[9px] bg-red-600 text-white font-black">32</span>
+                <span className="px-1.5 py-0.2 rounded text-[9px] bg-red-600 text-white font-black">44</span>
               </a>
               <a
                 href="#cd-features"
@@ -533,7 +534,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                   onClick={scrollToTests}
                   className="w-full sm:w-auto px-6 sm:px-7 py-3 sm:py-3.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-extrabold text-sm shadow-md hover:-translate-y-0.5 transition-all flex items-center justify-center gap-2 cursor-pointer"
                 >
-                  <span>Browse All 32 Tests</span>
+                  <span>Browse All 44 Tests</span>
                   <ArrowRight className="w-4 h-4" />
                 </button>
 
@@ -559,8 +560,8 @@ export const LandingPage: React.FC<LandingPageProps> = ({
               {/* Real Stats Grid */}
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 pt-5 sm:pt-6 border-t border-slate-200 text-left">
                 <div>
-                  <p className="text-xl sm:text-2xl font-black text-slate-900 font-mono">32 Papers</p>
-                  <p className="text-[11px] sm:text-xs text-slate-500 mt-0.5 font-medium">Cambridge 18, 19, 20 &amp; 21</p>
+                  <p className="text-xl sm:text-2xl font-black text-slate-900 font-mono">44 Papers</p>
+                  <p className="text-[11px] sm:text-xs text-slate-500 mt-0.5 font-medium">Cambridge 16, 18, 19, 20 &amp; 21</p>
                 </div>
                 <div>
                   <p className="text-xl sm:text-2xl font-black text-slate-900 font-mono">CD-IELTS</p>
@@ -751,6 +752,17 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                 <Headphones className="w-3.5 h-3.5" />
                 <span>Listening (30m)</span>
               </button>
+              <button
+                onClick={() => setModuleFilter('writing')}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition cursor-pointer shrink-0 ${
+                  moduleFilter === 'writing'
+                    ? 'bg-violet-600 text-white shadow-xs'
+                    : 'text-slate-600 hover:text-slate-900 bg-white border border-slate-300'
+                }`}
+              >
+                <PenTool className="w-3.5 h-3.5" />
+                <span>Writing (60m)</span>
+              </button>
             </div>
           </div>
 
@@ -851,6 +863,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-5">
             {filteredTests.map((test) => {
               const isReading = test.module === 'reading';
+              const isWriting = test.module === 'writing';
               const totalQ = test.sections.reduce(
                 (acc, s) =>
                   acc + s.questionGroups.reduce((gAcc, g) => gAcc + (g.questions?.length || 0), 0),
@@ -875,10 +888,12 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                         className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded-md flex items-center gap-1 ${
                           isReading
                             ? 'bg-amber-50 text-amber-800 border border-amber-200'
+                            : isWriting
+                            ? 'bg-violet-50 text-violet-800 border border-violet-200'
                             : 'bg-emerald-50 text-emerald-800 border border-emerald-200'
                         }`}
                       >
-                        {isReading ? <BookOpen className="w-3 h-3" /> : <Headphones className="w-3 h-3" />}
+                        {isReading ? <BookOpen className="w-3 h-3" /> : isWriting ? <PenTool className="w-3 h-3" /> : <Headphones className="w-3 h-3" />}
                         <span>{test.module}</span>
                       </span>
                     </div>

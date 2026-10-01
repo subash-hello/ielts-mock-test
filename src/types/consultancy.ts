@@ -55,7 +55,7 @@ export interface LabStation {
   };
   assignedTestId?: string;
   testTitle?: string;
-  module?: 'reading' | 'listening';
+  module?: 'reading' | 'listening' | 'writing';
   currentQuestion?: number;
   totalQuestions?: number;
   answeredCount?: number;
@@ -83,7 +83,7 @@ export interface AIDiagnosticReport {
   studentName: string;
   candidateId: string;
   testTitle: string;
-  module: 'reading' | 'listening';
+  module: 'reading' | 'listening' | 'writing';
   date: string;
   overallBand: number;
   targetBand: number;
@@ -111,7 +111,7 @@ export interface SavedAIReport {
   studentName: string;
   candidateId: string;
   testTitle: string;
-  module: 'reading' | 'listening';
+  module: 'reading' | 'listening' | 'writing';
   bandScore: number;
   correctCount: number;
   totalQuestions: number;
@@ -122,4 +122,5 @@ export interface SavedAIReport {
   answers?: Record<number, string | string[]>;
   isPublished?: boolean;
   publishedAt?: string;
+  writingSubmission?: import('./ielts').WritingSubmission;
 }
