@@ -455,7 +455,23 @@ suite('Suite 3: Consultancy Test Launch & Terminal Waiting Logic', () => {
     assertEqual(assigned?.title, 'Cambridge 16 Academic Reading Test 1');
     assertEqual(assigned?.candidate?.name, 'Sujan Sharma');
 
+    // Now invigilator launches a newer branch-wide Full Mock Test
+    // Simulating a later launch time (5 seconds in the future)
+    ConsultancyService.launchTestToBranch(
+      testCid,
+      'cambridge-16-test-1-full',
+      'Cambridge 16 Test 1 — Full Mock',
+      true
+    );
+
+    // getStationAssignedTest must return the newly launched branch test over the older station assignment!
+    const updatedAssigned = ConsultancyService.getStationAssignedTest(testCid, 'PC-01');
+    assert(updatedAssigned !== null, 'Station test resolved after branch launch');
+    assertEqual(updatedAssigned?.testId, 'cambridge-16-test-1-full', 'Newly launched test overrides older station assignment');
+    assertEqual(updatedAssigned?.isFullMock, true);
+
     // Cleanup
+    ConsultancyService.launchTestToBranch(testCid, null);
     localStorage.removeItem(`ielts_stations_${testCid}`);
   });
 });

@@ -133,46 +133,59 @@ export const LandingPage: React.FC<LandingPageProps> = ({
       const cid = candidateSession?.consultancyId;
       const stName = candidateSession?.stationName;
 
-      // 1. Station-specific assignment
-      if (stName) {
-        const stTest = ConsultancyService.getStationAssignedTest(cid, stName);
-        if (stTest) {
-          setActiveLaunchedTest({
-            testId: stTest.testId,
-            title: stTest.title,
-            launchedAt: stTest.launchedAt,
-            isFullMock: stTest.isFullMock,
-            consultancyId: stTest.consultancyId
-          });
-          if (stTest.candidate?.name && !candidateNameInput.trim()) {
-            setCandidateNameInput(stTest.candidate.name);
-          }
-          return;
-        }
+      // 1. Branch-wide launched test (consultancy-specific or newest active)
+      const branchTest = ConsultancyService.getActiveLaunchedTest(cid);
+
+      // 2. Station-specific assignment
+      const stTest = stName ? ConsultancyService.getStationAssignedTest(cid, stName) : null;
+
+      // 3. Compare timestamps: whichever is newer wins
+      let resolved: typeof branchTest = null;
+      if (branchTest && stTest) {
+        const bTime = new Date(branchTest.launchedAt || 0).getTime();
+        const sTime = new Date(stTest.launchedAt || 0).getTime();
+        resolved = bTime >= sTime ? branchTest : stTest;
+      } else {
+        resolved = branchTest || stTest;
       }
 
-      // 2. Branch-wide launched test
-      const branchTest = ConsultancyService.getActiveLaunchedTest(cid);
-      setActiveLaunchedTest(branchTest);
+      setActiveLaunchedTest(resolved);
+
+      if (stTest?.candidate?.name && !candidateNameInput.trim()) {
+        setCandidateNameInput(stTest.candidate.name);
+      }
     };
 
     syncTest();
 
     const unsubscribe = ConsultancyService.subscribe((event) => {
-      const cid = candidateSession?.consultancyId;
       if (event.type === 'BRANCH_TEST_LAUNCHED') {
         const payload = event.payload;
         if (payload?.testId) {
-          if (!cid || !payload.consultancyId || payload.consultancyId === cid) {
-            setActiveLaunchedTest({
-              testId: payload.testId,
-              title: payload.title || payload.testId,
-              launchedAt: payload.launchedAt || new Date().toISOString(),
-              isFullMock: payload.isFullMock,
-              consultancyId: payload.consultancyId
-            });
+          const launched = {
+            testId: payload.testId,
+            title: payload.title || payload.testId,
+            launchedAt: payload.launchedAt || new Date().toISOString(),
+            isFullMock: payload.isFullMock,
+            consultancyId: payload.consultancyId
+          };
+          setActiveLaunchedTest(launched);
+
+          // Update candidate session in storage to match launching branch consultancy
+          if (payload.consultancyId) {
+            const targetC = ConsultancyService.getConsultancyById(payload.consultancyId);
+            if (targetC && candidateSession) {
+              const updated: CandidateSession = {
+                ...candidateSession,
+                consultancyId: targetC.id,
+                consultancyName: targetC.name,
+                branchCode: targetC.branchCode || targetC.accessCode || candidateSession.branchCode
+              };
+              ConsultancyService.setCurrentCandidateSession(updated);
+            }
           }
         } else {
+          setActiveLaunchedTest(null);
           syncTest();
         }
       } else if (event.type === 'STATION_COMMAND' || event.type === 'STATION_UPDATED') {
@@ -699,10 +712,11 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                       </span>
                     </div>
                     <p className="text-xs text-slate-500">
-                      {candidateSession?.consultancyName ||
-                        (activeLaunchedTest?.consultancyId
-                          ? ConsultancyService.getConsultancyById(activeLaunchedTest.consultancyId)?.name
-                          : 'Educational Consultancy Lab')}
+                      {(activeLaunchedTest?.consultancyId
+                        ? ConsultancyService.getConsultancyById(activeLaunchedTest.consultancyId)?.name
+                        : null) ||
+                        candidateSession?.consultancyName ||
+                        'Educational Consultancy Lab'}
                       {candidateSession?.candidateId ? (
                         <> • Candidate ID: <strong className="font-mono text-indigo-700">{candidateSession.candidateId}</strong></>
                       ) : (

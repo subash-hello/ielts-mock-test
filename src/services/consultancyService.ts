@@ -28,6 +28,18 @@ const DEFAULT_CONSULTANCIES: Consultancy[] = [
     createdAt: '2026-01-15T00:00:00Z',
     validUntil: '2027-01-15T00:00:00Z',
     assignedTestIds: [
+      'cambridge-16-test-1-reading',
+      'cambridge-16-test-1-listening',
+      'cambridge-16-test-1-writing',
+      'cambridge-16-test-2-reading',
+      'cambridge-16-test-2-listening',
+      'cambridge-16-test-2-writing',
+      'cambridge-16-test-3-reading',
+      'cambridge-16-test-3-listening',
+      'cambridge-16-test-3-writing',
+      'cambridge-16-test-4-reading',
+      'cambridge-16-test-4-listening',
+      'cambridge-16-test-4-writing',
       'cambridge-19-test-1-reading',
       'cambridge-19-test-1-listening',
       'cambridge-19-test-2-reading',
@@ -53,6 +65,9 @@ const DEFAULT_CONSULTANCIES: Consultancy[] = [
     createdAt: '2026-02-01T00:00:00Z',
     validUntil: '2027-02-01T00:00:00Z',
     assignedTestIds: [
+      'cambridge-16-test-1-reading',
+      'cambridge-16-test-1-listening',
+      'cambridge-16-test-1-writing',
       'cambridge-19-test-1-reading',
       'cambridge-19-test-1-listening',
       'cambridge-20-test-1-reading',
@@ -76,6 +91,9 @@ const DEFAULT_CONSULTANCIES: Consultancy[] = [
     createdAt: '2026-02-10T00:00:00Z',
     validUntil: '2027-02-10T00:00:00Z',
     assignedTestIds: [
+      'cambridge-16-test-1-reading',
+      'cambridge-16-test-1-listening',
+      'cambridge-16-test-1-writing',
       'cambridge-18-test-2-reading',
       'cambridge-18-test-2-listening',
       'cambridge-19-test-1-reading',
@@ -99,72 +117,45 @@ const DEFAULT_CONSULTANCIES: Consultancy[] = [
     createdAt: '2026-03-30T00:00:00Z',
     validUntil: '2027-03-30T00:00:00Z',
     assignedTestIds: [
+      'cambridge-16-test-1-reading',
+      'cambridge-16-test-1-listening',
+      'cambridge-16-test-1-writing',
+      'cambridge-16-test-2-reading',
+      'cambridge-16-test-2-listening',
+      'cambridge-16-test-2-writing',
+      'cambridge-16-test-3-reading',
+      'cambridge-16-test-3-listening',
+      'cambridge-16-test-3-writing',
+      'cambridge-16-test-4-reading',
+      'cambridge-16-test-4-listening',
+      'cambridge-16-test-4-writing',
       'cambridge-19-test-1-reading',
       'cambridge-19-test-1-listening'
     ]
   }
 ];
 
-// Initial mock lab stations for Apex Global Education
+// Initial mock lab stations (all start clean/idle without stale hardcoded test assignments)
 const DEFAULT_STATIONS: LabStation[] = [
   {
     id: 'apex-pc-01',
     name: 'PC-01',
     consultancyId: 'apex-global',
-    status: 'in_progress',
-    currentCandidate: {
-      candidateId: '004128',
-      name: 'Rohan Sharma',
-      passport: 'PA829104',
-      targetBand: 7.5
-    },
-    assignedTestId: 'cambridge-19-test-1-reading',
-    testTitle: 'Academic Reading - Cam 19 Test 1',
-    module: 'reading',
-    currentQuestion: 24,
-    totalQuestions: 40,
-    answeredCount: 22,
-    remainingSeconds: 1420,
+    status: 'idle',
     lastHeartbeat: new Date().toISOString()
   },
   {
     id: 'apex-pc-02',
     name: 'PC-02',
     consultancyId: 'apex-global',
-    status: 'in_progress',
-    currentCandidate: {
-      candidateId: '004129',
-      name: 'Aayusha Thapa',
-      passport: 'PA991042',
-      targetBand: 7.0
-    },
-    assignedTestId: 'cambridge-19-test-1-listening',
-    testTitle: 'Academic Listening - Cam 19 Test 1',
-    module: 'listening',
-    currentQuestion: 31,
-    totalQuestions: 40,
-    answeredCount: 30,
-    remainingSeconds: 610,
+    status: 'idle',
     lastHeartbeat: new Date().toISOString()
   },
   {
     id: 'apex-pc-03',
     name: 'PC-03',
     consultancyId: 'apex-global',
-    status: 'submitted',
-    currentCandidate: {
-      candidateId: '004130',
-      name: 'Bikash Adhikari',
-      passport: 'PA102941',
-      targetBand: 6.5
-    },
-    assignedTestId: 'cambridge-18-test-2-reading',
-    testTitle: 'Academic Reading - Cam 18 Test 2',
-    module: 'reading',
-    currentQuestion: 40,
-    totalQuestions: 40,
-    answeredCount: 39,
-    remainingSeconds: 0,
+    status: 'idle',
     lastHeartbeat: new Date().toISOString()
   },
   {
@@ -185,40 +176,14 @@ const DEFAULT_STATIONS: LabStation[] = [
     id: 'apex-pc-06',
     name: 'PC-06',
     consultancyId: 'apex-global',
-    status: 'assigned',
-    currentCandidate: {
-      candidateId: '004135',
-      name: 'Nisha Poudel',
-      passport: 'PA773192',
-      targetBand: 8.0
-    },
-    assignedTestId: 'cambridge-20-test-1-reading',
-    testTitle: 'Academic Reading - Cam 20 Test 1',
-    module: 'reading',
-    currentQuestion: 1,
-    totalQuestions: 40,
-    answeredCount: 0,
-    remainingSeconds: 3600,
+    status: 'idle',
     lastHeartbeat: new Date().toISOString()
   },
   {
     id: 'apex-pc-07',
     name: 'PC-07',
     consultancyId: 'apex-global',
-    status: 'paused',
-    currentCandidate: {
-      candidateId: '004139',
-      name: 'Kiran KC',
-      passport: 'PA331092',
-      targetBand: 7.0
-    },
-    assignedTestId: 'cambridge-19-test-2-reading',
-    testTitle: 'Academic Reading - Cam 19 Test 2',
-    module: 'reading',
-    currentQuestion: 14,
-    totalQuestions: 40,
-    answeredCount: 13,
-    remainingSeconds: 2180,
+    status: 'idle',
     lastHeartbeat: new Date().toISOString()
   },
   {
@@ -662,7 +627,23 @@ export class ConsultancyService {
       try {
         const parsed = JSON.parse(raw);
         if (Array.isArray(parsed)) {
-          stationsList = parsed;
+          stationsList = parsed.map((st: LabStation) => {
+            // Clear any stale demo assignments from earlier prototypes
+            if (st.currentCandidate?.candidateId === '004128' && st.assignedTestId === 'cambridge-19-test-1-reading') {
+              return {
+                ...st,
+                status: 'idle' as const,
+                currentCandidate: undefined,
+                assignedTestId: undefined,
+                testTitle: undefined,
+                module: undefined,
+                remainingSeconds: undefined,
+                answeredCount: 0,
+                currentQuestion: 1
+              };
+            }
+            return st;
+          });
         }
       } catch {
         stationsList = [];
@@ -819,7 +800,7 @@ export class ConsultancyService {
       const stations = this.getStations(consultancyId);
       const matched = stations.find((s) => s.id === stationIdentifier || this.normalizeStationName(s.name) === norm);
       if (matched && matched.assignedTestId && (matched.status === 'assigned' || matched.status === 'in_progress')) {
-        return {
+        const stationAssignment = {
           consultancyId,
           testId: matched.assignedTestId,
           title: matched.testTitle || matched.assignedTestId,
@@ -828,6 +809,23 @@ export class ConsultancyService {
           candidate: matched.currentCandidate,
           isFullMock: matched.assignedTestId.includes('full')
         };
+        // Check if an active branch test was launched more recently
+        const branchActive = this.getActiveLaunchedTest(consultancyId);
+        if (branchActive) {
+          const bTime = new Date(branchActive.launchedAt || 0).getTime();
+          const sTime = new Date(stationAssignment.launchedAt || 0).getTime();
+          if (bTime > sTime) {
+            return {
+              consultancyId: branchActive.consultancyId || consultancyId,
+              testId: branchActive.testId,
+              title: branchActive.title,
+              launchedAt: branchActive.launchedAt,
+              isFullMock: branchActive.isFullMock,
+              candidate: matched.currentCandidate
+            };
+          }
+        }
+        return stationAssignment;
       }
     }
 
@@ -837,7 +835,7 @@ export class ConsultancyService {
       const stations = this.getStations(c.id);
       const matched = stations.find((s) => s.id === stationIdentifier || this.normalizeStationName(s.name) === norm);
       if (matched && matched.assignedTestId && (matched.status === 'assigned' || matched.status === 'in_progress')) {
-        return {
+        const stationAssignment = {
           consultancyId: c.id,
           testId: matched.assignedTestId,
           title: matched.testTitle || matched.assignedTestId,
@@ -846,6 +844,22 @@ export class ConsultancyService {
           candidate: matched.currentCandidate,
           isFullMock: matched.assignedTestId.includes('full')
         };
+        const branchActive = this.getActiveLaunchedTest(c.id);
+        if (branchActive) {
+          const bTime = new Date(branchActive.launchedAt || 0).getTime();
+          const sTime = new Date(stationAssignment.launchedAt || 0).getTime();
+          if (bTime > sTime) {
+            return {
+              consultancyId: branchActive.consultancyId || c.id,
+              testId: branchActive.testId,
+              title: branchActive.title,
+              launchedAt: branchActive.launchedAt,
+              isFullMock: branchActive.isFullMock,
+              candidate: matched.currentCandidate
+            };
+          }
+        }
+        return stationAssignment;
       }
     }
     return null;
@@ -931,9 +945,29 @@ export class ConsultancyService {
       } catch {
         localStorage.removeItem('ielts_latest_launched_test');
       }
+
+      // Also reset stations that were assigned to the stopped session
+      try {
+        const stations = this.getStations(consultancyId);
+        let changed = false;
+        for (const st of stations) {
+          if (st.status === 'assigned') {
+            st.status = 'idle';
+            delete st.assignedTestId;
+            delete st.testTitle;
+            delete st.module;
+            changed = true;
+          }
+        }
+        if (changed) {
+          localStorage.setItem(`ielts_stations_${consultancyId}`, JSON.stringify(stations));
+        }
+      } catch {}
+
       this.broadcast('BRANCH_TEST_LAUNCHED', { consultancyId, testId: null });
       return;
     }
+
     const data = {
       consultancyId,
       testId,
@@ -943,6 +977,25 @@ export class ConsultancyService {
     };
     localStorage.setItem(`ielts_launched_test_${consultancyId}`, JSON.stringify(data));
     localStorage.setItem('ielts_latest_launched_test', JSON.stringify(data));
+
+    // Also align lab stations in this consultancy so their assigned tests match the new launch
+    try {
+      const stations = this.getStations(consultancyId);
+      let changed = false;
+      for (const st of stations) {
+        if (st.status === 'idle' || st.status === 'assigned') {
+          st.assignedTestId = testId;
+          st.testTitle = title || testId;
+          st.status = 'assigned';
+          st.lastHeartbeat = data.launchedAt;
+          changed = true;
+        }
+      }
+      if (changed) {
+        localStorage.setItem(`ielts_stations_${consultancyId}`, JSON.stringify(stations));
+      }
+    } catch {}
+
     this.broadcast('BRANCH_TEST_LAUNCHED', data);
   }
 

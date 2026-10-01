@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import {
   Printer,
   X,
@@ -52,31 +52,59 @@ export const AIDiagnosticReportModal: React.FC<AIDiagnosticReportModalProps> = (
     window.print();
   };
 
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        onClose();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [onClose]);
+
   return (
-    <div className="fixed inset-0 bg-black/50 backdrop-blur-xs flex items-center justify-center z-50 p-2 sm:p-4 overflow-y-auto">
-      <div className="bg-white border border-slate-200 max-w-3xl w-full rounded-2xl shadow-xl overflow-hidden my-4 sm:my-8 text-slate-900 flex flex-col animate-in fade-in">
-        {/* Modal Top Control Bar (Hidden on print) */}
-        <div className="bg-slate-50 border-b border-slate-200 px-3.5 sm:px-6 py-2.5 sm:py-3 flex flex-wrap items-center justify-between gap-2 print:hidden">
+    <div
+      className="fixed inset-0 bg-black/60 backdrop-blur-xs z-50 overflow-y-auto flex items-start justify-center p-2 sm:p-4 md:p-6"
+      onClick={onClose}
+    >
+      {/* Floating fixed close button (always visible in top right corner of screen) */}
+      <button
+        onClick={onClose}
+        aria-label="Close report"
+        title="Close Diagnostic Report (Esc)"
+        className="fixed top-4 right-4 z-50 p-2.5 rounded-full bg-slate-900/90 text-white hover:bg-black hover:scale-110 shadow-2xl transition cursor-pointer print:hidden border border-white/20 flex items-center justify-center"
+      >
+        <X className="w-6 h-6" />
+      </button>
+
+      <div
+        onClick={(e) => e.stopPropagation()}
+        className="bg-white border border-slate-200 max-w-3xl w-full rounded-2xl shadow-2xl overflow-hidden my-2 sm:my-6 text-slate-900 flex flex-col animate-in fade-in relative"
+      >
+        {/* Sticky Top Control Bar (Hidden on print) */}
+        <div className="sticky top-0 z-30 bg-slate-900 text-white border-b border-slate-800 px-4 sm:px-6 py-3 flex items-center justify-between shadow-md print:hidden">
           <div className="flex items-center gap-2">
-            <Sparkles className="w-4 h-4 text-blue-600" />
-            <span className="text-xs font-bold uppercase tracking-wider text-slate-700">
+            <Sparkles className="w-4 h-4 text-blue-400" />
+            <span className="text-xs font-bold uppercase tracking-wider text-slate-200">
               IELTS Diagnostic Evaluation Report
             </span>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2.5">
             <button
               onClick={handlePrint}
-              className="flex items-center gap-1.5 bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs px-3 py-1.5 rounded-lg transition cursor-pointer shadow-xs"
+              className="flex items-center gap-1.5 bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs px-3.5 py-1.5 rounded-lg transition cursor-pointer shadow-xs"
             >
               <Printer className="w-3.5 h-3.5" />
               <span>Print Official Report</span>
             </button>
             <button
               onClick={onClose}
-              className="p-1.5 text-slate-400 hover:text-slate-700 rounded-lg hover:bg-slate-100 transition cursor-pointer"
+              className="flex items-center gap-1.5 bg-red-600 hover:bg-red-700 text-white font-bold text-xs px-3.5 py-1.5 rounded-lg transition cursor-pointer shadow-xs"
+              title="Close Report (Esc)"
             >
-              <X className="w-5 h-5" />
+              <X className="w-4 h-4" />
+              <span>Close (X)</span>
             </button>
           </div>
         </div>
@@ -306,6 +334,29 @@ export const AIDiagnosticReportModal: React.FC<AIDiagnosticReportModalProps> = (
             <div className="text-right font-mono text-[11px]">
               Certified Official Diagnostic Report
             </div>
+          </div>
+        </div>
+
+        {/* Modal Bottom Control Bar (Hidden on print) */}
+        <div className="bg-slate-100 border-t border-slate-200 px-4 sm:px-6 py-4 flex flex-wrap items-center justify-between gap-3 print:hidden">
+          <span className="text-xs text-slate-500 font-medium">
+            Press <kbd className="px-1.5 py-0.5 bg-white border border-slate-300 rounded text-[11px] font-mono shadow-2xs">Esc</kbd> or click anywhere outside to exit
+          </span>
+          <div className="flex items-center gap-2.5">
+            <button
+              onClick={handlePrint}
+              className="px-4 py-2 border border-slate-300 bg-white hover:bg-slate-50 text-slate-700 rounded-xl font-bold text-xs transition cursor-pointer flex items-center gap-1.5 shadow-2xs"
+            >
+              <Printer className="w-3.5 h-3.5" />
+              <span>Print Official Report</span>
+            </button>
+            <button
+              onClick={onClose}
+              className="px-6 py-2 bg-slate-900 hover:bg-slate-800 text-white rounded-xl font-bold text-xs transition cursor-pointer shadow-xs flex items-center gap-1.5"
+            >
+              <X className="w-3.5 h-3.5" />
+              <span>Close Report</span>
+            </button>
           </div>
         </div>
       </div>

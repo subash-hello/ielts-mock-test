@@ -2206,8 +2206,14 @@ export const ConsultancyPortal: React.FC<ConsultancyPortalProps> = ({
 
       {/* SCORECARD DETAILS MODAL */}
       {scorecardModalResult && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-xs flex items-center justify-center z-50 p-4">
-          <div className="bg-white border border-slate-200 max-w-xl w-full rounded-2xl p-6 shadow-2xl space-y-4 animate-in fade-in max-h-[90vh] flex flex-col">
+        <div
+          className="fixed inset-0 bg-black/50 backdrop-blur-xs flex items-center justify-center z-50 p-4 cursor-pointer"
+          onClick={() => setScorecardModalResult(null)}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="bg-white border border-slate-200 max-w-xl w-full rounded-2xl p-6 shadow-2xl space-y-4 animate-in fade-in max-h-[90vh] flex flex-col cursor-default"
+          >
             <div className="flex items-center justify-between border-b border-slate-100 pb-3">
               <div>
                 <div className="flex items-center gap-2">
@@ -2303,8 +2309,14 @@ export const ConsultancyPortal: React.FC<ConsultancyPortalProps> = ({
 
       {/* WRITING MODULE EVALUATION MODAL */}
       {writingModalResult && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center z-50 p-3 sm:p-4 animate-in fade-in">
-          <div className="bg-white border border-slate-200 max-w-3xl w-full rounded-2xl shadow-2xl space-y-4 max-h-[92vh] flex flex-col overflow-hidden">
+        <div
+          className="fixed inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center z-50 p-3 sm:p-4 animate-in fade-in cursor-pointer"
+          onClick={() => setWritingModalResult(null)}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="bg-white border border-slate-200 max-w-3xl w-full rounded-2xl shadow-2xl space-y-4 max-h-[92vh] flex flex-col overflow-hidden cursor-default"
+          >
             {/* Modal Header */}
             <div className="p-4 sm:p-5 border-b border-slate-200 bg-slate-50 flex items-center justify-between">
               <div className="flex items-center gap-3">

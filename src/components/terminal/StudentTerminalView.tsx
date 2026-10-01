@@ -102,16 +102,14 @@ export const StudentTerminalView: React.FC<StudentTerminalViewProps> = ({
   } | null>(() => {
     const c = ConsultancyService.getConsultancyByBranchCode(branchCode);
     const stationTest = ConsultancyService.getStationAssignedTest(c?.id, pcNumber);
-    if (stationTest) {
-      return {
-        testId: stationTest.testId,
-        title: stationTest.title,
-        launchedAt: stationTest.launchedAt,
-        isFullMock: stationTest.isFullMock,
-        consultancyId: stationTest.consultancyId
-      };
+    const branchActive = ConsultancyService.getActiveLaunchedTest(c?.id);
+
+    if (stationTest && branchActive) {
+      const sTime = new Date(stationTest.launchedAt || 0).getTime();
+      const bTime = new Date(branchActive.launchedAt || 0).getTime();
+      return bTime >= sTime ? branchActive : stationTest;
     }
-    return ConsultancyService.getActiveLaunchedTest(c?.id);
+    return stationTest || branchActive;
   });
 
   // Audio Test Tone generator (440Hz standard)
@@ -147,17 +145,17 @@ export const StudentTerminalView: React.FC<StudentTerminalViewProps> = ({
     setConsultancy(found);
     if (found) {
       const stationTest = ConsultancyService.getStationAssignedTest(found.id, pcNumber);
-      if (stationTest) {
-        setActiveLaunchedTest({
-          testId: stationTest.testId,
-          title: stationTest.title,
-          launchedAt: stationTest.launchedAt,
-          isFullMock: stationTest.isFullMock,
-          consultancyId: stationTest.consultancyId
-        });
+      const branchActive = ConsultancyService.getActiveLaunchedTest(found.id);
+
+      let resolved: typeof branchActive = null;
+      if (stationTest && branchActive) {
+        const sTime = new Date(stationTest.launchedAt || 0).getTime();
+        const bTime = new Date(branchActive.launchedAt || 0).getTime();
+        resolved = bTime >= sTime ? branchActive : stationTest;
       } else {
-        setActiveLaunchedTest(ConsultancyService.getActiveLaunchedTest(found.id));
+        resolved = stationTest || branchActive;
       }
+      setActiveLaunchedTest(resolved);
 
       if (pcNumber) {
         const stations = ConsultancyService.getStations(found.id);
@@ -173,32 +171,33 @@ export const StudentTerminalView: React.FC<StudentTerminalViewProps> = ({
     const syncActiveTest = () => {
       // 1. Station-specific test assigned by teacher
       const stationTest = ConsultancyService.getStationAssignedTest(consultancy?.id, pcNumber);
-      if (stationTest) {
-        setActiveLaunchedTest({
-          testId: stationTest.testId,
-          title: stationTest.title,
-          launchedAt: stationTest.launchedAt,
-          isFullMock: stationTest.isFullMock,
-          consultancyId: stationTest.consultancyId
-        });
-        if (stationTest.candidate?.name && !candidateNameInput.trim()) {
-          setCandidateNameInput(stationTest.candidate.name);
-        }
-        if (stationTest.consultancyId && (!consultancy || consultancy.id !== stationTest.consultancyId)) {
-          const targetC = ConsultancyService.getConsultancyById(stationTest.consultancyId);
-          if (targetC) {
-            setConsultancy(targetC);
-            if (targetC.branchCode) setBranchCode(targetC.branchCode);
-          }
-        }
-        return;
-      }
-
       // 2. Branch-wide launched test
       const branchActive = ConsultancyService.getActiveLaunchedTest(consultancy?.id);
-      setActiveLaunchedTest(branchActive);
-      if (branchActive?.consultancyId && (!consultancy || consultancy.id !== branchActive.consultancyId)) {
-        const targetC = ConsultancyService.getConsultancyById(branchActive.consultancyId);
+
+      let resolved: {
+        testId: string;
+        title: string;
+        launchedAt: string;
+        isFullMock?: boolean;
+        consultancyId?: string;
+        candidate?: { candidateId: string; name: string; targetBand?: number };
+      } | null = null;
+
+      if (stationTest && branchActive) {
+        const sTime = new Date(stationTest.launchedAt || 0).getTime();
+        const bTime = new Date(branchActive.launchedAt || 0).getTime();
+        resolved = bTime >= sTime ? branchActive : stationTest;
+      } else {
+        resolved = stationTest || branchActive;
+      }
+
+      setActiveLaunchedTest(resolved);
+
+      if (resolved?.candidate?.name && !candidateNameInput.trim()) {
+        setCandidateNameInput(resolved.candidate.name);
+      }
+      if (resolved?.consultancyId && (!consultancy || consultancy.id !== resolved.consultancyId)) {
+        const targetC = ConsultancyService.getConsultancyById(resolved.consultancyId);
         if (targetC) {
           setConsultancy(targetC);
           if (targetC.branchCode) setBranchCode(targetC.branchCode);
@@ -342,10 +341,14 @@ export const StudentTerminalView: React.FC<StudentTerminalViewProps> = ({
 
   // Resolve launched test details
   const resolvedTest = activeLaunchedTest
-    ? tests.find((t) => t.id === activeLaunchedTest.testId)
+    ? tests.find((t) => t.id === activeLaunchedTest.testId) ||
+      allMockTests.find((t) => t.id === activeLaunchedTest.testId) ||
+      null
     : null;
   const resolvedFullMock = activeLaunchedTest && (activeLaunchedTest.isFullMock || activeLaunchedTest.testId.includes('full'))
-    ? allFullMockTests.find((f) => f.id === activeLaunchedTest.testId)
+    ? allFullMockTests.find((f) => f.id === activeLaunchedTest.testId) ||
+      buildFullMockTests(tests.length > 0 ? tests : allMockTests).find((f) => f.id === activeLaunchedTest.testId) ||
+      null
     : null;
 
   return (
