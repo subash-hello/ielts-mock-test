@@ -21,22 +21,22 @@ export const cambridge16Test1Reading: IELTSMockTest = {
             Polar bears are being increasingly threatened by the effects of climate change, but their disappearance could have far-reaching consequences. They are uniquely adapted to the extreme conditions of the Arctic Circle, where temperatures can reach −40°C. One of the most fascinating aspects of their survival is their ability to build up massive fat reserves while remaining free of the cardiovascular diseases that affect humans.
           </p>
           <p>
-            <strong>A.</strong> Polar bears (<em>Ursus maritimus</em>) are the world\'s largest land carnivores and an iconic symbol of the Arctic wilderness. However, their reliance on sea ice for hunting seals—their primary source of food—means they are at immediate risk from global warming. As Arctic sea ice melts earlier in spring and refreezes later in autumn, polar bears are forced to spend longer periods fasting on land. Scientists warn that if current climate trajectories continue, polar bear populations throughout the Hudson Bay and across northern Siberia could decline drastically by the mid-21st century.
+            <strong>A.</strong> Polar bears (<em>Ursus maritimus</em>) are the world's largest land carnivores and an iconic symbol of the Arctic wilderness. However, their reliance on sea ice for hunting seals—their primary source of food—means they are at immediate risk from global warming. As Arctic sea ice melts earlier in spring and refreezes later in autumn, polar bears are forced to spend longer periods fasting on land. During autumn, up to 50 percent of a polar bear's total body weight consists of subcutaneous adipose tissue (fat). In humans, such high levels of adipose tissue would lead to cardiovascular disease, high blood pressure, and diabetes, yet polar bears suffer from no such health problems.
           </p>
           <p>
-            <strong>B.</strong> Aside from their ecological role as apex predators, polar bears possess unique physiological characteristics that may hold the key to solving some of humanity\'s most pressing medical conditions. During the autumn feeding season, up to 50 percent of a polar bear\'s total body weight consists of subcutaneous adipose tissue (fat). In humans, such extraordinary levels of adipose tissue would inevitably result in severe obesity, atherosclerosis, hypertension, and fatal heart attacks. Yet, polar bears show no evidence whatsoever of clogged arteries or vascular inflammation.
+            <strong>B.</strong> In 2014, a team of researchers led by Eline Lorenzen and Shi Liu from the University of Copenhagen, together with scientists from UC Berkeley and BGI-Shenzhen, published a landmark comparative genomic study. The study by Liu and his colleagues did not compare different populations of polar bears; rather, they sequenced the complete genomes of 79 polar bears and 10 brown bears (grizzly bears). Their analysis determined that polar bears diverged from brown bears between 400,000 and 500,000 years ago. While this was not the first time geneticists had compared polar bears and brown bears, this comprehensive study revealed the exact genes responsible for their cold-climate adaptations.
           </p>
           <p>
-            <strong>C.</strong> In 2014, a collaborative genomic study led by Dr. Eline Lorenzen from the University of Copenhagen and researchers at the University of California, Berkeley, decoded the complete polar bear genome. They compared it with that of its closest evolutionary relative, the brown bear (grizzly bear). The comparative analysis revealed that polar bears diverged from brown bears surprisingly recently, between 400,000 and 500,000 years ago. Despite this relatively brief evolutionary timescale, the species underwent dramatic genetic adaptations in genes responsible for fatty acid metabolism and cardiovascular development.
+            <strong>C.</strong> Among these adaptations, the most important is the <em>APOB</em> (apolipoprotein B) gene. In polar bears, mutations in <em>APOB</em> allow the bears to clear low-density lipoproteins (LDL)—so-called 'bad' cholesterol—from their bloodstream with tremendous efficiency. Polar bears are thus able to genetically control their cholesterol levels despite their extremely fatty diet.
           </p>
           <p>
-            <strong>D.</strong> The most significant discovery centered on a gene known as <em>APOB</em> (apolipoprotein B). This gene codes for a protein that transports bad cholesterol (low-density lipoproteins, or LDL) through the bloodstream. In humans, mutations or dysfunctions in <em>APOB</em> are well-documented triggers for severe cardiovascular disease. In polar bears, however, natural selection has favored a specialized variant of <em>APOB</em> that clears LDL particles from circulation with exceptional efficiency. Understanding how this mutated protein operates could lead to novel pharmaceutical therapies for human coronary heart disease.
+            <strong>D.</strong> Female polar bears display another remarkable physiological capability: during pregnancy and cub rearing, they enter snow dens for approximately six months. During this prolonged period, female polar bears survive without any food or water, nursing their cubs through dormancy. Remarkably, when they emerge from their dens in spring, their skeletal bone density remains intact and unaffected by osteopenia, whereas bedridden humans lose significant bone density in just a few weeks. Medical researchers believe that understanding the polar bear's mechanism for preserving bone mass could one day lead to breakthrough therapies for human osteoporosis.
           </p>
           <p>
-            <strong>E.</strong> Another physiological marvel is the polar bear\'s bone density. Female polar bears spend up to six consecutive months inside subterranean snow dens during pregnancy and maternity. During this prolonged period of dormancy, the mother does not eat, drink, or defecate, yet she produces nutrient-dense milk to suckle her cubs. In contrast to humans who lose significant bone mass when immobilized for even a few weeks, female polar bears emerge from their dens with their skeletal density completely intact. Unraveling the biological mechanisms preventing osteopenia during denning could revolutionize treatments for osteoporosis in elderly humans.
+            <strong>E.</strong> Aside from their physiological marvels, field observations demonstrate that polar bears possess acute problem-solving capabilities. While popular culture often portrays wild bears as unintelligent and violent creatures, behavioural scientists have documented numerous examples of bear cognition. For instance, GoGo, a male polar bear at Tennoji Zoo in Osaka, was observed deliberately utilizing a tree branch as a tool to knock down a suspended piece of meat that was positioned well beyond his physical reach.
           </p>
           <p>
-            <strong>F.</strong> Furthermore, recent behavioural studies indicate that polar bears possess cognitive capacities far beyond what was previously assumed. Field biologists in Svalbard have documented individual bears systematically stacking ice blocks and manipulating stone fragments to reach baited traps, demonstrating problem-solving capabilities on par with primates. These cognitive skills, combined with their irreplaceable ecological importance, underscore why the international community must intensify conservation protocols to protect this magnificent Arctic sentinel.
+            <strong>F.</strong> In the Canadian wild, an inventive polar bear was seen systematically manipulating empty fuel barrels, rolling and stacking them to construct a temporary platform that allowed it to reach an elevated wildlife photographer. Biologist Alison Ames observed captive polar bears repeatedly stacking objects and knocking them over in an activity that bore all the hallmarks of a playful game. Furthermore, field researchers noted that when a polar bear fails in an ambush and misses a seal, it may thrash the ice and kick snow around in an unmistakable display of emotional frustration.
           </p>
         </div>
       `,
@@ -47,13 +47,55 @@ export const cambridge16Test1Reading: IELTSMockTest = {
           title: "Questions 1 – 7",
           instructions: "Do the following statements agree with the information given in Reading Passage 1? Write TRUE if the statement agrees with the information, FALSE if the statement contradicts the information, or NOT GIVEN if there is no information on this.",
           questions: [
-            { questionNumber: 1, prompt: "Polar bears are experiencing longer periods without food due to changes in Arctic sea ice.", correctAnswer: "TRUE", explanation: "Paragraph A states polar bears are forced to spend longer periods fasting on land due to earlier melting and later freezing.", passageEvidence: { paragraph: "A", quote: "forced to spend longer periods fasting on land" } },
-            { questionNumber: 2, prompt: "Polar bears suffer from high blood pressure during the autumn feeding season.", correctAnswer: "FALSE", explanation: "Paragraph B explains that polar bears show no evidence whatsoever of clogged arteries or vascular inflammation.", passageEvidence: { paragraph: "B", quote: "show no evidence whatsoever of clogged arteries" } },
-            { questionNumber: 3, prompt: "Dr. Lorenzen\'s team found that polar bears diverged from brown bears more than two million years ago.", correctAnswer: "FALSE", explanation: "Paragraph C notes that polar bears diverged from brown bears surprisingly recently, between 400,000 and 500,000 years ago.", passageEvidence: { paragraph: "C", quote: "diverged from brown bears surprisingly recently" } },
-            { questionNumber: 4, prompt: "The APOB gene in polar bears is responsible for removing low-density lipoproteins from the blood.", correctAnswer: "TRUE", explanation: "Paragraph D confirms the specialized variant of APOB clears LDL particles from circulation with exceptional efficiency.", passageEvidence: { paragraph: "D", quote: "clears LDL particles from circulation with exceptional efficiency" } },
-            { questionNumber: 5, prompt: "Doctors have already synthesized a heart medication directly based on the polar bear APOB gene.", correctAnswer: "NOT GIVEN", explanation: "Paragraph D states this could lead to novel therapies, but does not claim any drug has yet been synthesized.", passageEvidence: { paragraph: "D", quote: "could lead to novel pharmaceutical therapies" } },
-            { questionNumber: 6, prompt: "Female polar bears lose a substantial amount of bone density while hibernating in snow dens.", correctAnswer: "FALSE", explanation: "Paragraph E clarifies female polar bears emerge from dens with their skeletal density completely intact.", passageEvidence: { paragraph: "E", quote: "skeletal density completely intact" } },
-            { questionNumber: 7, prompt: "Research on polar bear denning could offer insights for treating human osteoporosis.", correctAnswer: "TRUE", explanation: "Paragraph E confirms this could revolutionize treatments for osteoporosis in elderly humans.", passageEvidence: { paragraph: "E", quote: "revolutionize treatments for osteoporosis" } }
+            {
+              questionNumber: 1,
+              prompt: "Polar bears suffer from various health problems due to the build-up of fat under their skin.",
+              correctAnswer: "FALSE",
+              explanation: "Paragraph A states that although up to 50 percent of their body weight consists of fat, polar bears experience no such cardiovascular or health problems.",
+              passageEvidence: { paragraph: "A", quote: "yet polar bears suffer from no such health problems" }
+            },
+            {
+              questionNumber: 2,
+              prompt: "The study done by Liu and his colleagues compared different groups of polar bears.",
+              correctAnswer: "FALSE",
+              explanation: "Paragraph B explicitly states that the study did not compare different groups of polar bears, but rather compared polar bears with brown bears.",
+              passageEvidence: { paragraph: "B", quote: "did not compare different populations of polar bears; rather, they sequenced the complete genomes of 79 polar bears and 10 brown bears" }
+            },
+            {
+              questionNumber: 3,
+              prompt: "Liu and colleagues were the first researchers to compare polar bears and brown bears genetically.",
+              correctAnswer: "NOT GIVEN",
+              explanation: "Paragraph B clarifies that 'this was not the first time geneticists had compared polar bears and brown bears', meaning they were not the first.",
+              passageEvidence: { paragraph: "B", quote: "While this was not the first time geneticists had compared polar bears and brown bears" }
+            },
+            {
+              questionNumber: 4,
+              prompt: "Polar bears are able to control their levels of 'bad' cholesterol by genetic means.",
+              correctAnswer: "TRUE",
+              explanation: "Paragraph C explains that mutations in the APOB gene allow polar bears to genetically control their cholesterol levels.",
+              passageEvidence: { paragraph: "C", quote: "Polar bears are thus able to genetically control their cholesterol levels" }
+            },
+            {
+              questionNumber: 5,
+              prompt: "Female polar bears are able to survive for about six months without food.",
+              correctAnswer: "TRUE",
+              explanation: "Paragraph D states that during pregnancy and cub rearing, female polar bears enter snow dens for approximately six months without any food or water.",
+              passageEvidence: { paragraph: "D", quote: "enter snow dens for approximately six months. During this prolonged period, female polar bears survive without any food or water" }
+            },
+            {
+              questionNumber: 6,
+              prompt: "It was found that the bones of female polar bears were very weak when they came out of their dens in spring.",
+              correctAnswer: "FALSE",
+              explanation: "Paragraph D states that when they emerge from their dens in spring, their skeletal bone density remains intact and unaffected by osteopenia.",
+              passageEvidence: { paragraph: "D", quote: "their skeletal bone density remains intact and unaffected by osteopenia" }
+            },
+            {
+              questionNumber: 7,
+              prompt: "The polar bear's mechanism for increasing bone density could also be used by people one day.",
+              correctAnswer: "TRUE",
+              explanation: "Paragraph D confirms that medical researchers believe understanding this mechanism could one day lead to breakthrough therapies for human osteoporosis.",
+              passageEvidence: { paragraph: "D", quote: "could one day lead to breakthrough therapies for human osteoporosis" }
+            }
           ]
         },
         {
@@ -61,15 +103,57 @@ export const cambridge16Test1Reading: IELTSMockTest = {
           type: "table_completion",
           title: "Questions 8 – 13",
           instructions: "Complete the table below. Choose ONE WORD ONLY from the passage for each answer.",
-          summaryTitle: "Medical insights from polar bear physiology",
+          summaryTitle: "Reasons why polar bears should be protected",
           wordLimitRule: "ONE WORD ONLY",
           questions: [
-            { questionNumber: 8, prompt: "Up to half of an adult polar bear\'s weight can be comprised of [ 8 ] in the autumn months.", correctAnswer: "fat", acceptedVariants: ["adipose"], explanation: "Paragraph B: 'up to 50 percent of a polar bear\'s total body weight consists of subcutaneous adipose tissue (fat).'", passageEvidence: { paragraph: "B", quote: "adipose tissue (fat)" } },
-            { questionNumber: 9, prompt: "Genomic comparison was conducted between polar bears and [ 9 ] bears.", correctAnswer: "brown", acceptedVariants: ["grizzly"], explanation: "Paragraph C: 'They compared it with that of its closest evolutionary relative, the brown bear.'", passageEvidence: { paragraph: "C", quote: "closest evolutionary relative, the brown bear" } },
-            { questionNumber: 10, prompt: "The APOB gene codes for a specific [ 10 ] that transports cholesterol.", correctAnswer: "protein", explanation: "Paragraph D: 'This gene codes for a protein that transports bad cholesterol.'", passageEvidence: { paragraph: "D", quote: "codes for a protein" } },
-            { questionNumber: 11, prompt: "Female polar bears reside in [ 11 ] throughout their pregnancy and cub nursing.", correctAnswer: "dens", acceptedVariants: ["snow dens"], explanation: "Paragraph E: 'spend up to six consecutive months inside subterranean snow dens.'", passageEvidence: { paragraph: "E", quote: "subterranean snow dens" } },
-            { questionNumber: 12, prompt: "Unlike humans, polar bears experience no loss of [ 12 ] during months of inactivity.", correctAnswer: "bone", acceptedVariants: ["bone mass", "density"], explanation: "Paragraph E: 'emerge from their dens with their skeletal density completely intact.'", passageEvidence: { paragraph: "E", quote: "skeletal density completely intact" } },
-            { questionNumber: 13, prompt: "Studies in Svalbard observed polar bears moving blocks of [ 13 ] to access traps.", correctAnswer: "ice", explanation: "Paragraph F: 'systematically stacking ice blocks and manipulating stone fragments.'", passageEvidence: { paragraph: "F", quote: "stacking ice blocks" } }
+            {
+              questionNumber: 8,
+              prompt: "People think of bears as unintelligent and [ 8 ].",
+              correctAnswer: "violent",
+              acceptedVariants: ["violent"],
+              explanation: "Paragraph E notes: 'While popular culture often portrays wild bears as unintelligent and violent creatures...'",
+              passageEvidence: { paragraph: "E", quote: "unintelligent and violent creatures" }
+            },
+            {
+              questionNumber: 9,
+              prompt: "A bear has been seen using a tree branch as a [ 9 ].",
+              correctAnswer: "tool",
+              acceptedVariants: ["tool"],
+              explanation: "Paragraph E: 'deliberately utilizing a tree branch as a tool'",
+              passageEvidence: { paragraph: "E", quote: "utilizing a tree branch as a tool" }
+            },
+            {
+              questionNumber: 10,
+              prompt: "This allowed him to knock down a piece of [ 10 ].",
+              correctAnswer: "meat",
+              acceptedVariants: ["meat"],
+              explanation: "Paragraph E: 'to knock down a suspended piece of meat'",
+              passageEvidence: { paragraph: "E", quote: "knock down a suspended piece of meat" }
+            },
+            {
+              questionNumber: 11,
+              prompt: "A wild bear was observed jumping onto barrels to reach a [ 11 ] on a platform.",
+              correctAnswer: "photographer",
+              acceptedVariants: ["photographer"],
+              explanation: "Paragraph F: 'reach an elevated wildlife photographer'",
+              passageEvidence: { paragraph: "F", quote: "reach an elevated wildlife photographer" }
+            },
+            {
+              questionNumber: 12,
+              prompt: "Bears were seen piling up objects and knocking them over in an activity similar to a [ 12 ].",
+              correctAnswer: "game",
+              acceptedVariants: ["game"],
+              explanation: "Paragraph F: 'bore all the hallmarks of a playful game'",
+              passageEvidence: { paragraph: "F", quote: "playful game" }
+            },
+            {
+              questionNumber: 13,
+              prompt: "Bears may make movements suggesting [ 13 ] when they miss a kill.",
+              correctAnswer: "frustration",
+              acceptedVariants: ["frustration"],
+              explanation: "Paragraph F: 'in an unmistakable display of emotional frustration'",
+              passageEvidence: { paragraph: "F", quote: "emotional frustration" }
+            }
           ]
         }
       ]
@@ -84,63 +168,173 @@ export const cambridge16Test1Reading: IELTSMockTest = {
             The Step Pyramid of Djoser at Saqqara represents a monumental leap forward in architectural engineering and burial practices in ancient Egypt. Built in the 27th century BCE, it revolutionized construction methods by replacing mudbrick with stone.
           </p>
           <p>
-            <strong>A.</strong> The pyramids are the most iconic symbols of ancient Egyptian civilization, yet they did not spring into existence fully formed. Before the reign of Pharaoh Djoser (circa 2670 BCE) of the Third Dynasty, Egyptian monarchs were customarily buried in rectangular, flat-roofed structures called mastabas. These tombs were constructed primarily of dried mudbricks baked in the sun. Because mudbrick degraded rapidly under environmental exposure and was vulnerable to tomb robbers, royal architects constantly sought more durable methods to protect the pharaoh\'s body and grave goods.
+            <strong>A.</strong> The pyramids are the most iconic symbols of ancient Egyptian civilization. Yet for all the fame of Pharaoh Djoser, who reigned during the Third Dynasty (circa 2670 BCE), very little is known about his life with certainty. While some surviving dynastic records state that his reign lasted for 19 years, other historical sources and modern egyptologists argue that his reign spanned more than three decades. The single certainty among these conflicting details is that he commissioned the world's first great stone pyramid complex at Saqqara.
           </p>
           <p>
-            <strong>B.</strong> Enter Imhotep, Djoser\'s vizier, high priest of Ra, and master architect. Imhotep is credited with being the first architect in recorded history whose identity is preserved. Imhotep conceived of an unprecedented vision: building a funerary monument made entirely of carved limestone blocks rather than mudbrick. Limestone was quarried nearby and offered permanence that would endure for all eternity, reflecting the eternal reign of the divine king.
+            <strong>B.</strong> Pharaoh Djoser's chief minister and master builder was Imhotep, later revered as a polymath and deified as the patron god of architects and physicians. Before Imhotep, Egyptian monarchs and nobles were buried in rectangular, flat-roofed mastabas constructed of sundried mudbrick. Imhotep conceived of an entirely new idea: replacing mudbrick with quarried limestone blocks, ensuring that the pharaoh's eternal dwelling would endure through the ages without succumbing to grave robbers or natural erosion.
           </p>
           <p>
-            <strong>C.</strong> Rather than stopping at a traditional single-level rectangular mastaba, Imhotep introduced successive modifications. Initially, he built a square stone mastaba, which he subsequently enlarged twice. Then, in an inspired stroke of monumental engineering, Imhotep stacked five successively smaller stone mastabas directly on top of the foundation. The resulting structure was a six-tiered step pyramid that soared to a height of 62 metres (203 feet), dominating the flat desert plateau of Saqqara.
+            <strong>C.</strong> Constructing a multi-tiered stone monument on this scale was a difficult and arduous task for the thousands of masons, quarrymen, and labourers involved. Instead of simply building a traditional single-level mastaba, Imhotep repeatedly expanded the square stone base and progressively erected smaller stone tiers on top of one another. The final monument consisted of six distinct tiers reaching a height of 62 metres, soaring high above the desert horizon.
           </p>
           <p>
-            <strong>D.</strong> The exterior of the Step Pyramid was originally encased in gleaming white Tura limestone, polished smooth to catch the morning sun. Surrounding the pyramid was a vast mortuary complex covering approximately 15 hectares (37 acres), enclosed by a monumental 10.5-metre-high recessed stone wall with only one functioning entrance among fourteen simulated gates. Within this sacred precinct were courtyards for the Heb-Sed festival (the ritual rejuvenation of the king\'s vitality), ceremonial pavilions, and subterranean galleries.
+            <strong>D.</strong> The Step Pyramid stood at the heart of an immense mortuary complex that encompassed approximately 15 hectares—the size of an entire ancient Egyptian city. The complex was enclosed by an imposing 10.5-metre-high wall of fine Tura limestone. Beyond the pyramid itself, the walled precinct contained shrines, temples, courtyards for the Heb-Sed jubilee festival, and comfortable residential quarters occupied by the attending priests. The perimeter wall was ringed by an enormous trench 750 metres long and 40 metres wide, and visitors were prevented from entering unless they knew the exact location of the single true entrance concealed among fourteen false gates.
           </p>
           <p>
-            <strong>E.</strong> Beneath the Step Pyramid lies a labyrinth of underground tunnels, galleries, and chambers stretching for over 5.7 kilometres. At the center of this underground network is a 28-metre-deep shaft leading to the burial chamber, built from massive blocks of pink granite imported from Aswan. Around the burial chamber, walls were decorated with exquisite blue faience tiles mimicking reed matting, alongside lifelike limestone relief carvings depicting Djoser performing sacred ceremonies.
+            <strong>E.</strong> Beneath the base of the pyramid lies a dizzying subterranean labyrinth of corridors, shafts, and chambers extending for more than 5.7 kilometres. At the bottom of a 28-metre-deep central shaft lies Djoser's burial chamber, constructed from heavy slabs of pink granite transported north from Aswan. The surrounding underground galleries were lined with exquisite blue faience tiles resembling reed matting, along with carved limestone reliefs depicting the pharaoh participating in sacred rituals.
           </p>
           <p>
-            <strong>F.</strong> The structural significance of Djoser\'s Step Pyramid cannot be overstated. It established stone masonry as the supreme medium for royal architecture, paving the way for the smooth-sided pyramids of Giza constructed just a few generations later during the Fourth Dynasty. Imhotep\'s unprecedented achievement made him a legend; centuries after his death, Egyptians deified him as a god of medicine, wisdom, and architecture.
+            <strong>F.</strong> When modern archaeologists began clearing the subterranean tunnels in the 1920s, they discovered that tomb robbers had ransacked the royal chambers thousands of years earlier. Nonetheless, excavating the complex provided an incredible experience: archaeologists recovered thousands of exquisite stone vessels and jars inscribed with royal names, and a few of Djoser's personal possessions remained intact in the rubble of the burial vault.
+          </p>
+          <p>
+            <strong>G.</strong> The Step Pyramid of Djoser was a revolutionary breakthrough in engineering that set the precedent for Egyptian royal tombs. It became the definitive archetype that all subsequent pyramid builders copied and refined, leading directly to the colossal smooth-faced pyramids at Meidum, Dahshur, and Giza during the Fourth Dynasty.
           </p>
         </div>
       `,
       questionGroups: [
         {
           id: "c16-r1-qg3",
-          type: "summary_completion",
-          title: "Questions 14 – 19",
-          instructions: "Complete the summary below. Choose ONE WORD ONLY from the passage for each answer.",
-          summaryTitle: "Imhotep and the Construction of the Step Pyramid",
-          wordLimitRule: "ONE WORD ONLY",
+          type: "matching_headings",
+          title: "Questions 14 – 20",
+          instructions: "Reading Passage 2 has seven paragraphs, A–G. Choose the correct heading for each paragraph from the list of headings below. Write the correct number, i–ix, in boxes 14–20 on your answer sheet.",
+          options: [
+            "i The areas and artefacts within the pyramid itself",
+            "ii A difficult task for those involved",
+            "iii A king who saved his people",
+            "iv A single certainty among other less definite facts",
+            "v An overview of the external buildings and areas",
+            "vi A pyramid design that others copied",
+            "vii An idea for changing the design of burial structures",
+            "viii An incredible experience despite the few remains",
+            "ix The answers to some unexpected questions"
+          ],
           questions: [
-            { questionNumber: 14, prompt: "Early royal Egyptian graves prior to Djoser were rectangular tombs made from [ 14 ] bricks.", correctAnswer: "mudbrick", acceptedVariants: ["mud"], explanation: "Paragraph A states early tombs were mastabas made of dried mudbricks baked in the sun.", passageEvidence: { paragraph: "A", quote: "constructed primarily of dried mudbricks" } },
-            { questionNumber: 15, prompt: "Imhotep is notable as the earliest [ 15 ] in recorded history known by name.", correctAnswer: "architect", explanation: "Paragraph B confirms Imhotep is credited with being the first architect in recorded history whose identity is preserved.", passageEvidence: { paragraph: "B", quote: "first architect in recorded history" } },
-            { questionNumber: 16, prompt: "To guarantee durability, Imhotep opted to build the monument out of [ 16 ] rather than mud.", correctAnswer: "limestone", acceptedVariants: ["stone"], explanation: "Paragraph B explains he conceived a monument made entirely of carved limestone blocks.", passageEvidence: { paragraph: "B", quote: "carved limestone blocks" } },
-            { questionNumber: 17, prompt: "The Step Pyramid comprised six tiers and reached a total height of 62 [ 17 ].", correctAnswer: "metres", acceptedVariants: ["meters", "m"], explanation: "Paragraph C notes the six-tiered step pyramid soared to a height of 62 metres.", passageEvidence: { paragraph: "C", quote: "soared to a height of 62 metres" } },
-            { questionNumber: 18, prompt: "The outer wall of the 15-hectare complex featured only one real [ 18 ] among many false ones.", correctAnswer: "entrance", acceptedVariants: ["gate"], explanation: "Paragraph D describes fourteen simulated gates with only one functioning entrance.", passageEvidence: { paragraph: "D", quote: "only one functioning entrance among fourteen simulated gates" } },
-            { questionNumber: 19, prompt: "The subterranean burial chamber was assembled using heavy blocks of pink [ 19 ] from Aswan.", correctAnswer: "granite", explanation: "Paragraph E states it was built from massive blocks of pink granite imported from Aswan.", passageEvidence: { paragraph: "E", quote: "massive blocks of pink granite" } }
+            {
+              questionNumber: 14,
+              prompt: "Paragraph A",
+              correctAnswer: "iv",
+              explanation: "Paragraph A mentions that while details of Djoser's reign are disputed, the single certainty is that he commissioned the Step Pyramid at Saqqara."
+            },
+            {
+              questionNumber: 15,
+              prompt: "Paragraph B",
+              correctAnswer: "vii",
+              explanation: "Paragraph B details Imhotep's groundbreaking idea of changing from traditional mudbrick mastabas to quarried stone pyramids."
+            },
+            {
+              questionNumber: 16,
+              prompt: "Paragraph C",
+              correctAnswer: "ii",
+              explanation: "Paragraph C highlights the immense physical difficulties and arduous task faced by the thousands of workers involved in stacking stone tiers."
+            },
+            {
+              questionNumber: 17,
+              prompt: "Paragraph D",
+              correctAnswer: "v",
+              explanation: "Paragraph D provides an overview of the external buildings, courtyards, perimeter wall, and trench surrounding the pyramid."
+            },
+            {
+              questionNumber: 18,
+              prompt: "Paragraph E",
+              correctAnswer: "i",
+              explanation: "Paragraph E explores the underground areas, corridors, burial chamber, and blue faience artefacts within the pyramid itself."
+            },
+            {
+              questionNumber: 19,
+              prompt: "Paragraph F",
+              correctAnswer: "viii",
+              explanation: "Paragraph F recounts the exciting and incredible experience of archaeologists excavating the tomb despite early looting."
+            },
+            {
+              questionNumber: 20,
+              prompt: "Paragraph G",
+              correctAnswer: "vi",
+              explanation: "Paragraph G concludes that the Step Pyramid became the archetype that subsequent Egyptian pyramid builders copied and refined."
+            }
           ]
         },
         {
           id: "c16-r1-qg4",
-          type: "multiple_choice",
-          title: "Questions 20 – 24",
-          instructions: "Choose the correct letter, A, B, C or D.",
+          type: "note_completion",
+          title: "Questions 21 – 24",
+          instructions: "Complete the notes below. Choose ONE WORD ONLY from the passage for each answer.",
+          summaryTitle: "The Step Pyramid complex",
+          wordLimitRule: "ONE WORD ONLY",
           questions: [
-            { questionNumber: 20, prompt: "Why were traditional mudbrick mastabas considered unsatisfactory by royal architects?", options: ["A. They took too long to build in hot desert conditions.", "B. They deteriorated quickly and failed to deter grave robbers.", "C. They were too expensive to decorate with wall carvings.", "D. Sun-dried mudbrick was forbidden by high priests of Ra."], correctAnswer: "B", explanation: "Paragraph A states mudbrick degraded rapidly and was vulnerable to tomb robbers.", passageEvidence: { paragraph: "A", quote: "degraded rapidly under environmental exposure and was vulnerable to tomb robbers" } },
-            { questionNumber: 21, prompt: "How did Imhotep arrive at the step pyramid design?", options: ["A. By directly copying temple architecture from Mesopotamia.", "B. By excavating an existing limestone mound and cutting steps into it.", "C. By repeatedly expanding a base mastaba and stacking smaller tiers above it.", "D. By assembling prefabricated stone blocks according to royal decree."], correctAnswer: "C", explanation: "Paragraph C explains he enlarged a square stone mastaba, then stacked five successively smaller stone mastabas on top.", passageEvidence: { paragraph: "C", quote: "stacked five successively smaller stone mastabas directly on top" } },
-            { questionNumber: 22, prompt: "What purpose did the Heb-Sed courtyards in the mortuary complex serve?", options: ["A. Storing building materials and equipment for ongoing construction.", "B. Hosting ritual ceremonies to symbolically renew the pharaoh\'s vitality.", "C. Housing foreign ambassadors and visiting dignitaries.", "D. Conducting administrative trade across Lower Egypt."], correctAnswer: "B", explanation: "Paragraph D states courtyards were for the Heb-Sed festival, the ritual rejuvenation of the king\'s vitality.", passageEvidence: { paragraph: "D", quote: "ritual rejuvenation of the king\'s vitality" } },
-            { questionNumber: 23, prompt: "What feature decorated the walls around Djoser\'s subterranean burial chamber?", options: ["A. Blue faience tiles designed to look like reed mats.", "B. Sheets of beaten gold illustrating the underworld.", "C. Wooden panels imported from the Lebanese coast.", "D. Mudbrick reliefs inscribed with royal genealogies."], correctAnswer: "A", explanation: "Paragraph E describes blue faience tiles mimicking reed matting.", passageEvidence: { paragraph: "E", quote: "blue faience tiles mimicking reed matting" } },
-            { questionNumber: 24, prompt: "What was one enduring long-term legacy of Imhotep\'s work at Saqqara?", options: ["A. The complete abandonment of mortuary complexes in Egyptian history.", "B. The adoption of stone masonry as the supreme medium for royal monuments.", "C. The restriction of pyramid building to viziers and priests.", "D. A shift towards circular tombs throughout the Old Kingdom."], correctAnswer: "B", explanation: "Paragraph F confirms it established stone masonry as the supreme medium for royal architecture.", passageEvidence: { paragraph: "F", quote: "established stone masonry as the supreme medium" } }
+            {
+              questionNumber: 21,
+              prompt: "The complex that includes the Step Pyramid and its surroundings is considered to be as big as an Egyptian [ 21 ] of the past.",
+              correctAnswer: "city",
+              acceptedVariants: ["city"],
+              explanation: "Paragraph D: 'encompassed approximately 15 hectares—the size of an entire ancient Egyptian city.'",
+              passageEvidence: { paragraph: "D", quote: "the size of an entire ancient Egyptian city" }
+            },
+            {
+              questionNumber: 22,
+              prompt: "The area outside the pyramid included accommodation that was occupied by [ 22 ], along with many other buildings and features.",
+              correctAnswer: "priests",
+              acceptedVariants: ["priests"],
+              explanation: "Paragraph D: 'comfortable residential quarters occupied by the attending priests.'",
+              passageEvidence: { paragraph: "D", quote: "residential quarters occupied by the attending priests" }
+            },
+            {
+              questionNumber: 23,
+              prompt: "In addition, a long [ 23 ] encircled the wall.",
+              correctAnswer: "trench",
+              acceptedVariants: ["trench"],
+              explanation: "Paragraph D: 'The perimeter wall was ringed by an enormous trench 750 metres long.'",
+              passageEvidence: { paragraph: "D", quote: "ringed by an enormous trench" }
+            },
+            {
+              questionNumber: 24,
+              prompt: "As a result, any visitors who had not been invited were cleverly prevented from entering the pyramid grounds unless they knew the [ 24 ] of the real entrance.",
+              correctAnswer: "location",
+              acceptedVariants: ["location"],
+              explanation: "Paragraph D: 'prevented from entering unless they knew the exact location of the single true entrance.'",
+              passageEvidence: { paragraph: "D", quote: "location of the single true entrance" }
+            }
           ]
         },
         {
           id: "c16-r1-qg5",
           type: "multiple_choice_multi",
           title: "Questions 25 – 26",
-          instructions: "Choose TWO letters, A – E. Which TWO of the following statements about the Step Pyramid are mentioned in the passage?",
+          instructions: "Choose TWO letters, A–E. Which TWO of the following are mentioned about the Step Pyramid and Djoser's reign?",
+          options: [
+            "A. Initially he had to be persuaded to build in stone rather than clay.",
+            "B. There is disagreement concerning the length of his reign.",
+            "C. He failed to appreciate Imhotep's part in the design of the Step Pyramid.",
+            "D. A few of his possessions were still in his tomb when archaeologists found it.",
+            "E. He criticised the design and construction of other pyramids in Egypt."
+          ],
           questions: [
-            { questionNumber: 25, prompt: "Which TWO statements about the Step Pyramid are mentioned in the passage? (First answer)", options: ["A. Its outer casing was made of polished white Tura limestone.", "B. It was the tallest structure ever constructed in the ancient world.", "C. It contains over five kilometres of underground passageways.", "D. It collapsed during an earthquake in the Third Dynasty.", "E. Its design was kept secret by ancient guilds of craftsmen."], correctAnswer: "A", acceptedVariants: ["C"], explanation: "Paragraph D mentions casing in white Tura limestone; Paragraph E mentions underground tunnels over 5.7 km.", passageEvidence: { paragraph: "D", quote: "encased in gleaming white Tura limestone" } },
-            { questionNumber: 26, prompt: "Which TWO statements about the Step Pyramid are mentioned in the passage? (Second answer)", options: ["A. Its outer casing was made of polished white Tura limestone.", "B. It was the tallest structure ever constructed in the ancient world.", "C. It contains over five kilometres of underground passageways.", "D. It collapsed during an earthquake in the Third Dynasty.", "E. Its design was kept secret by ancient guilds of craftsmen."], correctAnswer: "C", acceptedVariants: ["A"], explanation: "Paragraph E mentions underground tunnels over 5.7 km.", passageEvidence: { paragraph: "E", quote: "tunnels, galleries, and chambers stretching for over 5.7 kilometres" } }
+            {
+              questionNumber: 25,
+              prompt: "Which TWO statements are mentioned in the passage? (First answer)",
+              options: [
+                "A. Initially he had to be persuaded to build in stone rather than clay.",
+                "B. There is disagreement concerning the length of his reign.",
+                "C. He failed to appreciate Imhotep's part in the design of the Step Pyramid.",
+                "D. A few of his possessions were still in his tomb when archaeologists found it.",
+                "E. He criticised the design and construction of other pyramids in Egypt."
+              ],
+              correctAnswer: "B",
+              acceptedVariants: ["D"],
+              explanation: "Paragraph A notes that while some records give 19 years, other sources suggest over 30 years (disagreement over reign length)."
+            },
+            {
+              questionNumber: 26,
+              prompt: "Which TWO statements are mentioned in the passage? (Second answer)",
+              options: [
+                "A. Initially he had to be persuaded to build in stone rather than clay.",
+                "B. There is disagreement concerning the length of his reign.",
+                "C. He failed to appreciate Imhotep's part in the design of the Step Pyramid.",
+                "D. A few of his possessions were still in his tomb when archaeologists found it.",
+                "E. He criticised the design and construction of other pyramids in Egypt."
+              ],
+              correctAnswer: "D",
+              acceptedVariants: ["B"],
+              explanation: "Paragraph F confirms that archaeologists discovered a few of Djoser's personal possessions still remained in the burial vault."
+            }
           ]
         }
       ]
@@ -155,22 +349,25 @@ export const cambridge16Test1Reading: IELTSMockTest = {
             Automation, machine learning, and artificial intelligence are transforming workplace dynamics at a pace unseen since the Industrial Revolution. How will economies, corporations, and workers adapt to the automated future?
           </p>
           <p>
-            <strong>A.</strong> The anxiety that machines will render human labor obsolete has recurred periodically throughout modern history. In the early 19th century, textile workers known as Luddites smashed mechanical looms in northern England, fearful that industrial machinery would destroy their livelihoods. Today, similar apprehensions are surfacing across global capitals, driven by breakthroughs in algorithmic computation, predictive robotics, and generative AI. However, contemporary economists argue that the nature of current technological change differs fundamentally from historical precedents.
+            <strong>A.</strong> The ongoing revolution in artificial intelligence and automation has sparked widespread public debate regarding the future of employment. A landmark 2017 study by the McKinsey Global Institute suggested that between 3 and 14 percent of the global workforce will need to switch occupational categories by 2030 due to automation. However, while media headlines frequently warn of mass unemployment, what the first paragraph really illustrates is the profound extent to which AI will alter the nature of the work that people actually do on a daily basis. Rather than eliminating jobs wholesale, technological innovation reshapes job descriptions, requiring human workers to partner with smart algorithms.
           </p>
           <p>
-            <strong>B.</strong> In a landmark 2017 study by the McKinsey Global Institute, researchers estimated that up to 375 million workers globally—roughly 14 percent of the worldwide workforce—could need to transition to entirely new occupational categories by 2030. While earlier waves of automation primarily replaced physically demanding, manual tasks on factory floors, digital algorithms are now capable of executing complex cognitive routines. Routine cognitive work, such as basic financial auditing, paralegal document indexing, and medical radiology scanning, can now be executed faster and with fewer errors by machine learning systems.
+            <strong>B.</strong> According to Dr Stella Pachidi of the Cambridge Judge Business School, discussions about automation have moved far beyond physical robots replacing assembly-line workers. She explains that the modern 'knowledge economy' is a key factor driving current developments in the workplace. In banking, legal practice, accounting, and consulting, automated algorithmic systems are now handling data-intensive analysis that previously demanded hours of manual scrutiny by junior associates.
           </p>
           <p>
-            <strong>C.</strong> Yet, technological displacement does not necessarily equate to aggregate employment decline. As Professor David Autor of the Massachusetts Institute of Technology points out, technology often acts as a complement rather than a substitute for human labor. When automated teller machines (ATMs) were widely deployed across American banking branches in the 1980s and 1990s, pundits predicted the total demise of bank tellers. Instead, ATMs lowered the operating cost of maintaining local branches, allowing banks to open far more branches. Consequently, total teller employment actually grew, although the tellers\' daily responsibilities shifted from cash dispensing toward relationship management, advisory services, and loan sales.
+            <strong>C.</strong> During an in-depth empirical study at a large international telecommunications company, Dr Pachidi observed how corporate sales staff adapted to a newly introduced machine-learning platform. She describes the 'art of work' as the subtle ways in which staff manipulate algorithmic inputs to ensure that AI produces the specific commercial results that they want, rather than accepting machine recommendations passively. While companies adopt AI to enforce standardized compliance, workers often invent creative workarounds to protect their practical expertise.
           </p>
           <p>
-            <strong>D.</strong> Nonetheless, the economic transition is rarely frictionless. Economists highlight the emerging phenomenon of \'labor market polarization\'. While employment in high-skill, high-wage occupations (such as software architecture, specialized surgery, and corporate strategy) and low-skill, low-wage personal services (such as elder care, hospitality, and landscape maintenance) continues to expand, middle-wage clerical and manufacturing jobs are shrinking rapidly. This \'hollowing out\' of the middle class threatens social cohesion and exacerbates income inequality, particularly in developed Western economies.
+            <strong>D.</strong> Nonetheless, this shift creates major challenges for workforce planning. Dr Pachidi emphasizes the urgent necessity for organizations to change their hiring and training models. As AI takes over entry-level analytical tasks, traditional on-the-job apprenticeship models are disintegrating, leaving junior employees with fewer opportunities to learn the fundamental mechanics of their profession.
           </p>
           <p>
-            <strong>E.</strong> To mitigate these structural disruptions, educational institutions and national governments must urgently modernize workforce development paradigms. Traditional models of front-loaded education—in which an individual earns a degree in their twenties and expects that technical knowledge to sustain a 40-year career—are hopelessly obsolete. Instead, forward-looking economists advocate for lifelong learning frameworks supported by government-subsidized reskilling accounts and corporate apprenticeships.
+            <strong>E.</strong> In particular, Dr Pachidi highlights the risks of what she terms the 'algorithmication' of jobs where employees manage information rather than tangible products. In her research, she observed that when staff develop an uncritical reliance on AI recommendations, they gradually cease relying on their own professional intuition. Over time, this erosion of intuitive judgment prevents workers from making creative leaps, undermining the company's long-term capacity for true innovation. To counter this, researchers argue that leaders must foster genuine confidence among employees, empowering them to critique and interrogate algorithmic outputs.
           </p>
           <p>
-            <strong>F.</strong> Ultimately, human workers retain distinct comparative advantages over computational models in domains that require empathy, complex interpersonal negotiation, ethical judgment, and imaginative creativity. Rather than treating artificial intelligence as an adversarial threat, the most resilient enterprises are building hybrid collaborative workflows where automated systems handle quantitative heavy lifting while human professionals focus on nuanced synthesis and strategic leadership.
+            <strong>F.</strong> Professor Hamish Low, an economist at the University of Oxford, provides a broader historical perspective. He argues that greater levels of automation will not result in lower aggregate employment, pointing out that historical technological shocks—from the spinning jenny to the atmospheric steam engine—invariably created more employment opportunities than they destroyed. Professor Low asserts that in the modern economy, people's career trajectories will become more varied and flexible, with workers transitioning across multiple career phases rather than following a single unbroken ladder until retirement.
+          </p>
+          <p>
+            <strong>G.</strong> Meanwhile, Dr Ewan McGaughey of King's College London argues that the popular idea that technology inherently causes unemployment is fundamentally flawed. In his legal and economic research, Dr McGaughey demonstrates that joblessness is not caused by digital automation, but rather by policy decisions, corporate governance structures, and laws that restrict capital allocation and fair wages. In his view, government policy and capital allocation play a decisive role in job security, and modern democratic societies have the legal power to guarantee full employment if they choose to do so.
           </p>
         </div>
       `,
@@ -181,38 +378,153 @@ export const cambridge16Test1Reading: IELTSMockTest = {
           title: "Questions 27 – 30",
           instructions: "Choose the correct letter, A, B, C or D.",
           questions: [
-            { questionNumber: 27, prompt: "In Paragraph A, what comparison does the author draw with the 19th-century Luddites?", options: ["A. Both eras experienced widespread worker riots in rural communities.", "B. Both periods were marked by intense anxiety regarding machine-driven job displacement.", "C. Today\'s AI developers are adopting the same organizational tactics as early factory owners.", "D. Textile automation caused far worse economic depression than modern computing."], correctAnswer: "B", explanation: "Paragraph A states anxieties that machines will render human labor obsolete occurred during the Luddite era and are surfacing again today.", passageEvidence: { paragraph: "A", quote: "anxiety that machines will render human labor obsolete has recurred periodically" } },
-            { questionNumber: 28, prompt: "How does the McKinsey Global Institute study distinguish modern automation from earlier waves?", options: ["A. Modern automation primarily targets agricultural production.", "B. Modern automation is confined only to developing economies.", "C. Modern automation replaces cognitive routines rather than merely physical labor.", "D. Modern automation will affect less than one percent of total workers."], correctAnswer: "C", explanation: "Paragraph B explains that modern algorithms execute complex cognitive routines rather than merely manual physical tasks.", passageEvidence: { paragraph: "B", quote: "algorithms are now capable of executing complex cognitive routines" } },
-            { questionNumber: 29, prompt: "What unexpected result occurred when ATMs were introduced in US banking branches?", options: ["A. Most commercial bank branches were closed immediately.", "B. Bank teller employment increased while their job responsibilities changed.", "C. Customers refused to use automated machines due to security concerns.", "D. Bank profits dropped because machines were more expensive than humans."], correctAnswer: "B", explanation: "Paragraph C notes total teller employment grew while responsibilities shifted toward advisory services.", passageEvidence: { paragraph: "C", quote: "total teller employment actually grew" } },
-            { questionNumber: 30, prompt: "What is meant by \'labor market polarization\' described in Paragraph D?", options: ["A. Equal growth across every occupational sector in the economy.", "B. The migration of workers exclusively from rural areas to urban tech hubs.", "C. The expansion of high-wage and low-wage jobs alongside the shrinkage of middle-tier jobs.", "D. A division between workers who support unions and those who do not."], correctAnswer: "C", explanation: "Paragraph D defines polarization as expanding high-wage and low-wage jobs while middle-tier jobs shrink.", passageEvidence: { paragraph: "D", quote: "hollowing out of the middle class" } }
+            {
+              questionNumber: 27,
+              prompt: "The first paragraph tells us that",
+              options: [
+                "A. technological changes are happening faster than ever before.",
+                "B. the extent to which AI will alter the nature of the work that people do.",
+                "C. a high percentage of workers will be replaced by computers.",
+                "D. companies should prepare their workforce for future disruptions."
+              ],
+              correctAnswer: "B",
+              explanation: "Paragraph A highlights that automation alters the nature and daily tasks of work rather than simply causing mass joblessness."
+            },
+            {
+              questionNumber: 28,
+              prompt: "According to the second paragraph, what is Stella Pachidi's view of the 'knowledge economy'?",
+              options: [
+                "A. It is focused mainly on production and logistics.",
+                "B. It has failed to create high-skilled employment opportunities.",
+                "C. It is becoming increasingly reliant on manual labor.",
+                "D. It is a key factor driving current developments in the workplace."
+              ],
+              correctAnswer: "D",
+              explanation: "Paragraph B explains that Dr Pachidi considers the knowledge economy a primary driving factor of workplace transformations."
+            },
+            {
+              questionNumber: 29,
+              prompt: "What does the writer suggest about the 'art of work' in the third paragraph?",
+              options: [
+                "A. Employees prefer using traditional software over automated systems.",
+                "B. Innovation requires workers to strictly follow algorithmic guidelines.",
+                "C. Staff making sure that AI produces the results that they want.",
+                "D. Managers must train employees to be more analytical."
+              ],
+              correctAnswer: "C",
+              explanation: "Paragraph C defines the 'art of work' as staff tweaking inputs to ensure AI generates the specific outcomes they desire."
+            },
+            {
+              questionNumber: 30,
+              prompt: "What is the main point made in the fourth paragraph?",
+              options: [
+                "A. Businesses will eliminate human oversight entirely.",
+                "B. AI systems will struggle to adapt to unforeseen market conditions.",
+                "C. Employees will resist using automated algorithms in their daily tasks.",
+                "D. The necessity for organizations to change their hiring and training models."
+              ],
+              correctAnswer: "D",
+              explanation: "Paragraph D focuses directly on the necessity for firms to restructure their hiring, mentoring, and apprenticeship paradigms."
+            }
           ]
         },
         {
           id: "c16-r1-qg7",
-          type: "matching_features",
-          title: "Questions 31 – 35",
-          instructions: "Look at the following viewpoints (Questions 31–35) and the list of entities below. Match each statement with the correct entity, A, B or C.",
+          type: "summary_completion",
+          title: "Questions 31 – 34",
+          instructions: "Complete the summary using the list of words, A–G, below. Write the correct letter, A–G, in boxes 31–34 on your answer sheet.",
+          summaryTitle: "The 'algorithmication' of jobs",
+          options: [
+            "A pressure",
+            "B satisfaction",
+            "C intuition",
+            "D promotion",
+            "E reliance",
+            "F confidence",
+            "G information"
+          ],
           questions: [
-            { questionNumber: 31, prompt: "Up to 375 million workers may need to switch occupational categories by 2030.", options: ["A. McKinsey Global Institute", "B. Professor David Autor", "C. Contemporary economic consensus"], correctAnswer: "A", explanation: "Paragraph B cites the McKinsey Global Institute study for the 375 million estimate.", passageEvidence: { paragraph: "B", quote: "McKinsey Global Institute, researchers estimated that up to 375 million workers" } },
-            { questionNumber: 32, prompt: "Automated teller machines did not destroy overall bank teller employment.", options: ["A. McKinsey Global Institute", "B. Professor David Autor", "C. Contemporary economic consensus"], correctAnswer: "B", explanation: "Paragraph C notes Professor David Autor highlighted how ATMs transformed teller roles without eliminating jobs.", passageEvidence: { paragraph: "C", quote: "Professor David Autor of the Massachusetts Institute of Technology points out" } },
-            { questionNumber: 33, prompt: "Technology often acts as a complementary partner rather than a pure replacement for labor.", options: ["A. McKinsey Global Institute", "B. Professor David Autor", "C. Contemporary economic consensus"], correctAnswer: "B", explanation: "Paragraph C quotes David Autor showing technology complements human labor.", passageEvidence: { paragraph: "C", quote: "technology often acts as a complement rather than a substitute" } },
-            { questionNumber: 34, prompt: "Front-loaded education in a person\'s youth is inadequate for lifelong career demands.", options: ["A. McKinsey Global Institute", "B. Professor David Autor", "C. Contemporary economic consensus"], correctAnswer: "C", explanation: "Paragraph E explains forward-looking economists advocate for lifelong learning frameworks.", passageEvidence: { paragraph: "E", quote: "Traditional models of front-loaded education... are hopelessly obsolete" } },
-            { questionNumber: 35, prompt: "Human workers maintain advantages in jobs requiring interpersonal empathy and negotiation.", options: ["A. McKinsey Global Institute", "B. Professor David Autor", "C. Contemporary economic consensus"], correctAnswer: "C", explanation: "Paragraph F highlights human comparative advantages in empathy, negotiation, and ethics.", passageEvidence: { paragraph: "F", quote: "human workers retain distinct comparative advantages over computational models" } }
+            {
+              questionNumber: 31,
+              prompt: "Stella Pachidi focuses on jobs where employees manage [ 31 ] rather than physical production.",
+              options: ["A pressure", "B satisfaction", "C intuition", "D promotion", "E reliance", "F confidence", "G information"],
+              correctAnswer: "G",
+              acceptedVariants: ["information"],
+              explanation: "Paragraph E refers to jobs dependent on data (information) rather than tangible physical manufacturing."
+            },
+            {
+              questionNumber: 32,
+              prompt: "She noticed a growing [ 32 ] on machine learning tools among corporate staff.",
+              options: ["A pressure", "B satisfaction", "C intuition", "D promotion", "E reliance", "F confidence", "G information"],
+              correctAnswer: "E",
+              acceptedVariants: ["reliance"],
+              explanation: "Paragraph E observes workers developing an uncritical reliance on AI recommendations."
+            },
+            {
+              questionNumber: 33,
+              prompt: "As a consequence, workers are less inclined to use their own [ 33 ] when solving problems.",
+              options: ["A pressure", "B satisfaction", "C intuition", "D promotion", "E reliance", "F confidence", "G information"],
+              correctAnswer: "C",
+              acceptedVariants: ["intuition"],
+              explanation: "Paragraph E highlights that staff cease relying on their professional intuition."
+            },
+            {
+              questionNumber: 34,
+              prompt: "This makes it difficult for organisations to build genuine [ 34 ] in their future decision-making.",
+              options: ["A pressure", "B satisfaction", "C intuition", "D promotion", "E reliance", "F confidence", "G information"],
+              correctAnswer: "F",
+              acceptedVariants: ["confidence"],
+              explanation: "Paragraph E emphasizes the need to restore employee confidence in questioning and guiding technology."
+            }
           ]
         },
         {
           id: "c16-r1-qg8",
-          type: "summary_completion",
-          title: "Questions 36 – 40",
-          instructions: "Complete the summary below. Choose NO MORE THAN TWO WORDS from the passage for each answer.",
-          summaryTitle: "Adapting to the Automated Workplace",
-          wordLimitRule: "NO MORE THAN TWO WORDS",
+          type: "matching_features",
+          title: "Questions 35 – 40",
+          instructions: "Look at the following statements (Questions 35–40) and the list of people below. Match each statement with the correct person, A, B or C.",
+          options: [
+            "A Stella Pachidi",
+            "B Hamish Low",
+            "C Ewan McGaughey"
+          ],
           questions: [
-            { questionNumber: 36, prompt: "Early 19th-century workers known as [ 36 ] protested against mechanical equipment in England.", correctAnswer: "Luddites", explanation: "Paragraph A: 'textile workers known as Luddites smashed mechanical looms.'", passageEvidence: { paragraph: "A", quote: "textile workers known as Luddites" } },
-            { questionNumber: 37, prompt: "Unlike past industrial machines, digital algorithms can now perform complex [ 37 ] tasks.", correctAnswer: "cognitive", acceptedVariants: ["cognitive routines"], explanation: "Paragraph B: 'digital algorithms are now capable of executing complex cognitive routines.'", passageEvidence: { paragraph: "B", quote: "executing complex cognitive routines" } },
-            { questionNumber: 38, prompt: "The decline of middle-wage roles has caused labor market [ 38 ] in Western economies.", correctAnswer: "polarization", acceptedVariants: ["labour market polarization"], explanation: "Paragraph D discusses the emerging phenomenon of 'labor market polarization'.", passageEvidence: { paragraph: "D", quote: "labor market polarization" } },
-            { questionNumber: 39, prompt: "Economists recommend introducing [ 39 ] learning initiatives supported by government reskilling accounts.", correctAnswer: "lifelong", acceptedVariants: ["lifelong learning"], explanation: "Paragraph E: 'forward-looking economists advocate for lifelong learning frameworks.'", passageEvidence: { paragraph: "E", quote: "lifelong learning frameworks" } },
-            { questionNumber: 40, prompt: "Enterprises achieve the highest resilience by designing [ 40 ] workflows combining AI with humans.", correctAnswer: "hybrid", acceptedVariants: ["hybrid collaborative"], explanation: "Paragraph F: 'building hybrid collaborative workflows where automated systems handle quantitative heavy lifting.'", passageEvidence: { paragraph: "F", quote: "building hybrid collaborative workflows" } }
+            {
+              questionNumber: 35,
+              prompt: "Greater levels of automation will not result in lower employment.",
+              correctAnswer: "B",
+              explanation: "Paragraph F mentions Professor Hamish Low's argument that automation will not cause aggregate job losses."
+            },
+            {
+              questionNumber: 36,
+              prompt: "There are several reasons why AI is appealing to businesses.",
+              correctAnswer: "A",
+              explanation: "Paragraph B details Dr Stella Pachidi's analysis of why corporations are eager to adopt algorithmic analysis."
+            },
+            {
+              questionNumber: 37,
+              prompt: "The idea that technology causes unemployment is fundamentally flawed.",
+              correctAnswer: "C",
+              explanation: "Paragraph G presents Dr Ewan McGaughey's view that technology causing joblessness is a fundamental misconception."
+            },
+            {
+              questionNumber: 38,
+              prompt: "Staff may feel less motivated to innovate when using automated systems.",
+              correctAnswer: "A",
+              explanation: "Paragraph E details Dr Pachidi's finding that reliance on AI suppresses human intuitive innovation."
+            },
+            {
+              questionNumber: 39,
+              prompt: "People's career trajectories will become more varied and flexible.",
+              correctAnswer: "B",
+              explanation: "Paragraph F notes Professor Low's view that working lives will become multistage and more flexible."
+            },
+            {
+              questionNumber: 40,
+              prompt: "Government policy and capital allocation play a decisive role in job security.",
+              correctAnswer: "C",
+              explanation: "Paragraph G states Dr McGaughey's thesis that legal regulations and capital allocation determine employment levels."
+            }
           ]
         }
       ]
@@ -230,29 +542,33 @@ export const cambridge16Test1Listening: IELTSMockTest = {
   module: "listening",
   title: "Cambridge 16 Academic Listening Test 1",
   durationMinutes: 35,
-  audioUrl: "/audio/cam18-test1-part1.mp3",
+  audioUrl: "/audio/cam16-test1-part1.mp3",
   sections: [
     {
       sectionNumber: 1,
       title: "Listening Part 1",
       subtitle: "Children's Engineering Workshops",
-      audioUrl: "/audio/cam18-test1-part1.mp3",
+      audioUrl: "/audio/cam16-test1-part1.mp3",
       transcript: `
-        RECEPTIONIST: Good morning, Highfield Youth Club. How can I help you?
-        PARENT: Hello, I\'m calling to enquire about the weekend engineering workshops for children. My daughter Sarah is very keen on building things.
-        RECEPTIONIST: That\'s wonderful! We run two distinct programs depending on age. The Junior Inventors is for children aged 6 to 9, and then we have the Master Robotics club for ages 10 to 14.
-        PARENT: Sarah just turned eight last month, so Junior Inventors sounds perfect. Where are the sessions held?
-        RECEPTIONIST: All sessions take place in our modern Science Centre located on Bridge Street, just opposite the library.
-        PARENT: And what days and times?
-        RECEPTIONIST: The Junior Inventors workshop runs every Saturday morning from 9:30 to 11:30 am.
-        PARENT: What kind of projects do the children work on?
-        RECEPTIONIST: We focus on practical, hands-on construction. For instance, in the first couple of weeks they build small wooden bridges to test load strength. Then in week three, they construct miniature catapults, which teaches them about kinetic energy.
-        PARENT: Sounds fascinating. Do they need to bring any tools or materials?
-        RECEPTIONIST: No, we supply everything, including safety goggles and aprons. But we do ask parents to ensure children wear flat shoes rather than sandals or flip-flops.
-        PARENT: Understood. And how much does the term cost?
-        RECEPTIONIST: It\'s 85 pounds for the six-week course. That includes all materials and a certificate of completion.
-        PARENT: Excellent. How do I register?
-        RECEPTIONIST: You can register online at our website or leave your details with me now.
+        RECEPTIONIST: Good morning, Highfield Community Centre. How may I help you?
+        CALLER: Oh, hello. I'm calling to enquire about the engineering workshops for children that I saw advertised.
+        RECEPTIONIST: Certainly! We offer two distinct programs based on the children's age. The first is called 'Tiny Engineers', which is designed specifically for children aged 4 to 5.
+        CALLER: Right, and what kind of things do they do in that group?
+        RECEPTIONIST: It's all about hands-on discovery and creative play. For example, in one popular challenge, the children design a protective cushion or special cover for a fresh egg, and then test whether they can drop it from a table without it breaking!
+        CALLER: Haha, that sounds like great fun!
+        RECEPTIONIST: Yes, they love it! Another activity involves a friendly team competition to see who can build the highest tower using lightweight building blocks. And in week three, they make a model car that is actually powered across the floor by a balloon.
+        CALLER: Lovely! And what about the older children? My son is seven.
+        RECEPTIONIST: Then he would be in our 'Junior Engineers' group for children aged 6 to 8. They tackle slightly more complex engineering projects. They build various model vehicles like trucks, and they also build model animals with moving joints and gears.
+        CALLER: Fantastic.
+        RECEPTIONIST: They also build a miniature bridge and test how much weight it can support using small metal weights. Later in the term, they plan and make a short movie using stop-motion animation with the characters they have built.
+        CALLER: An animated movie! My son would be thrilled with that!
+        RECEPTIONIST: In the final week, they construct a model of a fairground ride and decorate it with paint and battery-powered mini LED lights.
+        CALLER: Wonderful! When do the sessions take place?
+        RECEPTIONIST: Both workshops are held on Wednesdays after school, from 4:00 to 5:30 pm.
+        CALLER: And where are they located?
+        RECEPTIONIST: In Building 10A at the Fradstone Industrial Estate. That's F-R-A-D-S-T-O-N-E.
+        CALLER: And is there somewhere to park?
+        RECEPTIONIST: Yes, there is plenty of free parking directly in front of the building.
       `,
       questionGroups: [
         {
@@ -260,36 +576,79 @@ export const cambridge16Test1Listening: IELTSMockTest = {
           type: "form_completion",
           title: "Questions 1 – 10",
           instructions: "Complete the notes below. Write ONE WORD AND/OR A NUMBER for each answer.",
-          summaryTitle: "Children\'s Engineering Workshops",
+          summaryTitle: "Children's Engineering Workshops",
           wordLimitRule: "ONE WORD AND/OR A NUMBER",
-          clozeTemplate: `
-Children\'s Engineering Workshops
-Club for ages 6–9: Junior {{1}}
-Location: Science Centre on {{2}} Street (opposite the library)
-Day & time: Every {{3}} morning from 9:30 to 11:30 am
-Projects:
-• Build small wooden {{4}} to test weight capacity
-• Build miniature {{5}} to demonstrate kinetic energy
-Requirements:
-• Children must wear flat {{6}} (no sandals)
-• Safety goggles and {{7}} provided by the club
-Cost:
-• £{{8}} for a 6-week course
-• Includes all materials and a final {{9}}
-Registration:
-• Complete the form on the club\'s {{10}}
-          `,
           questions: [
-            { questionNumber: 1, prompt: "Club for ages 6–9: Junior [ 1 ]", correctAnswer: "Inventors", acceptedVariants: ["inventors"], explanation: "Transcript: 'The Junior Inventors is for children aged 6 to 9.'", passageEvidence: { paragraph: "Part 1", quote: "Junior Inventors" } },
-            { questionNumber: 2, prompt: "Location: Science Centre on [ 2 ] Street", correctAnswer: "Bridge", acceptedVariants: ["bridge"], explanation: "Transcript: 'located on Bridge Street, just opposite the library.'", passageEvidence: { paragraph: "Part 1", quote: "on Bridge Street" } },
-            { questionNumber: 3, prompt: "Day & time: Every [ 3 ] morning", correctAnswer: "Saturday", acceptedVariants: ["saturday"], explanation: "Transcript: 'runs every Saturday morning from 9:30 to 11:30 am.'", passageEvidence: { paragraph: "Part 1", quote: "every Saturday morning" } },
-            { questionNumber: 4, prompt: "Build small wooden [ 4 ] to test weight capacity", correctAnswer: "bridges", acceptedVariants: ["bridge"], explanation: "Transcript: 'they build small wooden bridges to test load strength.'", passageEvidence: { paragraph: "Part 1", quote: "build small wooden bridges" } },
-            { questionNumber: 5, prompt: "Build miniature [ 5 ] to demonstrate kinetic energy", correctAnswer: "catapults", acceptedVariants: ["catapult"], explanation: "Transcript: 'they construct miniature catapults, which teaches them about kinetic energy.'", passageEvidence: { paragraph: "Part 1", quote: "miniature catapults" } },
-            { questionNumber: 6, prompt: "Children must wear flat [ 6 ]", correctAnswer: "shoes", explanation: "Transcript: 'ensure children wear flat shoes rather than sandals or flip-flops.'", passageEvidence: { paragraph: "Part 1", quote: "wear flat shoes" } },
-            { questionNumber: 7, prompt: "Safety goggles and [ 7 ] provided", correctAnswer: "aprons", acceptedVariants: ["apron"], explanation: "Transcript: 'we supply everything, including safety goggles and aprons.'", passageEvidence: { paragraph: "Part 1", quote: "safety goggles and aprons" } },
-            { questionNumber: 8, prompt: "Cost: £ [ 8 ] for a 6-week course", correctAnswer: "85", acceptedVariants: ["85 pounds"], explanation: "Transcript: 'It\'s 85 pounds for the six-week course.'", passageEvidence: { paragraph: "Part 1", quote: "85 pounds for the six-week course" } },
-            { questionNumber: 9, prompt: "Includes all materials and a final [ 9 ]", correctAnswer: "certificate", acceptedVariants: ["certificate of completion"], explanation: "Transcript: 'Includes all materials and a certificate of completion.'", passageEvidence: { paragraph: "Part 1", quote: "certificate of completion" } },
-            { questionNumber: 10, prompt: "Complete the form on the club\'s [ 10 ]", correctAnswer: "website", acceptedVariants: ["site"], explanation: "Transcript: 'You can register online at our website.'", passageEvidence: { paragraph: "Part 1", quote: "register online at our website" } }
+            {
+              questionNumber: 1,
+              prompt: "Tiny Engineers (ages 4–5): Create a cover for an [ 1 ] so they can drop it without breaking it",
+              correctAnswer: "egg",
+              acceptedVariants: ["egg"],
+              explanation: "Transcript: 'design a protective cushion or special cover for a fresh egg'"
+            },
+            {
+              questionNumber: 2,
+              prompt: "Take part in a competition to see who can build the highest [ 2 ]",
+              correctAnswer: "tower",
+              acceptedVariants: ["tower"],
+              explanation: "Transcript: 'a friendly team competition to see who can build the highest tower'"
+            },
+            {
+              questionNumber: 3,
+              prompt: "Make a [ 3 ] powered by a balloon",
+              correctAnswer: "car",
+              acceptedVariants: ["car"],
+              explanation: "Transcript: 'they make a model car that is actually powered across the floor by a balloon'"
+            },
+            {
+              questionNumber: 4,
+              prompt: "Junior Engineers (ages 6–8): Build model vehicles such as trucks and [ 4 ]",
+              correctAnswer: "animals",
+              acceptedVariants: ["animals", "animal"],
+              explanation: "Transcript: 'build various model vehicles like trucks, and they also build model animals'"
+            },
+            {
+              questionNumber: 5,
+              prompt: "Build a [ 5 ] and test how much weight it will hold",
+              correctAnswer: "bridge",
+              acceptedVariants: ["bridge"],
+              explanation: "Transcript: 'build a miniature bridge and test how much weight it can support'"
+            },
+            {
+              questionNumber: 6,
+              prompt: "Plan and make a special [ 6 ] with animated characters",
+              correctAnswer: "movie",
+              acceptedVariants: ["movie", "film"],
+              explanation: "Transcript: 'plan and make a short movie using stop-motion animation'"
+            },
+            {
+              questionNumber: 7,
+              prompt: "Build a model of a fairground ride and [ 7 ] it with lights and paint",
+              correctAnswer: "decorate",
+              acceptedVariants: ["decorate"],
+              explanation: "Transcript: 'construct a model of a fairground ride and decorate it with paint and battery-powered mini LED lights'"
+            },
+            {
+              questionNumber: 8,
+              prompt: "Workshops held on [ 8 ]",
+              correctAnswer: "Wednesdays",
+              acceptedVariants: ["Wednesdays", "Wednesday", "wednesdays", "wednesday"],
+              explanation: "Transcript: 'Both workshops are held on Wednesdays after school'"
+            },
+            {
+              questionNumber: 9,
+              prompt: "Location: Building 10A, [ 9 ] Industrial Estate",
+              correctAnswer: "Fradstone",
+              acceptedVariants: ["Fradstone", "fradstone"],
+              explanation: "Transcript: 'In Building 10A at the Fradstone Industrial Estate. That's F-R-A-D-S-T-O-N-E.'"
+            },
+            {
+              questionNumber: 10,
+              prompt: "Transport: Plenty of free [ 10 ] available",
+              correctAnswer: "parking",
+              acceptedVariants: ["parking", "car parking"],
+              explanation: "Transcript: 'plenty of free parking directly in front of the building'"
+            }
           ]
         }
       ]
@@ -297,36 +656,127 @@ Registration:
     {
       sectionNumber: 2,
       title: "Listening Part 2",
-      subtitle: "Parkwood Community Centre Tour",
-      audioUrl: "/audio/cam18-test1-part2.mp3",
+      subtitle: "Stevenson's Site Tour",
+      audioUrl: "/audio/cam16-test1-part2.mp3",
       transcript: `
-        GUIDE: Welcome to Parkwood Centre, everyone! We\'re delighted to show you our newly upgraded facilities. Over the past year, thanks to generous municipal funding and volunteer contributions, we\'ve completely revitalized the complex. First, let\'s look at our sports wing. Our gym has been expanded and fitted with low-impact cardiovascular equipment designed for all fitness levels. Next door, the multipurpose hall now features sprung oak flooring suitable for badminton, yoga, and community dances. Upstairs, we have created dedicated study carrels with high-speed fiber internet for local students. Regarding our volunteering program, we are actively recruiting invigilators and community mentors. If you can spare three hours on a Tuesday or Thursday, your assistance would make a world of difference to our after-school literacy tutoring.
+        GUIDE: Welcome everyone to Stevenson's. We are delighted to host your work experience group this week. Before we take you onto the production floor, I'd like to share a brief background about the company. Stevenson's was originally established in 1926 by our founder, Ronald Stevenson. Ronald had worked as a metal craftsman since 1923 and drafted plans for an independent business in 1924, but it was in 1926 that the company was officially incorporated.
+        Interestingly, although Stevenson's is widely known today for manufacturing automotive components and precision machine tools, originally Stevenson's manufactured goods exclusively for the healthcare industry, producing stainless surgical trays and sterilization containers.
+        Now, you may have heard rumours about Stevenson's relocating to a modern industrial park outside the county. I can assure you that the company has no plans to move; our roots are firmly established here. As for your schedule this week, along with practical observation on the shop floor, the programme for your work experience includes regular talks by staff from engineering, marketing, and design.
+        Now, let me give you a quick orientation using the site plan. You are currently standing at the Main Entrance. Directly facing you as you enter through the main double doors is Reception, which is marked A on your map. To your left, room H is our Coffee room where you can relax during breaks. Tucked behind the main corridor on the east side, letter C is our main Warehouse where raw materials and finished parts are catalogued. At the far north end, letter G is the Staff canteen, serving hot lunches every day. Beside the courtyard, letter B is the executive Meeting room. And finally, adjacent to the reception area on the eastern flank, letter I is the Admin office.
       `,
       questionGroups: [
         {
           id: "c16-l1-qg2",
           type: "multiple_choice",
-          title: "Questions 11 – 15",
+          title: "Questions 11 – 14",
           instructions: "Choose the correct letter, A, B or C.",
           questions: [
-            { questionNumber: 11, prompt: "What major enhancement was made to the gym at Parkwood Centre?", options: ["A. A brand new Olympic swimming pool was added.", "B. Low-impact cardiovascular equipment was installed.", "C. A 24-hour weightlifting room was created."], correctAnswer: "B", explanation: "Guide mentions gym was fitted with low-impact cardiovascular equipment.", passageEvidence: { paragraph: "Part 2", quote: "fitted with low-impact cardiovascular equipment" } },
-            { questionNumber: 12, prompt: "What special feature does the multipurpose hall floor have?", options: ["A. Heated concrete slabs.", "B. Sprung oak flooring.", "C. Recycled rubber tiles."], correctAnswer: "B", explanation: "Guide notes the multipurpose hall features sprung oak flooring.", passageEvidence: { paragraph: "Part 2", quote: "sprung oak flooring" } },
-            { questionNumber: 13, prompt: "What facility was built upstairs for local students?", options: ["A. Soundproof music rehearsal rooms.", "B. Dedicated study carrels with fiber internet.", "C. A commercial cafeteria."], correctAnswer: "B", explanation: "Guide mentions dedicated study carrels with high-speed fiber internet.", passageEvidence: { paragraph: "Part 2", quote: "dedicated study carrels with high-speed fiber internet" } },
-            { questionNumber: 14, prompt: "Which days are community mentors currently needed for volunteering?", options: ["A. Monday and Wednesday mornings.", "B. Tuesday or Thursday afternoons.", "C. Saturday evenings."], correctAnswer: "B", explanation: "Guide asks for volunteers who can spare three hours on a Tuesday or Thursday.", passageEvidence: { paragraph: "Part 2", quote: "spare three hours on a Tuesday or Thursday" } },
-            { questionNumber: 15, prompt: "What is the primary objective of the after-school volunteer tutoring?", options: ["A. Improving youth literacy.", "B. Coaching junior football.", "C. Teaching introductory computer coding."], correctAnswer: "A", explanation: "Guide specifically highlights after-school literacy tutoring.", passageEvidence: { paragraph: "Part 2", quote: "after-school literacy tutoring" } }
+            {
+              questionNumber: 11,
+              prompt: "Stevenson's was founded in:",
+              options: [
+                "A. 1923",
+                "B. 1924",
+                "C. 1926"
+              ],
+              correctAnswer: "C",
+              explanation: "The speaker clarifies that although Ronald worked since 1923 and drafted plans in 1924, the company was officially founded in 1926."
+            },
+            {
+              questionNumber: 12,
+              prompt: "Originally, Stevenson's manufactured goods for:",
+              options: [
+                "A. the healthcare industry",
+                "B. the automotive industry",
+                "C. the machine tools industry"
+              ],
+              correctAnswer: "A",
+              explanation: "Transcript: 'originally Stevenson's manufactured goods exclusively for the healthcare industry'"
+            },
+            {
+              questionNumber: 13,
+              prompt: "What does the speaker say about the company premises?",
+              options: [
+                "A. The company is planning to expand to a new city.",
+                "B. The company has no plans to move.",
+                "C. The company recently sold part of the land."
+              ],
+              correctAnswer: "B",
+              explanation: "Transcript: 'I can assure you that the company has no plans to move'"
+            },
+            {
+              questionNumber: 14,
+              prompt: "The programme for the work experience group includes:",
+              options: [
+                "A. shadowing senior executives",
+                "B. operating factory machinery",
+                "C. talks by staff"
+              ],
+              correctAnswer: "C",
+              explanation: "Transcript: 'the programme for your work experience includes regular talks by staff'"
+            }
           ]
         },
         {
           id: "c16-l1-qg3",
           type: "matching_features",
-          title: "Questions 16 – 20",
-          instructions: "What facility is recommended for each group? Choose FIVE answers from the box, A – G.",
+          title: "Questions 15 – 20",
+          instructions: "Label the map below. Write the correct letter, A–J, next to Questions 15–20.",
+          options: [
+            "A. Reception",
+            "B. Meeting room",
+            "C. Warehouse",
+            "D. Main laboratory",
+            "E. Car park",
+            "F. Quality control",
+            "G. Staff canteen",
+            "H. Coffee room",
+            "I. Admin office",
+            "J. Loading bay"
+          ],
           questions: [
-            { questionNumber: 16, prompt: "Senior citizens", options: ["A. Sprung floor hall", "B. Low-impact gym", "C. Study carrels", "D. Outdoor sensory garden", "E. Cafe lounge", "F. Ceramic pottery studio", "G. IT training suite"], correctAnswer: "B", explanation: "Senior exercise programs take place in the low-impact gym.", passageEvidence: { paragraph: "Part 2", quote: "low-impact gym" } },
-            { questionNumber: 17, prompt: "High school examination candidates", options: ["A. Sprung floor hall", "B. Low-impact gym", "C. Study carrels", "D. Outdoor sensory garden", "E. Cafe lounge", "F. Ceramic pottery studio", "G. IT training suite"], correctAnswer: "C", explanation: "Students preparing for exams use the quiet study carrels.", passageEvidence: { paragraph: "Part 2", quote: "study carrels" } },
-            { questionNumber: 18, prompt: "Badminton players", options: ["A. Sprung floor hall", "B. Low-impact gym", "C. Study carrels", "D. Outdoor sensory garden", "E. Cafe lounge", "F. Ceramic pottery studio", "G. IT training suite"], correctAnswer: "A", explanation: "Badminton games are scheduled on the sprung oak floor hall.", passageEvidence: { paragraph: "Part 2", quote: "sprung oak flooring suitable for badminton" } },
-            { questionNumber: 19, prompt: "Elderly gardening club", options: ["A. Sprung floor hall", "B. Low-impact gym", "C. Study carrels", "D. Outdoor sensory garden", "E. Cafe lounge", "F. Ceramic pottery studio", "G. IT training suite"], correctAnswer: "D", explanation: "Gardening club members meet in the outdoor sensory garden.", passageEvidence: { paragraph: "Part 2", quote: "outdoor sensory garden" } },
-            { questionNumber: 20, prompt: "Remote job seekers", options: ["A. Sprung floor hall", "B. Low-impact gym", "C. Study carrels", "D. Outdoor sensory garden", "E. Cafe lounge", "F. Ceramic pottery studio", "G. IT training suite"], correctAnswer: "G", explanation: "Job seekers access the IT training suite for resume writing.", passageEvidence: { paragraph: "Part 2", quote: "IT training suite" } }
+            {
+              questionNumber: 15,
+              prompt: "Coffee room",
+              options: ["A", "B", "C", "D", "E", "F", "G", "H", "I", "J"],
+              correctAnswer: "H",
+              explanation: "Transcript: 'room H is our Coffee room where you can relax'"
+            },
+            {
+              questionNumber: 16,
+              prompt: "Warehouse",
+              options: ["A", "B", "C", "D", "E", "F", "G", "H", "I", "J"],
+              correctAnswer: "C",
+              explanation: "Transcript: 'letter C is our main Warehouse'"
+            },
+            {
+              questionNumber: 17,
+              prompt: "Staff canteen",
+              options: ["A", "B", "C", "D", "E", "F", "G", "H", "I", "J"],
+              correctAnswer: "G",
+              explanation: "Transcript: 'At the far north end, letter G is the Staff canteen'"
+            },
+            {
+              questionNumber: 18,
+              prompt: "Meeting room",
+              options: ["A", "B", "C", "D", "E", "F", "G", "H", "I", "J"],
+              correctAnswer: "B",
+              explanation: "Transcript: 'Beside the courtyard, letter B is the executive Meeting room'"
+            },
+            {
+              questionNumber: 19,
+              prompt: "Admin office",
+              options: ["A", "B", "C", "D", "E", "F", "G", "H", "I", "J"],
+              correctAnswer: "I",
+              explanation: "Transcript: 'adjacent to the reception area on the eastern flank, letter I is the Admin office'"
+            },
+            {
+              questionNumber: 20,
+              prompt: "Reception",
+              options: ["A", "B", "C", "D", "E", "F", "G", "H", "I", "J"],
+              correctAnswer: "A",
+              explanation: "Transcript: 'Directly facing you as you enter through the main double doors is Reception, which is marked A'"
+            }
           ]
         }
       ]
@@ -334,42 +784,168 @@ Registration:
     {
       sectionNumber: 3,
       title: "Listening Part 3",
-      subtitle: "University Art Education Project",
-      audioUrl: "/audio/cam18-test1-part3.mp3",
+      subtitle: "Jess and Tom's Art Projects (Birds in Art)",
+      audioUrl: "/audio/cam16-test1-part3.mp3",
       transcript: `
-        TUTOR: Good afternoon, Liam and Chloe. Let\'s discuss your collaborative research presentation on integrating art into primary school STEM curricula.
-        CHLOE: Thanks, Dr. Vance. We\'ve collected case studies from five primary schools in Leeds that introduced weekly ceramics and painting into their science lessons.
-        LIAM: What surprised us most was how children who previously struggled with abstract geometry grasped spatial concepts much faster when sculpting three-dimensional clay models.
-        TUTOR: That aligns with cognitive developmental research on tactile learning. Did you notice any gender differences in engagement?
-        CHLOE: Interestingly, no. Both boys and girls participated with equal enthusiasm. However, the teachers pointed out that lesson preparation took nearly twice as long because mixing non-toxic glazes and cleaning kilns required significant logistical effort.
-        TUTOR: An important practical constraint to address in your recommendations. How will you structure your concluding slides?
-        LIAM: We want to recommend that school districts provide pre-mixed art supply kits to relieve the burden on individual classroom teachers.
+        TUTOR: Hello Jess, Tom. How are you both getting on with your introductory research projects on 'Birds in Art'?
+        JESS: Well, overall it's going well. In the introductory stage, visiting the Natural History Museum was tremendously useful—we both found that seeing the historic taxidermy and preserved specimens gave us a deep understanding of anatomical structure.
+        TOM: Absolutely. And also, discussing our initial ideas with you, our tutor, helped us clarify our scope and choose our directions.
+        TUTOR: Good. And what about your individual project assignments?
+        TOM: Well, we both found preparing our initial sketches challenging but essential before committing to our compositions.
+        JESS: Yes, and getting feedback from other students during our peer critique workshop was really insightful.
+        TUTOR: Now, let's look at the specific historical paintings you've selected to examine how artists imbue birds with personal meaning.
+        TOM: First, I chose Edwin Landseer's painting of a Falcon. Landseer portrayed the falcon circling overhead to represent a potential threat to vulnerable quarry below.
+        JESS: Next is Audubon's famous study of the Fish hawk. The dynamic brushwork captures fast movement as the bird swoops towards the water.
+        TOM: For the third piece, I looked at Vincent van Gogh's painting of a Kingfisher. Van Gogh's letters indicate that kingfishers brought back a nostalgic childhood memory of the waterways in Holland.
+        JESS: Then there's the Portrait of William Wells. The composition reveals a confused attitude to nature, balancing hunting trophies with idyllic landscape elements.
+        TOM: Paul Gauguin's Tahitian painting 'Vairumati' features a white bird that Gauguin explained symbolizes the continuity of life after mortality.
+        JESS: Finally, the Renaissance portrait of Giovanni de Medici by Bronzino shows the young prince cradling a goldfinch, which historically represents the protection of nature and divine innocence.
       `,
       questionGroups: [
         {
           id: "c16-l1-qg4",
-          type: "multiple_choice",
-          title: "Questions 21 – 25",
-          instructions: "Choose the correct letter, A, B or C.",
+          type: "multiple_choice_multi",
+          title: "Questions 21 – 22",
+          instructions: "Choose TWO letters, A–E. Which TWO aspects of the introductory stage did Jess and Tom find useful?",
+          options: [
+            "A. visiting the Bird Park",
+            "B. reading books on bird species",
+            "C. exploring the Natural History Museum",
+            "D. observing live birds in nature",
+            "E. discussing ideas with their tutor"
+          ],
           questions: [
-            { questionNumber: 21, prompt: "What was the main focus of Liam and Chloe\'s research project?", options: ["A. Comparing funding between independent and state art schools.", "B. Integrating visual arts into primary school STEM lessons.", "C. Measuring the historical influence of Leeds ceramics."], correctAnswer: "B", explanation: "Chloe mentions integrating art into primary school STEM curricula.", passageEvidence: { paragraph: "Part 3", quote: "integrating art into primary school STEM curricula" } },
-            { questionNumber: 22, prompt: "What unexpected cognitive benefit did Liam observe when students sculpted clay?", options: ["A. Better memorization of scientific vocabulary.", "B. Faster understanding of spatial geometry concepts.", "C. Improved interpersonal team leadership."], correctAnswer: "B", explanation: "Liam explains children grasped spatial concepts much faster when sculpting 3D models.", passageEvidence: { paragraph: "Part 3", quote: "grasped spatial concepts much faster" } },
-            { questionNumber: 23, prompt: "What was the findings regarding student gender engagement?", options: ["A. Boys were significantly more enthusiastic than girls.", "B. Girls demonstrated higher artistic patience.", "C. Both boys and girls engaged with equal enthusiasm."], correctAnswer: "C", explanation: "Chloe says 'Both boys and girls participated with equal enthusiasm.'", passageEvidence: { paragraph: "Part 3", quote: "Both boys and girls participated with equal enthusiasm" } },
-            { questionNumber: 24, prompt: "What major challenge was identified by the participating teachers?", options: ["A. High financial expense of kiln electricity.", "B. Excessive time required for lesson preparation and clean-up.", "C. Resistance from conservative parents."], correctAnswer: "B", explanation: "Chloe notes lesson preparation took twice as long due to cleaning and mixing.", passageEvidence: { paragraph: "Part 3", quote: "preparation took nearly twice as long" } },
-            { questionNumber: 25, prompt: "What practical recommendation do the students suggest in their conclusion?", options: ["A. School districts should provide pre-mixed art kits.", "B. Schools should eliminate traditional mathematics exams.", "C. Teachers should receive mandatory art degrees."], correctAnswer: "A", explanation: "Liam recommends districts provide pre-mixed art supply kits.", passageEvidence: { paragraph: "Part 3", quote: "school districts provide pre-mixed art supply kits" } }
+            {
+              questionNumber: 21,
+              prompt: "Which TWO aspects of the introductory stage did they find useful? (First answer)",
+              options: [
+                "A. visiting the Bird Park",
+                "B. reading books on bird species",
+                "C. exploring the Natural History Museum",
+                "D. observing live birds in nature",
+                "E. discussing ideas with their tutor"
+              ],
+              correctAnswer: "C",
+              acceptedVariants: ["E"],
+              explanation: "Jess states that visiting the Natural History Museum was tremendously useful."
+            },
+            {
+              questionNumber: 22,
+              prompt: "Which TWO aspects of the introductory stage did they find useful? (Second answer)",
+              options: [
+                "A. visiting the Bird Park",
+                "B. reading books on bird species",
+                "C. exploring the Natural History Museum",
+                "D. observing live birds in nature",
+                "E. discussing ideas with their tutor"
+              ],
+              correctAnswer: "E",
+              acceptedVariants: ["C"],
+              explanation: "Tom confirms that discussing ideas with their tutor helped them clarify their scope."
+            }
           ]
         },
         {
           id: "c16-l1-qg5",
           type: "multiple_choice_multi",
-          title: "Questions 26 – 30",
-          instructions: "Choose FIVE letters, A – H. Which FIVE research methods did Liam and Chloe use in their study?",
+          title: "Questions 23 – 24",
+          instructions: "Choose TWO letters, A–E. Which TWO things do they agree about their individual assignments?",
+          options: [
+            "A. selecting an uncommon species",
+            "B. preparing initial sketches",
+            "C. researching cultural symbolism",
+            "D. using oil paints",
+            "E. getting feedback from other students"
+          ],
           questions: [
-            { questionNumber: 26, prompt: "Research method 1", options: ["A. Classroom observation videos", "B. Semi-structured teacher interviews", "C. Student standardized math test scores", "D. Online parental surveys", "E. Peer feedback journals", "F. Photographic documentation of clay sculptures", "G. Focus groups with headmasters", "H. Blood pressure stress testing"], correctAnswer: "A", explanation: "Classroom video observations were recorded.", passageEvidence: { paragraph: "Part 3", quote: "observation" } },
-            { questionNumber: 27, prompt: "Research method 2", options: ["A. Classroom observation videos", "B. Semi-structured teacher interviews", "C. Student standardized math test scores", "D. Online parental surveys", "E. Peer feedback journals", "F. Photographic documentation of clay sculptures", "G. Focus groups with headmasters", "H. Blood pressure stress testing"], correctAnswer: "B", explanation: "Teacher interviews provided qualitative insights.", passageEvidence: { paragraph: "Part 3", quote: "teacher interviews" } },
-            { questionNumber: 28, prompt: "Research method 3", options: ["A. Classroom observation videos", "B. Semi-structured teacher interviews", "C. Student standardized math test scores", "D. Online parental surveys", "E. Peer feedback journals", "F. Photographic documentation of clay sculptures", "G. Focus groups with headmasters", "H. Blood pressure stress testing"], correctAnswer: "C", explanation: "Standardized test scores measured mathematical growth.", passageEvidence: { paragraph: "Part 3", quote: "math test scores" } },
-            { questionNumber: 29, prompt: "Research method 4", options: ["A. Classroom observation videos", "B. Semi-structured teacher interviews", "C. Student standardized math test scores", "D. Online parental surveys", "E. Peer feedback journals", "F. Photographic documentation of clay sculptures", "G. Focus groups with headmasters", "H. Blood pressure stress testing"], correctAnswer: "D", explanation: "Parental questionnaires assessed home engagement.", passageEvidence: { paragraph: "Part 3", quote: "parental surveys" } },
-            { questionNumber: 30, prompt: "Research method 5", options: ["A. Classroom observation videos", "B. Semi-structured teacher interviews", "C. Student standardized math test scores", "D. Online parental surveys", "E. Peer feedback journals", "F. Photographic documentation of clay sculptures", "G. Focus groups with headmasters", "H. Blood pressure stress testing"], correctAnswer: "F", explanation: "High-resolution photos recorded the students\' 3D pottery.", passageEvidence: { paragraph: "Part 3", quote: "photographic documentation" } }
+            {
+              questionNumber: 23,
+              prompt: "Which TWO things do they agree on? (First answer)",
+              options: [
+                "A. selecting an uncommon species",
+                "B. preparing initial sketches",
+                "C. researching cultural symbolism",
+                "D. using oil paints",
+                "E. getting feedback from other students"
+              ],
+              correctAnswer: "B",
+              acceptedVariants: ["E"],
+              explanation: "Tom mentions that preparing initial sketches was challenging but essential."
+            },
+            {
+              questionNumber: 24,
+              prompt: "Which TWO things do they agree on? (Second answer)",
+              options: [
+                "A. selecting an uncommon species",
+                "B. preparing initial sketches",
+                "C. researching cultural symbolism",
+                "D. using oil paints",
+                "E. getting feedback from other students"
+              ],
+              correctAnswer: "E",
+              acceptedVariants: ["B"],
+              explanation: "Jess agrees that getting feedback from other students during peer critique was really insightful."
+            }
+          ]
+        },
+        {
+          id: "c16-l1-qg6",
+          type: "matching_features",
+          title: "Questions 25 – 30",
+          instructions: "What personal meaning did the artist attach to each artwork? Choose SIX answers from the box and write the correct letter, A–H, next to Questions 25–30.",
+          options: [
+            "A a childhood memory",
+            "B hope for the future",
+            "C fast movement",
+            "D a potential threat",
+            "E the power of color",
+            "F the continuity of life",
+            "G protection of nature",
+            "H a confused attitude to nature"
+          ],
+          questions: [
+            {
+              questionNumber: 25,
+              prompt: "Falcon (Landseer)",
+              options: ["A", "B", "C", "D", "E", "F", "G", "H"],
+              correctAnswer: "D",
+              explanation: "Landseer portrayed the falcon to represent a potential threat to quarry below."
+            },
+            {
+              questionNumber: 26,
+              prompt: "Fish hawk (Audubon)",
+              options: ["A", "B", "C", "D", "E", "F", "G", "H"],
+              correctAnswer: "C",
+              explanation: "Audubon's painting captures fast movement as the hawk swoops toward water."
+            },
+            {
+              questionNumber: 27,
+              prompt: "Kingfisher (van Gogh)",
+              options: ["A", "B", "C", "D", "E", "F", "G", "H"],
+              correctAnswer: "A",
+              explanation: "Van Gogh explained kingfishers evoked a nostalgic childhood memory of Holland."
+            },
+            {
+              questionNumber: 28,
+              prompt: "Portrait of William Wells",
+              options: ["A", "B", "C", "D", "E", "F", "G", "H"],
+              correctAnswer: "H",
+              explanation: "The portrait reveals a confused attitude to nature, juxtaposing hunting trophies with romantic scenery."
+            },
+            {
+              questionNumber: 29,
+              prompt: "Vairumati (Gauguin)",
+              options: ["A", "B", "C", "D", "E", "F", "G", "H"],
+              correctAnswer: "F",
+              explanation: "Gauguin noted that the white bird symbolizes the continuity of life after mortality."
+            },
+            {
+              questionNumber: 30,
+              prompt: "Portrait of Giovanni de Medici",
+              options: ["A", "B", "C", "D", "E", "F", "G", "H"],
+              correctAnswer: "G",
+              explanation: "The prince cradling a goldfinch represents protection of nature and divine innocence."
+            }
           ]
         }
       ]
@@ -377,45 +953,96 @@ Registration:
     {
       sectionNumber: 4,
       title: "Listening Part 4",
-      subtitle: "The History of Tea and Global Commerce",
-      audioUrl: "/audio/cam18-test1-part4.mp3",
+      subtitle: "The Philosophy of Stoicism",
+      audioUrl: "/audio/cam16-test1-part4.mp3",
       transcript: `
-        LECTURER: Good morning, students. Today we continue our module on economic history with the remarkable story of tea. Originating in south-western China thousands of years ago, tea was initially valued primarily as a medicinal elixir rather than a recreational beverage. Buddhist monks drank green tea to maintain alert wakefulness during prolonged hours of meditation. During the Tang Dynasty, tea drinking became deeply ingrained in aristocratic culture, codified by the scholar Lu Yu in his classic treatise \'The Classic of Tea\'. In the early seventeenth century, Dutch merchant ships brought the first chests of Chinese green and black tea to Amsterdam. By the mid-eighteenth century, tea had supplanted ale and gin as Britain\'s national drink. The insatiable British demand for tea created a massive trade deficit with Qing dynasty China, because Chinese merchants accepted only silver bullion in exchange for tea leaves. To solve this currency drain, the British East India Company began illicitly smuggling opium cultivated in Bengal into Chinese coastal ports, directly sparking the devastating Opium Wars of the nineteenth century.
+        LECTURER: Good afternoon. In today's lecture, we examine the enduring relevance of Stoicism, an ancient philosophical system founded in Athens by Zeno of Citium around 300 BCE. Unlike abstract metaphysics, Stoicism was primarily intended as a practical guide for navigating daily life and emotional adversity.
+        During the Roman era, Stoic principles gained tremendous influence across society following the publication of prominent texts, particularly the letters and essays of Seneca and the personal journal of the emperor Marcus Aurelius.
+        At its psychological core, the philosopher Epictetus posited that our distress arises not from external events themselves, but from our internal judgments. He argued that we must distinguish between what lies within our control and what does not, concentrating solely on our own choices and rational responses.
+        To cultivate emotional stability, Stoic practitioners engaged in premeditatio malorum—the deliberate mental visualization of negative scenarios, such as illness, exile, or loss. By mentally confronting adversity in advance, one builds psychological resilience against sudden shocks.
+        Another striking analogy compares mortal existence to the theatre: Epictetus remarked that each individual is like an actor assigned a specific role in a play, and our duty is not to demand a different character, but to perform our given role with dignity.
+        Centuries later, the rise of early modern capitalism in Northern Europe absorbed several Stoic values, with thinkers praising rigorous self-discipline, prudence, and rational labor. In contemporary psychology, Stoic tenets directly inspired Cognitive Behavioural Therapy (CBT), developed by Albert Ellis and Aaron Beck as a leading therapeutic intervention for depression and acute anxiety.
+        CBT practitioners instruct patients to apply objective logic to challenge catastrophic cognitive distortions. Rather than viewing setbacks with anger or defeat, Stoicism teaches that every impediment offers an opportunity to cultivate moral virtue and strength. Ultimately, the ancient Stoics maintained that living well is not an innate talent, but a skill requiring continuous, lifelong practice.
       `,
       questionGroups: [
         {
-          id: "c16-l1-qg6",
+          id: "c16-l1-qg7",
           type: "sentence_completion",
           title: "Questions 31 – 40",
           instructions: "Complete the notes below. Write ONE WORD ONLY for each answer.",
-          summaryTitle: "The Global History of Tea",
+          summaryTitle: "Stoicism",
           wordLimitRule: "ONE WORD ONLY",
-          clozeTemplate: `
-The Early History of Tea:
-• In ancient China, tea was first used as a {{31}} tonic
-• Buddhist monks consumed tea to stay alert during {{32}}
-• During the Tang Dynasty, the scholar Lu Yu published an influential {{33}} on tea culture
-Spread to Europe:
-• The first tea shipments reached Europe via {{34}} merchant vessels
-• By the mid-18th century, tea replaced ale and {{35}} in Britain
-Economic Impacts:
-• British tea consumption caused a severe trade {{36}} with China
-• Chinese merchants demanded payment exclusively in {{37}}
-• The East India Company financed tea imports by smuggling {{38}}
-• This illicit commerce provoked armed conflict known as the {{39}} Wars
-• British botanists later established vast tea plantations in {{40}} (Assam and Darjeeling)
-          `,
           questions: [
-            { questionNumber: 31, prompt: "Tea was first used as a [ 31 ] tonic", correctAnswer: "medicinal", acceptedVariants: ["medicine"], explanation: "Lecturer: 'initially valued primarily as a medicinal elixir.'", passageEvidence: { paragraph: "Part 4", quote: "medicinal elixir" } },
-            { questionNumber: 32, prompt: "Buddhist monks consumed tea to stay alert during [ 32 ]", correctAnswer: "meditation", explanation: "Lecturer: 'maintain alert wakefulness during prolonged hours of meditation.'", passageEvidence: { paragraph: "Part 4", quote: "hours of meditation" } },
-            { questionNumber: 33, prompt: "The scholar Lu Yu published an influential [ 33 ] on tea culture", correctAnswer: "treatise", acceptedVariants: ["book"], explanation: "Lecturer: 'codified by the scholar Lu Yu in his classic treatise.'", passageEvidence: { paragraph: "Part 4", quote: "classic treatise" } },
-            { questionNumber: 34, prompt: "The first tea shipments reached Europe via [ 34 ] merchant vessels", correctAnswer: "Dutch", acceptedVariants: ["dutch"], explanation: "Lecturer: 'Dutch merchant ships brought the first chests.'", passageEvidence: { paragraph: "Part 4", quote: "Dutch merchant ships" } },
-            { questionNumber: 35, prompt: "Tea replaced ale and [ 35 ] in Britain", correctAnswer: "gin", explanation: "Lecturer: 'tea had supplanted ale and gin as Britain\'s national drink.'", passageEvidence: { paragraph: "Part 4", quote: "supplanted ale and gin" } },
-            { questionNumber: 36, prompt: "British tea consumption caused a severe trade [ 36 ] with China", correctAnswer: "deficit", explanation: "Lecturer: 'created a massive trade deficit with Qing dynasty China.'", passageEvidence: { paragraph: "Part 4", quote: "trade deficit" } },
-            { questionNumber: 37, prompt: "Chinese merchants demanded payment exclusively in [ 37 ]", correctAnswer: "silver", acceptedVariants: ["silver bullion"], explanation: "Lecturer: 'Chinese merchants accepted only silver bullion.'", passageEvidence: { paragraph: "Part 4", quote: "silver bullion" } },
-            { questionNumber: 38, prompt: "The East India Company financed imports by smuggling [ 38 ]", correctAnswer: "opium", explanation: "Lecturer: 'illicitly smuggling opium cultivated in Bengal.'", passageEvidence: { paragraph: "Part 4", quote: "smuggling opium" } },
-            { questionNumber: 39, prompt: "This illicit commerce provoked armed conflict known as the [ 39 ] Wars", correctAnswer: "Opium", acceptedVariants: ["opium"], explanation: "Lecturer: 'directly sparking the devastating Opium Wars.'", passageEvidence: { paragraph: "Part 4", quote: "Opium Wars" } },
-            { questionNumber: 40, prompt: "British botanists later established vast tea plantations in [ 40 ]", correctAnswer: "India", acceptedVariants: ["india", "Assam"], explanation: "Lecturer notes British botanists established plantations in India (Assam and Darjeeling).", passageEvidence: { paragraph: "Part 4", quote: "plantations in India" } }
+            {
+              questionNumber: 31,
+              prompt: "Ancient Greek philosophy of Stoicism was designed as a [ 31 ] guide for daily life.",
+              correctAnswer: "practical",
+              acceptedVariants: ["practical"],
+              explanation: "Transcript: 'Stoicism was primarily intended as a practical guide for navigating daily life'"
+            },
+            {
+              questionNumber: 32,
+              prompt: "Stoic ideas gained widespread popularity following the [ 32 ] of Seneca's letters.",
+              correctAnswer: "publication",
+              acceptedVariants: ["publication"],
+              explanation: "Transcript: 'Stoic principles gained tremendous influence across society following the publication of prominent texts'"
+            },
+            {
+              questionNumber: 33,
+              prompt: "Epictetus emphasized that we should focus entirely on our own [ 33 ] and thoughts.",
+              correctAnswer: "choices",
+              acceptedVariants: ["choices", "choice"],
+              explanation: "Transcript: 'concentrating solely on our own choices and rational responses'"
+            },
+            {
+              questionNumber: 34,
+              prompt: "Stoics recommended the mental visualization of [ 34 ] events to foster resilience.",
+              correctAnswer: "negative",
+              acceptedVariants: ["negative"],
+              explanation: "Transcript: 'the deliberate mental visualization of negative scenarios'"
+            },
+            {
+              questionNumber: 35,
+              prompt: "Human existence was compared to an actor playing an assigned role in a [ 35 ].",
+              correctAnswer: "play",
+              acceptedVariants: ["play"],
+              explanation: "Transcript: 'each individual is like an actor assigned a specific role in a play'"
+            },
+            {
+              questionNumber: 36,
+              prompt: "Early development of modern [ 36 ] was shaped by Stoic virtues of thrift and diligence.",
+              correctAnswer: "capitalism",
+              acceptedVariants: ["capitalism"],
+              explanation: "Transcript: 'the rise of early modern capitalism in Northern Europe absorbed several Stoic values'"
+            },
+            {
+              questionNumber: 37,
+              prompt: "Cognitive behavioural therapy drew on Stoic principles to treat conditions like [ 37 ].",
+              correctAnswer: "depression",
+              acceptedVariants: ["depression"],
+              explanation: "Transcript: 'leading therapeutic intervention for depression and acute anxiety'"
+            },
+            {
+              questionNumber: 38,
+              prompt: "Patients are taught to apply [ 38 ] to dismantle irrational assumptions.",
+              correctAnswer: "logic",
+              acceptedVariants: ["logic"],
+              explanation: "Transcript: 'CBT practitioners instruct patients to apply objective logic to challenge catastrophic cognitive distortions'"
+            },
+            {
+              questionNumber: 39,
+              prompt: "Stoicism teaches that every obstacle presents an [ 39 ] to cultivate virtue.",
+              correctAnswer: "opportunity",
+              acceptedVariants: ["opportunity"],
+              explanation: "Transcript: 'every impediment offers an opportunity to cultivate moral virtue'"
+            },
+            {
+              questionNumber: 40,
+              prompt: "Achieving tranquility requires continuous, lifelong [ 40 ].",
+              correctAnswer: "practice",
+              acceptedVariants: ["practice", "practise"],
+              explanation: "Transcript: 'a skill requiring continuous, lifelong practice'"
+            }
           ]
         }
       ]
@@ -423,9 +1050,6 @@ Economic Impacts:
   ]
 };
 
-// ==========================================
-// CAMBRIDGE 16 ACADEMIC - TEST 1 WRITING
-// ==========================================
 export const cambridge16Test1Writing: IELTSMockTest = {
   id: "cambridge-16-test-1-writing",
   book: 16,

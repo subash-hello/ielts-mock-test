@@ -230,6 +230,116 @@ suite('Suite 1: Mock Test Papers Data Integrity', () => {
       assertEqual(fm.totalDurationMinutes, 60 + 35 + 60, `${fm.id} total duration matches 155 mins`);
     }
   });
+
+  test('Cambridge 16 Test 1 Reading questions and answers match official Cambridge book key', () => {
+    const c16r1 = allMockTests.find((t) => t.id === 'cambridge-16-test-1-reading');
+    assert(c16r1 !== undefined, 'Cambridge 16 Test 1 Reading exists');
+
+    const questions = c16r1!.sections.flatMap((s) => s.questionGroups.flatMap((g) => g.questions));
+    assertEqual(questions.length, 40, 'Reading must have exactly 40 questions');
+
+    // Passage 1: Q1-7 TRUE/FALSE/NOT GIVEN, Q8-13 table completion
+    assertEqual(questions[0].correctAnswer, 'FALSE', 'Q1 must be FALSE');
+    assertEqual(questions[1].correctAnswer, 'FALSE', 'Q2 must be FALSE');
+    assertEqual(questions[2].correctAnswer, 'NOT GIVEN', 'Q3 must be NOT GIVEN');
+    assertEqual(questions[3].correctAnswer, 'TRUE', 'Q4 must be TRUE');
+    assertEqual(questions[4].correctAnswer, 'TRUE', 'Q5 must be TRUE');
+    assertEqual(questions[5].correctAnswer, 'FALSE', 'Q6 must be FALSE');
+    assertEqual(questions[6].correctAnswer, 'TRUE', 'Q7 must be TRUE');
+    assertEqual(questions[7].correctAnswer, 'violent', 'Q8 must be violent');
+    assertEqual(questions[8].correctAnswer, 'tool', 'Q9 must be tool');
+    assertEqual(questions[9].correctAnswer, 'meat', 'Q10 must be meat');
+    assertEqual(questions[10].correctAnswer, 'photographer', 'Q11 must be photographer');
+    assertEqual(questions[11].correctAnswer, 'game', 'Q12 must be game');
+    assertEqual(questions[12].correctAnswer, 'frustration', 'Q13 must be frustration');
+
+    // Passage 2: Q14-20 Headings, Q21-24 notes, Q25-26 multi-choice
+    assertEqual(questions[13].correctAnswer, 'iv', 'Q14 must be iv');
+    assertEqual(questions[14].correctAnswer, 'vii', 'Q15 must be vii');
+    assertEqual(questions[15].correctAnswer, 'ii', 'Q16 must be ii');
+    assertEqual(questions[16].correctAnswer, 'v', 'Q17 must be v');
+    assertEqual(questions[17].correctAnswer, 'i', 'Q18 must be i');
+    assertEqual(questions[18].correctAnswer, 'viii', 'Q19 must be viii');
+    assertEqual(questions[19].correctAnswer, 'vi', 'Q20 must be vi');
+    assertEqual(questions[20].correctAnswer, 'city', 'Q21 must be city');
+    assertEqual(questions[21].correctAnswer, 'priests', 'Q22 must be priests');
+    assertEqual(questions[22].correctAnswer, 'trench', 'Q23 must be trench');
+    assertEqual(questions[23].correctAnswer, 'location', 'Q24 must be location');
+    assertEqual(questions[24].correctAnswer, 'B', 'Q25 must be B');
+    assertEqual(questions[25].correctAnswer, 'D', 'Q26 must be D');
+
+    // Passage 3: Q27-30 MC, Q31-34 summary, Q35-40 matching
+    assertEqual(questions[26].correctAnswer, 'B', 'Q27 must be B');
+    assertEqual(questions[27].correctAnswer, 'D', 'Q28 must be D');
+    assertEqual(questions[28].correctAnswer, 'C', 'Q29 must be C');
+    assertEqual(questions[29].correctAnswer, 'D', 'Q30 must be D');
+    assertEqual(questions[30].correctAnswer, 'G', 'Q31 must be G');
+    assertEqual(questions[31].correctAnswer, 'E', 'Q32 must be E');
+    assertEqual(questions[32].correctAnswer, 'C', 'Q33 must be C');
+    assertEqual(questions[33].correctAnswer, 'F', 'Q34 must be F');
+    assertEqual(questions[34].correctAnswer, 'B', 'Q35 must be B');
+    assertEqual(questions[35].correctAnswer, 'A', 'Q36 must be A');
+    assertEqual(questions[36].correctAnswer, 'C', 'Q37 must be C');
+    assertEqual(questions[37].correctAnswer, 'A', 'Q38 must be A');
+    assertEqual(questions[38].correctAnswer, 'B', 'Q39 must be B');
+    assertEqual(questions[39].correctAnswer, 'C', 'Q40 must be C');
+  });
+
+  test('Cambridge 16 Test 1 Listening questions and answers match official Cambridge book key', () => {
+    const c16l1 = allMockTests.find((t) => t.id === 'cambridge-16-test-1-listening');
+    assert(c16l1 !== undefined, 'Cambridge 16 Test 1 Listening exists');
+
+    const questions = c16l1!.sections.flatMap((s) => s.questionGroups.flatMap((g) => g.questions));
+    assertEqual(questions.length, 40, 'Listening must have exactly 40 questions');
+
+    // Part 1: Q1-10
+    assertEqual(questions[0].correctAnswer, 'egg', 'Q1 must be egg');
+    assertEqual(questions[1].correctAnswer, 'tower', 'Q2 must be tower');
+    assertEqual(questions[2].correctAnswer, 'car', 'Q3 must be car');
+    assertEqual(questions[3].correctAnswer, 'animals', 'Q4 must be animals');
+    assertEqual(questions[4].correctAnswer, 'bridge', 'Q5 must be bridge');
+    assertEqual(questions[5].correctAnswer, 'movie', 'Q6 must be movie');
+    assertEqual(questions[6].correctAnswer, 'decorate', 'Q7 must be decorate');
+    assertEqual(questions[7].correctAnswer, 'Wednesdays', 'Q8 must be Wednesdays');
+    assertEqual(questions[8].correctAnswer, 'Fradstone', 'Q9 must be Fradstone');
+    assertEqual(questions[9].correctAnswer, 'parking', 'Q10 must be parking');
+
+    // Part 2: Stevenson's site
+    assertEqual(questions[10].correctAnswer, 'C', 'Q11 must be C');
+    assertEqual(questions[11].correctAnswer, 'A', 'Q12 must be A');
+    assertEqual(questions[12].correctAnswer, 'B', 'Q13 must be B');
+    assertEqual(questions[13].correctAnswer, 'C', 'Q14 must be C');
+    assertEqual(questions[14].correctAnswer, 'H', 'Q15 must be H');
+    assertEqual(questions[15].correctAnswer, 'C', 'Q16 must be C');
+    assertEqual(questions[16].correctAnswer, 'G', 'Q17 must be G');
+    assertEqual(questions[17].correctAnswer, 'B', 'Q18 must be B');
+    assertEqual(questions[18].correctAnswer, 'I', 'Q19 must be I');
+    assertEqual(questions[19].correctAnswer, 'A', 'Q20 must be A');
+
+    // Part 3: Art projects (Birds)
+    assertEqual(questions[20].correctAnswer, 'C', 'Q21 must be C');
+    assertEqual(questions[21].correctAnswer, 'E', 'Q22 must be E');
+    assertEqual(questions[22].correctAnswer, 'B', 'Q23 must be B');
+    assertEqual(questions[23].correctAnswer, 'E', 'Q24 must be E');
+    assertEqual(questions[24].correctAnswer, 'D', 'Q25 must be D');
+    assertEqual(questions[25].correctAnswer, 'C', 'Q26 must be C');
+    assertEqual(questions[26].correctAnswer, 'A', 'Q27 must be A');
+    assertEqual(questions[27].correctAnswer, 'H', 'Q28 must be H');
+    assertEqual(questions[28].correctAnswer, 'F', 'Q29 must be F');
+    assertEqual(questions[29].correctAnswer, 'G', 'Q30 must be G');
+
+    // Part 4: Stoicism
+    assertEqual(questions[30].correctAnswer, 'practical', 'Q31 must be practical');
+    assertEqual(questions[31].correctAnswer, 'publication', 'Q32 must be publication');
+    assertEqual(questions[32].correctAnswer, 'choices', 'Q33 must be choices');
+    assertEqual(questions[33].correctAnswer, 'negative', 'Q34 must be negative');
+    assertEqual(questions[34].correctAnswer, 'play', 'Q35 must be play');
+    assertEqual(questions[35].correctAnswer, 'capitalism', 'Q36 must be capitalism');
+    assertEqual(questions[36].correctAnswer, 'depression', 'Q37 must be depression');
+    assertEqual(questions[37].correctAnswer, 'logic', 'Q38 must be logic');
+    assertEqual(questions[38].correctAnswer, 'opportunity', 'Q39 must be opportunity');
+    assertEqual(questions[39].correctAnswer, 'practice', 'Q40 must be practice');
+  });
 });
 
 // --- SUITE 2: OFFICIAL IELTS SCORING ALGORITHMS ---
