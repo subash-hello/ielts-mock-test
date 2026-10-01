@@ -1338,6 +1338,47 @@ export class ConsultancyService {
     this.broadcast('ALL_RESULTS_PUBLISHED', { consultancyId });
   }
 
+  // Delete a specific test result
+  public static deleteTestResult(
+    consultancyId: string,
+    testId: string,
+    candidateId?: string,
+    completedAt?: string
+  ): void {
+    const list = this.getResults(consultancyId);
+    const updated = list.filter((r) => {
+      const matchTest = r.testId === testId;
+      const matchCand = !candidateId || r.candidateId === candidateId;
+      const matchTime = !completedAt || r.completedAt === completedAt;
+      return !(matchTest && matchCand && matchTime);
+    });
+
+    localStorage.setItem(`ielts_results_${consultancyId}`, JSON.stringify(updated));
+
+    // Also remove from global past results if present
+    try {
+      const rawPast = localStorage.getItem('ielts_mock_past_results');
+      if (rawPast) {
+        const pastList: TestResult[] = JSON.parse(rawPast);
+        const filteredPast = pastList.filter((r) => {
+          const matchTest = r.testId === testId;
+          const matchCand = !candidateId || r.candidateId === candidateId;
+          const matchTime = !completedAt || r.completedAt === completedAt;
+          return !(matchTest && matchCand && matchTime);
+        });
+        localStorage.setItem('ielts_mock_past_results', JSON.stringify(filteredPast));
+      }
+    } catch {}
+
+    this.broadcast('RESULT_DELETED', { consultancyId, testId, candidateId, completedAt });
+  }
+
+  // Clear all test results for a consultancy
+  public static clearAllResults(consultancyId: string): void {
+    localStorage.setItem(`ielts_results_${consultancyId}`, JSON.stringify([]));
+    this.broadcast('ALL_RESULTS_CLEARED', { consultancyId });
+  }
+
   // --- WRITING MODULE EVALUATION & SCORING (CONSULTANCY ADMIN) ---
   public static gradeWritingSubmission(
     consultancyId: string,

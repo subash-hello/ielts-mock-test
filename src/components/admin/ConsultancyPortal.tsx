@@ -175,6 +175,8 @@ export const ConsultancyPortal: React.FC<ConsultancyPortalProps> = ({
         event.type === 'RESULT_PUBLISHED' ||
         event.type === 'RESULT_UNPUBLISHED' ||
         event.type === 'ALL_RESULTS_PUBLISHED' ||
+        event.type === 'RESULT_DELETED' ||
+        event.type === 'ALL_RESULTS_CLEARED' ||
         event.type === 'STUDENT_UPDATED'
       ) {
         setAiReports(ConsultancyService.getReports(consultancyId));
@@ -321,6 +323,30 @@ export const ConsultancyPortal: React.FC<ConsultancyPortalProps> = ({
   const handlePublishAll = () => {
     ConsultancyService.publishAllResults(consultancyId);
     reloadAll();
+  };
+
+  const handleDeleteResult = (res: TestResult) => {
+    const candidateName = res.candidateName || res.candidateId || 'Candidate';
+    const testTitle = res.testTitle || res.testId;
+    if (window.confirm(`Are you sure you want to delete the test result for "${candidateName}" (${testTitle})? This action cannot be undone.`)) {
+      ConsultancyService.deleteTestResult(consultancyId, res.testId, res.candidateId, res.completedAt);
+      if (scorecardModalResult && scorecardModalResult.testId === res.testId && scorecardModalResult.candidateId === res.candidateId) {
+        setScorecardModalResult(null);
+      }
+      if (writingModalResult && writingModalResult.testId === res.testId && writingModalResult.candidateId === res.candidateId) {
+        setWritingModalResult(null);
+      }
+      reloadAll();
+    }
+  };
+
+  const handleClearAllResults = () => {
+    if (window.confirm(`Are you sure you want to delete ALL ${testResults.length} test results? This will permanently delete candidate scores and mock test records for this consultancy.`)) {
+      ConsultancyService.clearAllResults(consultancyId);
+      setScorecardModalResult(null);
+      setWritingModalResult(null);
+      reloadAll();
+    }
   };
 
   const handleLaunchTestToBranch = (testId: string) => {
@@ -755,6 +781,16 @@ export const ConsultancyPortal: React.FC<ConsultancyPortalProps> = ({
                       <span>Publish All Pending ({testResults.filter((r) => !r.isPublished).length})</span>
                     </button>
                   )}
+                  {testResults.length > 0 && (
+                    <button
+                      onClick={handleClearAllResults}
+                      className="flex items-center gap-1.5 px-3 py-2 bg-red-50 hover:bg-red-600 text-red-600 hover:text-white border border-red-200 hover:border-red-600 text-xs font-semibold rounded-xl transition cursor-pointer shadow-2xs"
+                      title="Delete all test results for this consultancy"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                      <span>Clear All</span>
+                    </button>
+                  )}
                   <button
                     onClick={reloadAll}
                     className="flex items-center gap-1.5 px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-xl transition cursor-pointer"
@@ -1116,6 +1152,15 @@ export const ConsultancyPortal: React.FC<ConsultancyPortalProps> = ({
                                   >
                                     <Eye className="w-3.5 h-3.5" />
                                     <span className="hidden sm:inline">Scorecard</span>
+                                  </button>
+
+                                  <button
+                                    onClick={() => handleDeleteResult(res)}
+                                    className="inline-flex items-center gap-1 px-2.5 py-1.5 bg-red-50 hover:bg-red-600 text-red-600 hover:text-white border border-red-200 hover:border-red-600 rounded-lg text-xs font-semibold transition cursor-pointer shadow-2xs"
+                                    title="Delete this test result"
+                                  >
+                                    <Trash2 className="w-3.5 h-3.5" />
+                                    <span>Delete</span>
                                   </button>
                                 </div>
                               </td>
@@ -2416,6 +2461,14 @@ export const ConsultancyPortal: React.FC<ConsultancyPortalProps> = ({
                     <span>Grade / Edit Writing</span>
                   </button>
                 )}
+                <button
+                  onClick={() => handleDeleteResult(scorecardModalResult)}
+                  className="px-3.5 py-2 bg-red-50 hover:bg-red-600 text-red-600 hover:text-white border border-red-200 hover:border-red-600 rounded-lg font-semibold text-xs cursor-pointer transition flex items-center gap-1.5"
+                  title="Delete this result permanently"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                  <span>Delete Result</span>
+                </button>
                 <button
                   onClick={() => setScorecardModalResult(null)}
                   className="px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white rounded-lg font-semibold cursor-pointer"

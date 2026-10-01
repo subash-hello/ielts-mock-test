@@ -608,6 +608,75 @@ suite('Suite 5: Publishing Control & Name/ID Candidate Search', () => {
     const overall3ModuleBand = Math.round(((listeningBand + readingBand + writingBand) / 3) * 2) / 2;
     assertEqual(overall3ModuleBand, 7.5, 'Official 3-module IELTS overall band rounding: (8.0+7.5+7.0)/3 = 7.5');
   });
+
+  test('Consultancy admin can delete an individual test result', () => {
+    // Check it exists first
+    const beforeResults = ConsultancyService.getResults(branchId);
+    assert(beforeResults.length > 0, 'Results exist before deletion');
+
+    // Delete the test result
+    ConsultancyService.deleteTestResult(branchId, testId, candId, completedAt);
+
+    // Verify it is removed from consultancy results
+    const afterResults = ConsultancyService.getResults(branchId);
+    const found = afterResults.find((r) => r.testId === testId && r.candidateId === candId);
+    assertEqual(found, undefined, 'Result was deleted from consultancy results');
+
+    // Verify it is removed from candidate scorecard lookup
+    const lookup = ConsultancyService.getCandidateResults(candName, branchId);
+    assertEqual(lookup.publishedResults.length, 0, 'Candidate has 0 published results after deletion');
+    assertEqual(lookup.pendingResults.length, 0, 'Candidate has 0 pending results after deletion');
+  });
+
+  test('Consultancy admin can clear all test results for their consultancy', () => {
+    // Clear any leftover results to establish a clean state
+    ConsultancyService.clearAllResults(branchId);
+    assertEqual(ConsultancyService.getResults(branchId).length, 0, 'Clean state after initial clear');
+
+    // Add two test results
+    ConsultancyService.saveTestResult(branchId, {
+      testId: 'cambridge-16-test-2-reading',
+      testTitle: 'Cambridge 16 Academic Reading Test 2',
+      candidateName: 'Candidate A',
+      candidateId: '001',
+      module: 'reading',
+      book: 16,
+      testNumber: 2,
+      rawScore: 35,
+      totalQuestions: 40,
+      bandScore: 8.0,
+      timeTakenSeconds: 3000,
+      completedAt: new Date().toISOString(),
+      answers: {},
+      isPublished: true
+    });
+
+    ConsultancyService.saveTestResult(branchId, {
+      testId: 'cambridge-16-test-2-listening',
+      testTitle: 'Cambridge 16 Academic Listening Test 2',
+      candidateName: 'Candidate B',
+      candidateId: '002',
+      module: 'listening',
+      book: 16,
+      testNumber: 2,
+      rawScore: 38,
+      totalQuestions: 40,
+      bandScore: 8.5,
+      timeTakenSeconds: 1800,
+      completedAt: new Date().toISOString(),
+      answers: {},
+      isPublished: false
+    });
+
+    const activeResults = ConsultancyService.getResults(branchId);
+    assertEqual(activeResults.length, 2, 'Two results added');
+
+    // Clear all
+    ConsultancyService.clearAllResults(branchId);
+
+    const afterClear = ConsultancyService.getResults(branchId);
+    assertEqual(afterClear.length, 0, 'All results cleared for consultancy');
+  });
 });
 
 // --- FINAL VERIFICATION SUMMARY ---

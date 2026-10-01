@@ -94,6 +94,7 @@ export interface WritingSubmission {
 
 export interface TestResult {
   testId: string;
+  testTitle?: string;
   book: number;
   testNumber: number;
   module: IELTSModule;
