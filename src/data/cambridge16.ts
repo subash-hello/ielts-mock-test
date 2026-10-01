@@ -438,51 +438,138 @@ export const cambridge16Test1Writing: IELTSMockTest = {
       sectionNumber: 1,
       title: "Writing Task 1",
       subtitle: "Ownership of electrical appliances and housework hours (1920–2019)",
-      passageContent: `<div class="my-6 p-4 bg-white border border-slate-300 rounded-xl shadow-xs">
-  <div class="text-center font-bold text-slate-900 text-sm mb-1">Percentage of households with electrical appliances (1920–2019)</div>
-  <svg viewBox="0 0 600 240" class="w-full h-auto max-w-xl mx-auto font-sans">
-    <line x1="60" y1="20" x2="60" y2="200" stroke="#cbd5e1" stroke-width="1.5" />
-    <line x1="60" y1="200" x2="570" y2="200" stroke="#cbd5e1" stroke-width="1.5" />
-    <text x="50" y="205" text-anchor="end" font-size="10" fill="#64748b">0%</text>
-    <text x="50" y="155" text-anchor="end" font-size="10" fill="#64748b">25%</text>
-    <text x="50" y="110" text-anchor="end" font-size="10" fill="#64748b">50%</text>
-    <text x="50" y="65" text-anchor="end" font-size="10" fill="#64748b">75%</text>
-    <text x="50" y="25" text-anchor="end" font-size="10" fill="#64748b">100%</text>
-    <line x1="60" y1="155" x2="570" y2="155" stroke="#f1f5f9" stroke-width="1" stroke-dasharray="3,3" />
-    <line x1="60" y1="110" x2="570" y2="110" stroke="#f1f5f9" stroke-width="1" stroke-dasharray="3,3" />
-    <line x1="60" y1="65" x2="570" y2="65" stroke="#f1f5f9" stroke-width="1" stroke-dasharray="3,3" />
-    <line x1="60" y1="25" x2="570" y2="25" stroke="#f1f5f9" stroke-width="1" stroke-dasharray="3,3" />
-    <text x="80" y="218" text-anchor="middle" font-size="10" fill="#64748b">1920</text>
-    <text x="170" y="218" text-anchor="middle" font-size="10" fill="#64748b">1940</text>
-    <text x="260" y="218" text-anchor="middle" font-size="10" fill="#64748b">1960</text>
-    <text x="350" y="218" text-anchor="middle" font-size="10" fill="#64748b">1980</text>
-    <text x="440" y="218" text-anchor="middle" font-size="10" fill="#64748b">2000</text>
-    <text x="540" y="218" text-anchor="middle" font-size="10" fill="#64748b">2019</text>
-    <polyline fill="none" stroke="#2563eb" stroke-width="2.5" points="80,200 170,95 260,35 350,25 440,25 540,25" />
-    <polyline fill="none" stroke="#dc2626" stroke-width="2.5" stroke-dasharray="5,3" points="80,145 170,110 260,70 350,35 440,25 540,25" />
-    <polyline fill="none" stroke="#059669" stroke-width="2.5" points="80,125 170,88 260,70 350,78 440,68 540,65" />
-  </svg>
-  <div class="flex flex-wrap items-center justify-center gap-5 mt-2 text-xs">
-    <div class="flex items-center gap-1.5"><span class="w-3.5 h-1 bg-blue-600 rounded"></span><span class="font-semibold text-slate-700">Refrigerator</span></div>
-    <div class="flex items-center gap-1.5"><span class="w-3.5 h-1 bg-red-600 rounded border border-dashed border-red-600"></span><span class="font-semibold text-slate-700">Vacuum cleaner</span></div>
-    <div class="flex items-center gap-1.5"><span class="w-3.5 h-1 bg-emerald-600 rounded"></span><span class="font-semibold text-slate-700">Washing machine</span></div>
+      passageContent: `<div class="my-4 p-5 bg-white border border-slate-200 rounded-2xl shadow-xs font-sans">
+  <div class="border-b border-slate-100 pb-3 mb-4 text-center">
+    <span class="text-[11px] font-extrabold uppercase tracking-widest text-indigo-700 bg-indigo-50 border border-indigo-100 px-3 py-1 rounded-full inline-block">Official Cambridge Academic 16 • Task 1</span>
+    <h3 class="font-extrabold text-slate-900 text-sm sm:text-base mt-2">Percentage of households with electrical appliances & Housework hours per week (1920–2019)</h3>
   </div>
-  <div class="text-center font-bold text-slate-900 text-sm mt-5 mb-1">Number of hours of housework per week per household (1920–2019)</div>
-  <svg viewBox="0 0 600 140" class="w-full h-auto max-w-xl mx-auto font-sans">
-    <line x1="60" y1="15" x2="60" y2="105" stroke="#cbd5e1" stroke-width="1.5" />
-    <line x1="60" y1="105" x2="570" y2="105" stroke="#cbd5e1" stroke-width="1.5" />
-    <text x="50" y="108" text-anchor="end" font-size="10" fill="#64748b">0</text>
-    <text x="50" y="75" text-anchor="end" font-size="10" fill="#64748b">20</text>
-    <text x="50" y="45" text-anchor="end" font-size="10" fill="#64748b">40</text>
-    <text x="50" y="18" text-anchor="end" font-size="10" fill="#64748b">60</text>
-    <text x="80" y="120" text-anchor="middle" font-size="10" fill="#64748b">1920</text>
-    <text x="170" y="120" text-anchor="middle" font-size="10" fill="#64748b">1940</text>
-    <text x="260" y="120" text-anchor="middle" font-size="10" fill="#64748b">1960</text>
-    <text x="350" y="120" text-anchor="middle" font-size="10" fill="#64748b">1980</text>
-    <text x="440" y="120" text-anchor="middle" font-size="10" fill="#64748b">2000</text>
-    <text x="540" y="120" text-anchor="middle" font-size="10" fill="#64748b">2019</text>
-    <polyline fill="none" stroke="#7c3aed" stroke-width="2.5" points="80,30 170,55 260,78 350,86 440,90 540,93" />
-  </svg>
+
+  {/* Chart 1: Electrical Appliances Ownership */}
+  <div class="space-y-1.5 mb-6">
+    <div class="flex items-center justify-between text-xs font-bold text-slate-800 px-2">
+      <span>CHART 1: Percentage of households with electrical appliances (1920–2019)</span>
+      <span class="text-[10px] text-slate-500 font-normal">Source: Cambridge English</span>
+    </div>
+    <div class="bg-slate-50/60 p-3 sm:p-4 rounded-xl border border-slate-200">
+      <svg viewBox="0 0 640 260" class="w-full h-auto max-w-2xl mx-auto font-sans select-none">
+        {/* Horizontal grid lines */}
+        <line x1="60" y1="20" x2="600" y2="20" stroke="#e2e8f0" stroke-width="1" stroke-dasharray="3,3" />
+        <line x1="60" y1="65" x2="600" y2="65" stroke="#e2e8f0" stroke-width="1" stroke-dasharray="3,3" />
+        <line x1="60" y1="110" x2="600" y2="110" stroke="#e2e8f0" stroke-width="1" stroke-dasharray="3,3" />
+        <line x1="60" y1="155" x2="600" y2="155" stroke="#e2e8f0" stroke-width="1" stroke-dasharray="3,3" />
+        <line x1="60" y1="200" x2="600" y2="200" stroke="#94a3b8" stroke-width="1.5" />
+
+        {/* Vertical Axis */}
+        <line x1="60" y1="15" x2="60" y2="200" stroke="#94a3b8" stroke-width="1.5" />
+
+        {/* Y Axis Labels */}
+        <text x="50" y="204" text-anchor="end" font-size="11" font-weight="600" fill="#64748b">0%</text>
+        <text x="50" y="159" text-anchor="end" font-size="11" font-weight="600" fill="#64748b">25%</text>
+        <text x="50" y="114" text-anchor="end" font-size="11" font-weight="600" fill="#64748b">50%</text>
+        <text x="50" y="69" text-anchor="end" font-size="11" font-weight="600" fill="#64748b">75%</text>
+        <text x="50" y="24" text-anchor="end" font-size="11" font-weight="600" fill="#64748b">100%</text>
+
+        {/* X Axis Labels */}
+        <text x="85" y="222" text-anchor="middle" font-size="11" font-weight="bold" fill="#334155">1920</text>
+        <text x="185" y="222" text-anchor="middle" font-size="11" font-weight="bold" fill="#334155">1940</text>
+        <text x="285" y="222" text-anchor="middle" font-size="11" font-weight="bold" fill="#334155">1960</text>
+        <text x="385" y="222" text-anchor="middle" font-size="11" font-weight="bold" fill="#334155">1980</text>
+        <text x="485" y="222" text-anchor="middle" font-size="11" font-weight="bold" fill="#334155">2000</text>
+        <text x="575" y="222" text-anchor="middle" font-size="11" font-weight="bold" fill="#334155">2019</text>
+
+        {/* Polyline 1: Refrigerator (Solid Blue Line with Circles) */}
+        <polyline fill="none" stroke="#2563eb" stroke-width="3" points="85,200 185,101 285,38 385,20 485,20 575,20" />
+        <circle cx="85" cy="200" r="4.5" fill="#2563eb" stroke="#ffffff" stroke-width="1.5" />
+        <circle cx="185" cy="101" r="4.5" fill="#2563eb" stroke="#ffffff" stroke-width="1.5" />
+        <circle cx="285" cy="38" r="4.5" fill="#2563eb" stroke="#ffffff" stroke-width="1.5" />
+        <circle cx="385" cy="20" r="4.5" fill="#2563eb" stroke="#ffffff" stroke-width="1.5" />
+        <circle cx="485" cy="20" r="4.5" fill="#2563eb" stroke="#ffffff" stroke-width="1.5" />
+        <circle cx="575" cy="20" r="4.5" fill="#2563eb" stroke="#ffffff" stroke-width="1.5" />
+
+        {/* Polyline 2: Vacuum cleaner (Dashed Crimson Line with Squares) */}
+        <polyline fill="none" stroke="#dc2626" stroke-width="3" stroke-dasharray="6,4" points="85,146 185,110 285,74 385,29 485,20 575,20" />
+        <rect x="81" y="142" width="8" height="8" fill="#dc2626" stroke="#ffffff" stroke-width="1.5" />
+        <rect x="181" y="106" width="8" height="8" fill="#dc2626" stroke="#ffffff" stroke-width="1.5" />
+        <rect x="281" y="70" width="8" height="8" fill="#dc2626" stroke="#ffffff" stroke-width="1.5" />
+        <rect x="381" y="25" width="8" height="8" fill="#dc2626" stroke="#ffffff" stroke-width="1.5" />
+        <rect x="481" y="16" width="8" height="8" fill="#dc2626" stroke="#ffffff" stroke-width="1.5" />
+        <rect x="571" y="16" width="8" height="8" fill="#dc2626" stroke="#ffffff" stroke-width="1.5" />
+
+        {/* Polyline 3: Washing machine (Solid Emerald with Triangles) */}
+        <polyline fill="none" stroke="#059669" stroke-width="3" stroke-dasharray="2,2" points="85,128 185,92 285,74 385,83 485,74 575,65" />
+        <polygon points="85,123 89,132 81,132" fill="#059669" stroke="#ffffff" stroke-width="1" />
+        <polygon points="185,87 189,96 181,96" fill="#059669" stroke="#ffffff" stroke-width="1" />
+        <polygon points="285,69 289,78 281,78" fill="#059669" stroke="#ffffff" stroke-width="1" />
+        <polygon points="385,78 389,87 381,87" fill="#059669" stroke="#ffffff" stroke-width="1" />
+        <polygon points="485,69 489,78 481,78" fill="#059669" stroke="#ffffff" stroke-width="1" />
+        <polygon points="575,60 579,69 571,69" fill="#059669" stroke="#ffffff" stroke-width="1" />
+      </svg>
+      {/* Legend */}
+      <div class="flex flex-wrap items-center justify-center gap-6 mt-3 pt-2 border-t border-slate-200/70 text-xs font-bold">
+        <div class="flex items-center gap-2">
+          <span class="w-4 h-1 bg-blue-600 rounded"></span>
+          <span class="w-2.5 h-2.5 rounded-full bg-blue-600 inline-block"></span>
+          <span class="text-blue-900">Refrigerator (0% → 100%)</span>
+        </div>
+        <div class="flex items-center gap-2">
+          <span class="w-4 h-1 bg-red-600 border border-dashed border-red-600"></span>
+          <span class="w-2.5 h-2.5 bg-red-600 inline-block"></span>
+          <span class="text-red-900">Vacuum cleaner (30% → 100%)</span>
+        </div>
+        <div class="flex items-center gap-2">
+          <span class="w-4 h-1 bg-emerald-600 border border-dotted border-emerald-600"></span>
+          <span class="w-2.5 h-2.5 bg-emerald-600 inline-block" style="clip-path: polygon(50% 0%, 0% 100%, 100% 100%)"></span>
+          <span class="text-emerald-900">Washing machine (40% → 75%)</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  {/* Chart 2: Housework Hours */}
+  <div class="space-y-1.5">
+    <div class="flex items-center justify-between text-xs font-bold text-slate-800 px-2">
+      <span>CHART 2: Number of hours of housework per week per household (1920–2019)</span>
+      <span class="text-[10px] text-slate-500 font-normal">Hours/Week</span>
+    </div>
+    <div class="bg-slate-50/60 p-3 sm:p-4 rounded-xl border border-slate-200">
+      <svg viewBox="0 0 640 170" class="w-full h-auto max-w-2xl mx-auto font-sans select-none">
+        <line x1="60" y1="15" x2="600" y2="15" stroke="#e2e8f0" stroke-width="1" stroke-dasharray="3,3" />
+        <line x1="60" y1="45" x2="600" y2="45" stroke="#e2e8f0" stroke-width="1" stroke-dasharray="3,3" />
+        <line x1="60" y1="75" x2="600" y2="75" stroke="#e2e8f0" stroke-width="1" stroke-dasharray="3,3" />
+        <line x1="60" y1="105" x2="600" y2="105" stroke="#e2e8f0" stroke-width="1" stroke-dasharray="3,3" />
+        <line x1="60" y1="135" x2="600" y2="135" stroke="#94a3b8" stroke-width="1.5" />
+
+        <line x1="60" y1="10" x2="60" y2="135" stroke="#94a3b8" stroke-width="1.5" />
+
+        <text x="50" y="139" text-anchor="end" font-size="11" font-weight="600" fill="#64748b">0</text>
+        <text x="50" y="109" text-anchor="end" font-size="11" font-weight="600" fill="#64748b">15</text>
+        <text x="50" y="79" text-anchor="end" font-size="11" font-weight="600" fill="#64748b">30</text>
+        <text x="50" y="49" text-anchor="end" font-size="11" font-weight="600" fill="#64748b">45</text>
+        <text x="50" y="19" text-anchor="end" font-size="11" font-weight="600" fill="#64748b">60</text>
+
+        <text x="85" y="153" text-anchor="middle" font-size="11" font-weight="bold" fill="#334155">1920</text>
+        <text x="185" y="153" text-anchor="middle" font-size="11" font-weight="bold" fill="#334155">1940</text>
+        <text x="285" y="153" text-anchor="middle" font-size="11" font-weight="bold" fill="#334155">1960</text>
+        <text x="385" y="153" text-anchor="middle" font-size="11" font-weight="bold" fill="#334155">1980</text>
+        <text x="485" y="153" text-anchor="middle" font-size="11" font-weight="bold" fill="#334155">2000</text>
+        <text x="575" y="153" text-anchor="middle" font-size="11" font-weight="bold" fill="#334155">2019</text>
+
+        {/* Hours Line (Purple with Diamonds) */}
+        <polyline fill="none" stroke="#7c3aed" stroke-width="3" points="85,35 185,65 285,95 385,105 485,109 575,115" />
+        <polygon points="85,30 90,35 85,40 80,35" fill="#7c3aed" stroke="#ffffff" stroke-width="1.5" />
+        <polygon points="185,60 190,65 185,70 180,65" fill="#7c3aed" stroke="#ffffff" stroke-width="1.5" />
+        <polygon points="285,90 290,95 285,100 280,95" fill="#7c3aed" stroke="#ffffff" stroke-width="1.5" />
+        <polygon points="385,100 390,105 385,110 380,105" fill="#7c3aed" stroke="#ffffff" stroke-width="1.5" />
+        <polygon points="485,104 490,109 485,114 480,109" fill="#7c3aed" stroke="#ffffff" stroke-width="1.5" />
+        <polygon points="575,110 580,115 575,120 570,115" fill="#7c3aed" stroke="#ffffff" stroke-width="1.5" />
+      </svg>
+      <div class="flex items-center justify-center gap-2 mt-2 pt-2 border-t border-slate-200/70 text-xs font-bold text-purple-900">
+        <span class="w-4 h-1 bg-purple-600 rounded"></span>
+        <span class="w-2.5 h-2.5 bg-purple-600 transform rotate-45 inline-block"></span>
+        <span>Housework hours per week (50 hrs/wk in 1920 down to ~10 hrs/wk in 2019)</span>
+      </div>
+    </div>
+  </div>
 </div>`,
       questionGroups: [
         {
@@ -506,9 +593,21 @@ export const cambridge16Test1Writing: IELTSMockTest = {
       title: "Writing Task 2",
       subtitle: "Researching building history essay",
       passageContent: `
-        <div class="p-4 bg-slate-50 border border-slate-200 rounded-xl text-slate-800 text-sm">
-          <p class="font-bold text-slate-900 mb-1">WRITING TASK 2 TOPIC:</p>
-          <p class="italic text-slate-700">"In some countries, more and more people are becoming interested in finding out about the history of the house or building they live in. What are the reasons for this? How can people research this?"</p>
+        <div class="my-4 p-5 bg-[#f8f9fa] border-2 border-slate-300 rounded-xl font-sans shadow-2xs">
+          <div class="flex items-center justify-between border-b border-slate-200 pb-2 mb-3">
+            <span class="font-extrabold text-xs uppercase tracking-wider text-slate-600">Official Cambridge CD-IELTS • Writing Task 2</span>
+            <span class="text-xs font-semibold text-slate-500">Suggested Time: 40 Minutes</span>
+          </div>
+          <p class="text-xs font-bold text-slate-700 uppercase tracking-wide mb-2">Write about the following topic:</p>
+          <div class="p-4 bg-white border border-slate-300 rounded-lg text-sm sm:text-base font-semibold text-slate-900 leading-relaxed shadow-inner">
+            "In some countries, more and more people are becoming interested in finding out about the history of the house or building they live in.<br/><br/>
+            What are the reasons for this?<br/>
+            How can people research this?"
+          </div>
+          <div class="mt-4 space-y-1 text-xs text-slate-700">
+            <p class="italic">Give reasons for your answer and include any relevant examples from your own knowledge or experience.</p>
+            <p class="font-extrabold text-slate-900">Write at least 250 words.</p>
+          </div>
         </div>
       `,
       questionGroups: [
@@ -943,44 +1042,175 @@ export const cambridge16Test2Writing: IELTSMockTest = {
       sectionNumber: 1,
       title: "Writing Task 1",
       subtitle: "Manufacturing sugar from sugar cane",
-      passageContent: `<div class="my-6 p-4 bg-white border border-slate-300 rounded-xl shadow-xs">
-  <div class="text-center font-bold text-slate-900 text-sm mb-3">The Sugar Production Process (from Sugar Cane)</div>
-  <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 text-xs">
-    <div class="bg-amber-50 border border-amber-200 p-3 rounded-lg text-center">
-      <span class="w-6 h-6 rounded-full bg-amber-500 text-white font-bold inline-flex items-center justify-center text-xs mb-1.5">1</span>
-      <div class="font-bold text-slate-900">Growing</div>
-      <div class="text-slate-600 mt-0.5">12–18 months in warm climate</div>
-    </div>
-    <div class="bg-amber-50 border border-amber-200 p-3 rounded-lg text-center">
-      <span class="w-6 h-6 rounded-full bg-amber-500 text-white font-bold inline-flex items-center justify-center text-xs mb-1.5">2</span>
-      <div class="font-bold text-slate-900">Harvesting</div>
-      <div class="text-slate-600 mt-0.5">Cut with machine or machete</div>
-    </div>
-    <div class="bg-amber-50 border border-amber-200 p-3 rounded-lg text-center">
-      <span class="w-6 h-6 rounded-full bg-amber-500 text-white font-bold inline-flex items-center justify-center text-xs mb-1.5">3</span>
-      <div class="font-bold text-slate-900">Crushing</div>
-      <div class="text-slate-600 mt-0.5">Rollers crush stalks into juice</div>
-    </div>
-    <div class="bg-amber-50 border border-amber-200 p-3 rounded-lg text-center">
-      <span class="w-6 h-6 rounded-full bg-amber-500 text-white font-bold inline-flex items-center justify-center text-xs mb-1.5">4</span>
-      <div class="font-bold text-slate-900">Purifying</div>
-      <div class="text-slate-600 mt-0.5">Filtered with limestone filter</div>
-    </div>
-    <div class="bg-emerald-50 border border-emerald-200 p-3 rounded-lg text-center">
-      <span class="w-6 h-6 rounded-full bg-emerald-600 text-white font-bold inline-flex items-center justify-center text-xs mb-1.5">5</span>
-      <div class="font-bold text-slate-900">Evaporating</div>
-      <div class="text-slate-600 mt-0.5">Heat turns juice to thick syrup</div>
-    </div>
-    <div class="bg-emerald-50 border border-emerald-200 p-3 rounded-lg text-center">
-      <span class="w-6 h-6 rounded-full bg-emerald-600 text-white font-bold inline-flex items-center justify-center text-xs mb-1.5">6</span>
-      <div class="font-bold text-slate-900">Centrifuge</div>
-      <div class="text-slate-600 mt-0.5">Spins crystals out of syrup</div>
-    </div>
-    <div class="bg-emerald-50 border border-emerald-200 p-3 rounded-lg text-center col-span-1 sm:col-span-2">
-      <span class="w-6 h-6 rounded-full bg-emerald-600 text-white font-bold inline-flex items-center justify-center text-xs mb-1.5">7</span>
-      <div class="font-bold text-slate-900">Drying & Cooling</div>
-      <div class="text-slate-600 mt-0.5">Crystals dried, cooled, and packed into bags</div>
-    </div>
+      passageContent: `<div class="my-4 p-5 bg-white border border-slate-200 rounded-2xl shadow-xs font-sans">
+  <div class="border-b border-slate-100 pb-3 mb-4 text-center">
+    <span class="text-[11px] font-extrabold uppercase tracking-widest text-emerald-700 bg-emerald-50 border border-emerald-100 px-3 py-1 rounded-full inline-block">Official Cambridge Academic 16 • Task 1</span>
+    <h3 class="font-extrabold text-slate-900 text-sm sm:text-base mt-2">How Sugar is Manufactured from Sugar Cane</h3>
+  </div>
+
+  <div class="bg-slate-50/70 p-3 sm:p-4 rounded-xl border border-slate-200">
+    <svg viewBox="0 0 760 350" class="w-full h-auto max-w-3xl mx-auto font-sans select-none">
+      <defs>
+        <marker id="arrow" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+          <path d="M 0 1 L 10 5 L 0 9 z" fill="#0284c7" />
+        </marker>
+        <marker id="arrow-emerald" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+          <path d="M 0 1 L 10 5 L 0 9 z" fill="#059669" />
+        </marker>
+      </defs>
+
+      {/* STAGE 1: GROWING */}
+      <g transform="translate(15, 20)">
+        <rect width="155" height="130" rx="12" fill="#ffffff" stroke="#cbd5e1" stroke-width="1.5" />
+        <rect width="155" height="28" rx="12" fill="#f0fdf4" />
+        <rect y="16" width="155" height="12" fill="#f0fdf4" />
+        <circle cx="22" cy="14" r="9" fill="#16a34a" />
+        <text x="22" y="18" text-anchor="middle" font-size="11" font-weight="bold" fill="#ffffff">1</text>
+        <text x="38" y="18" font-size="12" font-weight="bold" fill="#14532d">GROWING</text>
+        {/* Graphic: Sugar cane field & sun */}
+        <circle cx="125" cy="48" r="10" fill="#f59e0b" opacity="0.8" />
+        <line x1="45" y1="110" x2="45" y2="55" stroke="#15803d" stroke-width="4" stroke-linecap="round" />
+        <line x1="75" y1="110" x2="75" y2="48" stroke="#16a34a" stroke-width="4.5" stroke-linecap="round" />
+        <line x1="105" y1="110" x2="105" y2="60" stroke="#15803d" stroke-width="4" stroke-linecap="round" />
+        {/* Leaves */}
+        <path d="M 45 70 Q 30 60 25 75" fill="none" stroke="#22c55e" stroke-width="2.5" />
+        <path d="M 75 62 Q 92 50 98 65" fill="none" stroke="#22c55e" stroke-width="2.5" />
+        <path d="M 105 75 Q 120 68 125 80" fill="none" stroke="#22c55e" stroke-width="2.5" />
+        <line x1="20" y1="110" x2="135" y2="110" stroke="#78350f" stroke-width="3" />
+        <text x="77" y="123" text-anchor="middle" font-size="10" font-weight="bold" fill="#475569">12 – 18 months</text>
+      </g>
+
+      {/* Arrow 1 -> 2 */}
+      <line x1="175" y1="85" x2="200" y2="85" stroke="#0284c7" stroke-width="2.5" marker-end="url(#arrow)" />
+
+      {/* STAGE 2: HARVESTING */}
+      <g transform="translate(205, 20)">
+        <rect width="155" height="130" rx="12" fill="#ffffff" stroke="#cbd5e1" stroke-width="1.5" />
+        <rect width="155" height="28" rx="12" fill="#f0fdf4" />
+        <rect y="16" width="155" height="12" fill="#f0fdf4" />
+        <circle cx="22" cy="14" r="9" fill="#16a34a" />
+        <text x="22" y="18" text-anchor="middle" font-size="11" font-weight="bold" fill="#ffffff">2</text>
+        <text x="38" y="18" font-size="12" font-weight="bold" fill="#14532d">HARVESTING</text>
+        {/* Machinery & hand cutting icons */}
+        <rect x="25" y="45" width="50" height="25" rx="4" fill="#3b82f6" />
+        <circle cx="35" cy="72" r="7" fill="#334155" />
+        <circle cx="65" cy="72" r="7" fill="#334155" />
+        <text x="50" y="60" text-anchor="middle" font-size="8" font-weight="bold" fill="#ffffff">HARVESTER</text>
+        <text x="50" y="88" text-anchor="middle" font-size="9" fill="#475569">By machine</text>
+        {/* Hand tool */}
+        <path d="M 100 70 L 130 50 Q 140 45 135 60 L 115 75 Z" fill="#94a3b8" stroke="#475569" stroke-width="1" />
+        <line x1="95" y1="75" x2="105" y2="65" stroke="#78350f" stroke-width="3" stroke-linecap="round" />
+        <text x="120" y="88" text-anchor="middle" font-size="9" fill="#475569">Or by hand</text>
+        <text x="77" y="120" text-anchor="middle" font-size="10" font-weight="bold" fill="#334155">Stalks cut</text>
+      </g>
+
+      {/* Arrow 2 -> 3 */}
+      <line x1="365" y1="85" x2="390" y2="85" stroke="#0284c7" stroke-width="2.5" marker-end="url(#arrow)" />
+
+      {/* STAGE 3: CRUSHING */}
+      <g transform="translate(395, 20)">
+        <rect width="155" height="130" rx="12" fill="#ffffff" stroke="#cbd5e1" stroke-width="1.5" />
+        <rect width="155" height="28" rx="12" fill="#f0fdf4" />
+        <rect y="16" width="155" height="12" fill="#f0fdf4" />
+        <circle cx="22" cy="14" r="9" fill="#16a34a" />
+        <text x="22" y="18" text-anchor="middle" font-size="11" font-weight="bold" fill="#ffffff">3</text>
+        <text x="38" y="18" font-size="12" font-weight="bold" fill="#14532d">CRUSHING</text>
+        {/* Rollers graphic */}
+        <circle cx="60" cy="62" r="16" fill="#e2e8f0" stroke="#475569" stroke-width="2.5" />
+        <circle cx="95" cy="62" r="16" fill="#e2e8f0" stroke="#475569" stroke-width="2.5" />
+        <path d="M 52 62 L 68 62 M 60 54 L 60 70" stroke="#64748b" stroke-width="1.5" />
+        <path d="M 87 62 L 103 62 M 95 54 L 95 70" stroke="#64748b" stroke-width="1.5" />
+        {/* Juice drips */}
+        <path d="M 77 78 L 77 92" stroke="#84cc16" stroke-width="3" stroke-linecap="round" />
+        <path d="M 68 95 Q 77 105 86 95 Z" fill="#84cc16" />
+        <text x="77" y="112" text-anchor="middle" font-size="10" font-weight="bold" fill="#334155">Rollers extract juice</text>
+        <text x="77" y="124" text-anchor="middle" font-size="9" fill="#64748b">Raw Cane Juice</text>
+      </g>
+
+      {/* Arrow 3 -> 4 */}
+      <line x1="555" y1="85" x2="580" y2="85" stroke="#0284c7" stroke-width="2.5" marker-end="url(#arrow)" />
+
+      {/* STAGE 4: PURIFYING */}
+      <g transform="translate(585, 20)">
+        <rect width="155" height="130" rx="12" fill="#ffffff" stroke="#cbd5e1" stroke-width="1.5" />
+        <rect width="155" height="28" rx="12" fill="#f0fdf4" />
+        <rect y="16" width="155" height="12" fill="#f0fdf4" />
+        <circle cx="22" cy="14" r="9" fill="#16a34a" />
+        <text x="22" y="18" text-anchor="middle" font-size="11" font-weight="bold" fill="#ffffff">4</text>
+        <text x="38" y="18" font-size="12" font-weight="bold" fill="#14532d">PURIFYING</text>
+        {/* Tank & limestone filter */}
+        <rect x="40" y="42" width="75" height="50" rx="4" fill="#f8fafc" stroke="#64748b" stroke-width="1.5" />
+        <line x1="40" y1="65" x2="115" y2="65" stroke="#f59e0b" stroke-width="4" stroke-dasharray="2,3" />
+        <rect x="42" y="70" width="71" height="20" fill="#fef08a" opacity="0.6" />
+        <text x="77" y="60" text-anchor="middle" font-size="8" font-weight="bold" fill="#475569">Limestone filter</text>
+        <text x="77" y="112" text-anchor="middle" font-size="10" font-weight="bold" fill="#334155">Purified Juice</text>
+        <text x="77" y="124" text-anchor="middle" font-size="9" fill="#64748b">Impurities removed</text>
+      </g>
+
+      {/* Connecting Arrow: Stage 4 down and back to Stage 5 */}
+      <path d="M 662 155 L 662 178 Q 662 188 650 188 L 610 188" fill="none" stroke="#0284c7" stroke-width="2.5" marker-end="url(#arrow)" />
+
+      {/* STAGE 5: EVAPORATING */}
+      <g transform="translate(435, 195)">
+        <rect width="165" height="135" rx="12" fill="#ffffff" stroke="#cbd5e1" stroke-width="1.5" />
+        <rect width="165" height="28" rx="12" fill="#eff6ff" />
+        <rect y="16" width="165" height="12" fill="#eff6ff" />
+        <circle cx="22" cy="14" r="9" fill="#0284c7" />
+        <text x="22" y="18" text-anchor="middle" font-size="11" font-weight="bold" fill="#ffffff">5</text>
+        <text x="38" y="18" font-size="12" font-weight="bold" fill="#1e3a8a">EVAPORATING</text>
+        {/* Boiler vessel & heat */}
+        <rect x="45" y="42" width="75" height="42" rx="6" fill="#fef3c7" stroke="#b45309" stroke-width="1.5" />
+        <path d="M 60 38 Q 65 30 70 38" fill="none" stroke="#94a3b8" stroke-width="2" />
+        <path d="M 80 38 Q 85 30 90 38" fill="none" stroke="#94a3b8" stroke-width="2" />
+        <path d="M 100 38 Q 105 30 110 38" fill="none" stroke="#94a3b8" stroke-width="2" />
+        {/* Flames */}
+        <path d="M 55 92 Q 62 82 70 92 Q 77 82 85 92 Q 92 82 100 92 Q 107 82 112 92" fill="#ef4444" stroke="#f59e0b" stroke-width="1.5" />
+        <text x="82" y="112" text-anchor="middle" font-size="10" font-weight="bold" fill="#334155">Heat turns juice into syrup</text>
+        <text x="82" y="125" text-anchor="middle" font-size="9" fill="#64748b">Water evaporates</text>
+      </g>
+
+      {/* Arrow 5 -> 6 */}
+      <line x1="430" y1="262" x2="400" y2="262" stroke="#0284c7" stroke-width="2.5" marker-end="url(#arrow)" />
+
+      {/* STAGE 6: CENTRIFUGE */}
+      <g transform="translate(225, 195)">
+        <rect width="165" height="135" rx="12" fill="#ffffff" stroke="#cbd5e1" stroke-width="1.5" />
+        <rect width="165" height="28" rx="12" fill="#eff6ff" />
+        <rect y="16" width="165" height="12" fill="#eff6ff" />
+        <circle cx="22" cy="14" r="9" fill="#0284c7" />
+        <text x="22" y="18" text-anchor="middle" font-size="11" font-weight="bold" fill="#ffffff">6</text>
+        <text x="38" y="18" font-size="12" font-weight="bold" fill="#1e3a8a">CENTRIFUGE</text>
+        {/* Spinning drum */}
+        <circle cx="82" cy="65" r="22" fill="#f8fafc" stroke="#475569" stroke-width="2" />
+        <path d="M 68 55 A 16 16 0 0 1 96 55" fill="none" stroke="#2563eb" stroke-width="2.5" marker-end="url(#arrow)" />
+        <path d="M 96 75 A 16 16 0 0 1 68 75" fill="none" stroke="#2563eb" stroke-width="2.5" marker-end="url(#arrow)" />
+        <circle cx="82" cy="65" r="5" fill="#f59e0b" />
+        <text x="82" y="112" text-anchor="middle" font-size="10" font-weight="bold" fill="#334155">Separates sugar crystals</text>
+        <text x="82" y="125" text-anchor="middle" font-size="9" fill="#64748b">from syrup/molasses</text>
+      </g>
+
+      {/* Arrow 6 -> 7 */}
+      <line x1="220" y1="262" x2="190" y2="262" stroke="#059669" stroke-width="2.5" marker-end="url(#arrow-emerald)" />
+
+      {/* STAGE 7: DRYING & COOLING */}
+      <g transform="translate(15, 195)">
+        <rect width="165" height="135" rx="12" fill="#ffffff" stroke="#059669" stroke-width="2" />
+        <rect width="165" height="28" rx="12" fill="#ecfdf5" />
+        <rect y="16" width="165" height="12" fill="#ecfdf5" />
+        <circle cx="22" cy="14" r="9" fill="#059669" />
+        <text x="22" y="18" text-anchor="middle" font-size="11" font-weight="bold" fill="#ffffff">7</text>
+        <text x="38" y="18" font-size="12" font-weight="bold" fill="#065f46">DRYING &amp; COOLING</text>
+        {/* Sugar bags */}
+        <rect x="35" y="44" width="40" height="42" rx="4" fill="#f1f5f9" stroke="#64748b" stroke-width="1.5" />
+        <text x="55" y="65" text-anchor="middle" font-size="8" font-weight="bold" fill="#334155">SUGAR</text>
+        <text x="55" y="76" text-anchor="middle" font-size="7" fill="#64748b">50 kg</text>
+        <rect x="85" y="48" width="40" height="38" rx="4" fill="#f8fafc" stroke="#64748b" stroke-width="1.5" />
+        <text x="105" y="68" text-anchor="middle" font-size="8" font-weight="bold" fill="#334155">SUGAR</text>
+        <text x="105" y="78" text-anchor="middle" font-size="7" fill="#64748b">50 kg</text>
+        <text x="82" y="112" text-anchor="middle" font-size="10" font-weight="bold" fill="#065f46">Final Sugar Crystals</text>
+        <text x="82" y="125" text-anchor="middle" font-size="9" fill="#475569">Dried, cooled &amp; bagged</text>
+      </g>
+    </svg>
   </div>
 </div>`,
       questionGroups: [
@@ -1005,9 +1235,21 @@ export const cambridge16Test2Writing: IELTSMockTest = {
       title: "Writing Task 2",
       subtitle: "Businesses advertising products as new",
       passageContent: `
-        <div class="p-4 bg-slate-50 border border-slate-200 rounded-xl text-slate-800 text-sm">
-          <p class="font-bold text-slate-900 mb-1">WRITING TASK 2 TOPIC:</p>
-          <p class="italic text-slate-700">"In their advertising, businesses now emphasise that their products are new in some way. Why is this? Do you think this is a positive or negative development?"</p>
+        <div class="my-4 p-5 bg-[#f8f9fa] border-2 border-slate-300 rounded-xl font-sans shadow-2xs">
+          <div class="flex items-center justify-between border-b border-slate-200 pb-2 mb-3">
+            <span class="font-extrabold text-xs uppercase tracking-wider text-slate-600">Official Cambridge CD-IELTS • Writing Task 2</span>
+            <span class="text-xs font-semibold text-slate-500">Suggested Time: 40 Minutes</span>
+          </div>
+          <p class="text-xs font-bold text-slate-700 uppercase tracking-wide mb-2">Write about the following topic:</p>
+          <div class="p-4 bg-white border border-slate-300 rounded-lg text-sm sm:text-base font-semibold text-slate-900 leading-relaxed shadow-inner">
+            "In their advertising, businesses now emphasise that their products are new in some way.<br/><br/>
+            Why is this?<br/>
+            Do you think this is a positive or negative development?"
+          </div>
+          <div class="mt-4 space-y-1 text-xs text-slate-700">
+            <p class="italic">Give reasons for your answer and include any relevant examples from your own knowledge or experience.</p>
+            <p class="font-extrabold text-slate-900">Write at least 250 words.</p>
+          </div>
         </div>
       `,
       questionGroups: [
@@ -1404,35 +1646,140 @@ export const cambridge16Test3Writing: IELTSMockTest = {
       sectionNumber: 1,
       title: "Writing Task 1",
       subtitle: "Southwest Airport layout redevelopment",
-      passageContent: `<div class="my-6 p-4 bg-white border border-slate-300 rounded-xl shadow-xs">
-  <div class="text-center font-bold text-slate-900 text-sm mb-3">Southwest Airport: Current vs Planned Redevelopment</div>
-  <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-    <div class="border border-slate-200 p-3 rounded-lg bg-slate-50">
-      <div class="font-bold text-xs text-slate-800 text-center mb-2">CURRENT AIRPORT</div>
-      <div class="space-y-2 text-[11px] text-slate-700">
-        <div class="p-2 bg-white rounded border border-slate-200 font-semibold text-center">North Concourse (Gates 1–8)</div>
-        <div class="flex gap-2">
-          <div class="flex-1 p-2 bg-blue-50 border border-blue-200 rounded text-center">Departures (Left)</div>
-          <div class="flex-1 p-2 bg-emerald-50 border border-emerald-200 rounded text-center">Arrivals (Right)</div>
-        </div>
-        <div class="p-2 bg-amber-50 border border-amber-200 rounded text-center">Security & Check-in Desks</div>
-      </div>
-    </div>
-    <div class="border border-indigo-200 p-3 rounded-lg bg-indigo-50/40">
-      <div class="font-bold text-xs text-indigo-900 text-center mb-2">PLANNED REDEVELOPMENT</div>
-      <div class="space-y-2 text-[11px] text-slate-700">
-        <div class="p-2 bg-white rounded border border-indigo-200 font-semibold text-center">Expanded Concourse: Gates 1–18 (Y-shaped wings)</div>
-        <div class="grid grid-cols-3 gap-1.5 text-center text-[10px]">
-          <span class="p-1.5 bg-blue-100 rounded">Duty Free Shops</span>
-          <span class="p-1.5 bg-emerald-100 rounded">New Cafe</span>
-          <span class="p-1.5 bg-purple-100 rounded">Car Hire Desks</span>
-        </div>
-        <div class="flex gap-2">
-          <div class="flex-1 p-2 bg-blue-50 border border-blue-200 rounded text-center">Relocated Departures</div>
-          <div class="flex-1 p-2 bg-emerald-50 border border-emerald-200 rounded text-center">Relocated Arrivals</div>
-        </div>
-      </div>
-    </div>
+      passageContent: `<div class="my-4 p-5 bg-white border border-slate-200 rounded-2xl shadow-xs font-sans">
+  <div class="border-b border-slate-100 pb-3 mb-4 text-center">
+    <span class="text-[11px] font-extrabold uppercase tracking-widest text-indigo-700 bg-indigo-50 border border-indigo-100 px-3 py-1 rounded-full inline-block">Official Cambridge Academic 16 • Task 1</span>
+    <h3 class="font-extrabold text-slate-900 text-sm sm:text-base mt-2">Southwest Airport: Current Site vs Planned Redevelopment Next Year</h3>
+  </div>
+
+  <div class="bg-slate-50/70 p-3 sm:p-4 rounded-xl border border-slate-200">
+    <svg viewBox="0 0 780 370" class="w-full h-auto max-w-3xl mx-auto font-sans select-none">
+      {/* LEFT PLAN: SOUTHWEST AIRPORT (NOW) */}
+      <g transform="translate(10, 10)">
+        {/* Background panel */}
+        <rect width="365" height="345" rx="12" fill="#ffffff" stroke="#94a3b8" stroke-width="1.5" />
+        <rect width="365" height="30" rx="12" fill="#f1f5f9" />
+        <rect y="18" width="365" height="12" fill="#f1f5f9" />
+        <text x="182" y="20" text-anchor="middle" font-size="12" font-weight="extrabold" fill="#0f172a">SOUTHWEST AIRPORT (NOW)</text>
+
+        {/* Compass */}
+        <g transform="translate(325, 55)">
+          <circle cx="15" cy="15" r="14" fill="#ffffff" stroke="#cbd5e1" stroke-width="1" />
+          <line x1="15" y1="5" x2="15" y2="25" stroke="#0f172a" stroke-width="1.5" />
+          <line x1="5" y1="15" x2="25" y2="15" stroke="#cbd5e1" stroke-width="1" />
+          <polygon points="15,4 12,12 18,12" fill="#ef4444" />
+          <text x="15" y="0" text-anchor="middle" font-size="9" font-weight="bold" fill="#0f172a">N</text>
+        </g>
+
+        {/* North Concourse (Gates 1-8) */}
+        <rect x="152" y="55" width="60" height="145" rx="4" fill="#e2e8f0" stroke="#64748b" stroke-width="1.5" />
+        <text x="182" y="115" text-anchor="middle" font-size="9" font-weight="bold" fill="#334155" transform="rotate(-90 182 115)">WALKWAY</text>
+
+        {/* West Gates: 1 - 4 */}
+        <g transform="translate(90, 60)">
+          <rect x="0" y="0" width="55" height="24" rx="3" fill="#ffffff" stroke="#64748b" stroke-width="1.2" />
+          <text x="27" y="16" text-anchor="middle" font-size="9" font-weight="bold" fill="#1e293b">Gate 1</text>
+          <rect x="0" y="32" width="55" height="24" rx="3" fill="#ffffff" stroke="#64748b" stroke-width="1.2" />
+          <text x="27" y="48" text-anchor="middle" font-size="9" font-weight="bold" fill="#1e293b">Gate 2</text>
+          <rect x="0" y="64" width="55" height="24" rx="3" fill="#ffffff" stroke="#64748b" stroke-width="1.2" />
+          <text x="27" y="80" text-anchor="middle" font-size="9" font-weight="bold" fill="#1e293b">Gate 3</text>
+          <rect x="0" y="96" width="55" height="24" rx="3" fill="#ffffff" stroke="#64748b" stroke-width="1.2" />
+          <text x="27" y="112" text-anchor="middle" font-size="9" font-weight="bold" fill="#1e293b">Gate 4</text>
+        </g>
+
+        {/* East Gates: 5 - 8 */}
+        <g transform="translate(220, 60)">
+          <rect x="0" y="0" width="55" height="24" rx="3" fill="#ffffff" stroke="#64748b" stroke-width="1.2" />
+          <text x="27" y="16" text-anchor="middle" font-size="9" font-weight="bold" fill="#1e293b">Gate 5</text>
+          <rect x="0" y="32" width="55" height="24" rx="3" fill="#ffffff" stroke="#64748b" stroke-width="1.2" />
+          <text x="27" y="48" text-anchor="middle" font-size="9" font-weight="bold" fill="#1e293b">Gate 6</text>
+          <rect x="0" y="64" width="55" height="24" rx="3" fill="#ffffff" stroke="#64748b" stroke-width="1.2" />
+          <text x="27" y="80" text-anchor="middle" font-size="9" font-weight="bold" fill="#1e293b">Gate 7</text>
+          <rect x="0" y="96" width="55" height="24" rx="3" fill="#ffffff" stroke="#64748b" stroke-width="1.2" />
+          <text x="27" y="112" text-anchor="middle" font-size="9" font-weight="bold" fill="#1e293b">Gate 8</text>
+        </g>
+
+        {/* Main Terminal Building */}
+        <rect x="25" y="210" width="315" height="110" rx="8" fill="#f8fafc" stroke="#475569" stroke-width="2" />
+        
+        {/* Departures Side (Left) */}
+        <rect x="35" y="220" width="140" height="90" rx="6" fill="#eff6ff" stroke="#3b82f6" stroke-width="1" />
+        <text x="105" y="238" text-anchor="middle" font-size="11" font-weight="extrabold" fill="#1d4ed8">DEPARTURES</text>
+        <rect x="45" y="248" width="120" height="22" rx="3" fill="#ffffff" stroke="#93c5fd" />
+        <text x="105" y="262" text-anchor="middle" font-size="9" font-weight="semibold" fill="#1e40af">Security Check</text>
+        <rect x="45" y="276" width="120" height="24" rx="3" fill="#ffffff" stroke="#93c5fd" />
+        <text x="105" y="291" text-anchor="middle" font-size="9" font-weight="bold" fill="#1e40af">Check-in Desks</text>
+
+        {/* Arrivals Side (Right) */}
+        <rect x="190" y="220" width="140" height="90" rx="6" fill="#ecfdf5" stroke="#10b981" stroke-width="1" />
+        <text x="260" y="238" text-anchor="middle" font-size="11" font-weight="extrabold" fill="#047857">ARRIVALS</text>
+        <rect x="200" y="248" width="120" height="22" rx="3" fill="#ffffff" stroke="#a7f3d0" />
+        <text x="260" y="262" text-anchor="middle" font-size="9" font-weight="semibold" fill="#065f46">Passport Control</text>
+        <rect x="200" y="276" width="120" height="24" rx="3" fill="#ffffff" stroke="#a7f3d0" />
+        <text x="260" y="291" text-anchor="middle" font-size="9" font-weight="bold" fill="#065f46">Customs / Exit</text>
+      </g>
+
+      {/* RIGHT PLAN: SOUTHWEST AIRPORT (NEXT YEAR) */}
+      <g transform="translate(400, 10)">
+        {/* Background panel */}
+        <rect width="370" height="345" rx="12" fill="#ffffff" stroke="#6366f1" stroke-width="1.8" />
+        <rect width="370" height="30" rx="12" fill="#eef2ff" />
+        <rect y="18" width="370" height="12" fill="#eef2ff" />
+        <text x="185" y="20" text-anchor="middle" font-size="12" font-weight="extrabold" fill="#3730a3">SOUTHWEST AIRPORT (NEXT YEAR)</text>
+
+        {/* Y-shaped concourse & Skytrain track */}
+        {/* Left Wing (Gates 1-9) */}
+        <path d="M 160 145 L 85 55 L 120 40 L 180 125 Z" fill="#e0e7ff" stroke="#6366f1" stroke-width="1.2" />
+        {/* Right Wing (Gates 10-18) */}
+        <path d="M 210 145 L 285 55 L 250 40 L 190 125 Z" fill="#e0e7ff" stroke="#6366f1" stroke-width="1.2" />
+        {/* Central stem concourse */}
+        <rect x="165" y="135" width="40" height="65" fill="#e0e7ff" stroke="#6366f1" stroke-width="1.2" />
+
+        {/* Skytrain tracks down center */}
+        <line x1="185" y1="55" x2="185" y2="200" stroke="#4f46e5" stroke-width="2.5" stroke-dasharray="4,3" />
+        <rect x="170" y="165" width="30" height="16" rx="3" fill="#4f46e5" />
+        <text x="185" y="176" text-anchor="middle" font-size="7" font-weight="bold" fill="#ffffff">TRAIN</text>
+        <text x="185" y="128" text-anchor="middle" font-size="8" font-weight="bold" fill="#3730a3">SKYTRAIN</text>
+
+        {/* Labels on wings */}
+        <rect x="25" y="42" width="60" height="22" rx="3" fill="#ffffff" stroke="#6366f1" />
+        <text x="55" y="56" text-anchor="middle" font-size="9" font-weight="bold" fill="#3730a3">Gates 1–9</text>
+
+        <rect x="285" y="42" width="60" height="22" rx="3" fill="#ffffff" stroke="#6366f1" />
+        <text x="315" y="56" text-anchor="middle" font-size="9" font-weight="bold" fill="#3730a3">Gates 10–18</text>
+
+        {/* Redesigned Terminal Building */}
+        <rect x="15" y="200" width="340" height="135" rx="8" fill="#f8fafc" stroke="#475569" stroke-width="2" />
+
+        {/* Relocated Departures */}
+        <rect x="25" y="210" width="95" height="115" rx="5" fill="#eff6ff" stroke="#3b82f6" />
+        <text x="72" y="226" text-anchor="middle" font-size="10" font-weight="bold" fill="#1d4ed8">DEPARTURES</text>
+        <rect x="30" y="235" width="85" height="32" rx="3" fill="#ffffff" stroke="#bfdbfe" />
+        <text x="72" y="249" text-anchor="middle" font-size="8" font-weight="bold" fill="#1e40af">Relocated</text>
+        <text x="72" y="260" text-anchor="middle" font-size="8" fill="#1e40af">Check-in</text>
+        <rect x="30" y="275" width="85" height="24" rx="3" fill="#ffffff" stroke="#bfdbfe" />
+        <text x="72" y="290" text-anchor="middle" font-size="8" font-weight="bold" fill="#1e40af">Security</text>
+
+        {/* Center Shops & Amenities */}
+        <rect x="128" y="210" width="114" height="115" rx="5" fill="#fdf4ff" stroke="#d946ef" />
+        <rect x="133" y="218" width="104" height="24" rx="3" fill="#ffffff" stroke="#f0abfc" />
+        <text x="185" y="233" text-anchor="middle" font-size="9" font-weight="bold" fill="#a21caf">DUTY FREE</text>
+        <rect x="133" y="248" width="104" height="24" rx="3" fill="#ffffff" stroke="#f0abfc" />
+        <text x="185" y="263" text-anchor="middle" font-size="9" font-weight="bold" fill="#a21caf">NEW CAFE</text>
+        <rect x="133" y="278" width="104" height="22" rx="3" fill="#ffffff" stroke="#f0abfc" />
+        <text x="185" y="292" text-anchor="middle" font-size="8" font-weight="bold" fill="#a21caf">ATM / Currency</text>
+
+        {/* Relocated Arrivals */}
+        <rect x="250" y="210" width="95" height="115" rx="5" fill="#ecfdf5" stroke="#10b981" />
+        <text x="297" y="226" text-anchor="middle" font-size="10" font-weight="bold" fill="#047857">ARRIVALS</text>
+        <rect x="255" y="235" width="85" height="32" rx="3" fill="#ffffff" stroke="#a7f3d0" />
+        <text x="297" y="249" text-anchor="middle" font-size="8" font-weight="bold" fill="#065f46">Baggage</text>
+        <text x="297" y="260" text-anchor="middle" font-size="8" fill="#065f46">Reclaim</text>
+        <rect x="255" y="275" width="85" height="35" rx="3" fill="#ffffff" stroke="#a7f3d0" />
+        <text x="297" y="289" text-anchor="middle" font-size="8" font-weight="bold" fill="#065f46">Car Hire</text>
+        <text x="297" y="300" text-anchor="middle" font-size="7" fill="#065f46">Counters</text>
+      </g>
+    </svg>
   </div>
 </div>`,
       questionGroups: [
@@ -1457,9 +1804,21 @@ export const cambridge16Test3Writing: IELTSMockTest = {
       title: "Writing Task 2",
       subtitle: "High sugar food and drink taxation essay",
       passageContent: `
-        <div class="p-4 bg-slate-50 border border-slate-200 rounded-xl text-slate-800 text-sm">
-          <p class="font-bold text-slate-900 mb-1">WRITING TASK 2 TOPIC:</p>
-          <p class="italic text-slate-700">"Manufactured food and drink that contains high levels of sugar is causing lots of health problems. Some people say that this should be made more expensive to encourage people to consume less of it. Do you agree or disagree?"</p>
+        <div class="my-4 p-5 bg-[#f8f9fa] border-2 border-slate-300 rounded-xl font-sans shadow-2xs">
+          <div class="flex items-center justify-between border-b border-slate-200 pb-2 mb-3">
+            <span class="font-extrabold text-xs uppercase tracking-wider text-slate-600">Official Cambridge CD-IELTS • Writing Task 2</span>
+            <span class="text-xs font-semibold text-slate-500">Suggested Time: 40 Minutes</span>
+          </div>
+          <p class="text-xs font-bold text-slate-700 uppercase tracking-wide mb-2">Write about the following topic:</p>
+          <div class="p-4 bg-white border border-slate-300 rounded-lg text-sm sm:text-base font-semibold text-slate-900 leading-relaxed shadow-inner">
+            "Manufactured food and drink that contains high levels of sugar is causing lots of health problems.<br/><br/>
+            Some people say that this should be made more expensive to encourage people to consume less of it.<br/><br/>
+            Do you agree or disagree?"
+          </div>
+          <div class="mt-4 space-y-1 text-xs text-slate-700">
+            <p class="italic">Give reasons for your answer and include any relevant examples from your own knowledge or experience.</p>
+            <p class="font-extrabold text-slate-900">Write at least 250 words.</p>
+          </div>
         </div>
       `,
       questionGroups: [
@@ -1861,44 +2220,180 @@ export const cambridge16Test4Writing: IELTSMockTest = {
       sectionNumber: 1,
       title: "Writing Task 1",
       subtitle: "Plastic bottle recycling process",
-      passageContent: `<div class="my-6 p-4 bg-white border border-slate-300 rounded-xl shadow-xs">
-  <div class="text-center font-bold text-slate-900 text-sm mb-3">Plastic Bottle Recycling Process</div>
-  <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 text-xs">
-    <div class="bg-sky-50 border border-sky-200 p-3 rounded-lg text-center">
-      <span class="w-6 h-6 rounded-full bg-sky-600 text-white font-bold inline-flex items-center justify-center text-xs mb-1.5">1</span>
-      <div class="font-bold text-slate-900">Collection</div>
-      <div class="text-slate-600 mt-0.5">Recycling bins & trucks</div>
-    </div>
-    <div class="bg-sky-50 border border-sky-200 p-3 rounded-lg text-center">
-      <span class="w-6 h-6 rounded-full bg-sky-600 text-white font-bold inline-flex items-center justify-center text-xs mb-1.5">2</span>
-      <div class="font-bold text-slate-900">Sorting</div>
-      <div class="text-slate-600 mt-0.5">Separated by polymer/colour</div>
-    </div>
-    <div class="bg-sky-50 border border-sky-200 p-3 rounded-lg text-center">
-      <span class="w-6 h-6 rounded-full bg-sky-600 text-white font-bold inline-flex items-center justify-center text-xs mb-1.5">3</span>
-      <div class="font-bold text-slate-900">Compacting</div>
-      <div class="text-slate-600 mt-0.5">Pressed into tight bales</div>
-    </div>
-    <div class="bg-sky-50 border border-sky-200 p-3 rounded-lg text-center">
-      <span class="w-6 h-6 rounded-full bg-sky-600 text-white font-bold inline-flex items-center justify-center text-xs mb-1.5">4</span>
-      <div class="font-bold text-slate-900">Shredding</div>
-      <div class="text-slate-600 mt-0.5">Flaked and washed</div>
-    </div>
-    <div class="bg-teal-50 border border-teal-200 p-3 rounded-lg text-center">
-      <span class="w-6 h-6 rounded-full bg-teal-600 text-white font-bold inline-flex items-center justify-center text-xs mb-1.5">5</span>
-      <div class="font-bold text-slate-900">Pelletizing</div>
-      <div class="text-slate-600 mt-0.5">Extruded into plastic pellets</div>
-    </div>
-    <div class="bg-teal-50 border border-teal-200 p-3 rounded-lg text-center">
-      <span class="w-6 h-6 rounded-full bg-teal-600 text-white font-bold inline-flex items-center justify-center text-xs mb-1.5">6</span>
-      <div class="font-bold text-slate-900">Melting</div>
-      <div class="text-slate-600 mt-0.5">Heated for manufacturing</div>
-    </div>
-    <div class="bg-teal-50 border border-teal-200 p-3 rounded-lg text-center col-span-1 sm:col-span-2">
-      <span class="w-6 h-6 rounded-full bg-teal-600 text-white font-bold inline-flex items-center justify-center text-xs mb-1.5">7</span>
-      <div class="font-bold text-slate-900">New Products</div>
-      <div class="text-slate-600 mt-0.5">New bottles, clothing fibres, containers, bags</div>
-    </div>
+      passageContent: `<div class="my-4 p-5 bg-white border border-slate-200 rounded-2xl shadow-xs font-sans">
+  <div class="border-b border-slate-100 pb-3 mb-4 text-center">
+    <span class="text-[11px] font-extrabold uppercase tracking-widest text-sky-700 bg-sky-50 border border-sky-100 px-3 py-1 rounded-full inline-block">Official Cambridge Academic 16 • Task 1</span>
+    <h3 class="font-extrabold text-slate-900 text-sm sm:text-base mt-2">The Industrial Process of Recycling Plastic Bottles</h3>
+  </div>
+
+  <div class="bg-slate-50/70 p-3 sm:p-4 rounded-xl border border-slate-200">
+    <svg viewBox="0 0 780 360" class="w-full h-auto max-w-3xl mx-auto font-sans select-none">
+      <defs>
+        <marker id="arrow-sky" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+          <path d="M 0 1 L 10 5 L 0 9 z" fill="#0284c7" />
+        </marker>
+        <marker id="arrow-teal" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+          <path d="M 0 1 L 10 5 L 0 9 z" fill="#0d9488" />
+        </marker>
+      </defs>
+
+      {/* ROW 1: Stages 1 to 4 */}
+      {/* STAGE 1: COLLECTION */}
+      <g transform="translate(15, 20)">
+        <rect width="165" height="130" rx="12" fill="#ffffff" stroke="#cbd5e1" stroke-width="1.5" />
+        <rect width="165" height="28" rx="12" fill="#f0f9ff" />
+        <rect y="16" width="165" height="12" fill="#f0f9ff" />
+        <circle cx="22" cy="14" r="9" fill="#0284c7" />
+        <text x="22" y="18" text-anchor="middle" font-size="11" font-weight="bold" fill="#ffffff">1</text>
+        <text x="38" y="18" font-size="12" font-weight="bold" fill="#0369a1">COLLECTION</text>
+        {/* Recycle bin & truck */}
+        <rect x="25" y="48" width="30" height="42" rx="3" fill="#fde047" stroke="#ca8a04" stroke-width="1.5" />
+        <path d="M 33 65 L 47 65 M 40 58 L 40 72" stroke="#854d0e" stroke-width="2" />
+        <text x="40" y="82" text-anchor="middle" font-size="7" font-weight="bold" fill="#854d0e">RECYCLE</text>
+        <rect x="75" y="55" width="55" height="30" rx="3" fill="#38bdf8" />
+        <circle cx="90" cy="88" r="7" fill="#334155" />
+        <circle cx="120" cy="88" r="7" fill="#334155" />
+        <text x="82" y="112" text-anchor="middle" font-size="10" font-weight="bold" fill="#334155">Recycling Bins</text>
+        <text x="82" y="124" text-anchor="middle" font-size="9" fill="#64748b">Garbage trucks collect</text>
+      </g>
+
+      <line x1="185" y1="85" x2="210" y2="85" stroke="#0284c7" stroke-width="2.5" marker-end="url(#arrow-sky)" />
+
+      {/* STAGE 2: SORTING */}
+      <g transform="translate(215, 20)">
+        <rect width="165" height="130" rx="12" fill="#ffffff" stroke="#cbd5e1" stroke-width="1.5" />
+        <rect width="165" height="28" rx="12" fill="#f0f9ff" />
+        <rect y="16" width="165" height="12" fill="#f0f9ff" />
+        <circle cx="22" cy="14" r="9" fill="#0284c7" />
+        <text x="22" y="18" text-anchor="middle" font-size="11" font-weight="bold" fill="#ffffff">2</text>
+        <text x="38" y="18" font-size="12" font-weight="bold" fill="#0369a1">SORTING</text>
+        {/* Conveyor belt */}
+        <rect x="25" y="65" width="115" height="12" rx="3" fill="#94a3b8" />
+        <rect x="35" y="44" width="14" height="20" rx="2" fill="#38bdf8" />
+        <rect x="65" y="42" width="14" height="22" rx="2" fill="#22c55e" />
+        <rect x="95" y="46" width="14" height="18" rx="2" fill="#f59e0b" />
+        <circle cx="40" cy="71" r="4" fill="#334155" />
+        <circle cx="82" cy="71" r="4" fill="#334155" />
+        <circle cx="125" cy="71" r="4" fill="#334155" />
+        <text x="82" y="112" text-anchor="middle" font-size="10" font-weight="bold" fill="#334155">Sorted by Type &amp; Colour</text>
+        <text x="82" y="124" text-anchor="middle" font-size="9" fill="#64748b">PET vs Non-recyclable</text>
+      </g>
+
+      <line x1="385" y1="85" x2="410" y2="85" stroke="#0284c7" stroke-width="2.5" marker-end="url(#arrow-sky)" />
+
+      {/* STAGE 3: COMPACTING */}
+      <g transform="translate(415, 20)">
+        <rect width="165" height="130" rx="12" fill="#ffffff" stroke="#cbd5e1" stroke-width="1.5" />
+        <rect width="165" height="28" rx="12" fill="#f0f9ff" />
+        <rect y="16" width="165" height="12" fill="#f0f9ff" />
+        <circle cx="22" cy="14" r="9" fill="#0284c7" />
+        <text x="22" y="18" text-anchor="middle" font-size="11" font-weight="bold" fill="#ffffff">3</text>
+        <text x="38" y="18" font-size="12" font-weight="bold" fill="#0369a1">COMPACTING</text>
+        {/* Hydraulic press and compressed bale */}
+        <rect x="55" y="38" width="55" height="10" fill="#475569" />
+        <line x1="82" y1="48" x2="82" y2="60" stroke="#334155" stroke-width="4" />
+        <rect x="50" y="60" width="65" height="35" rx="3" fill="#bae6fd" stroke="#0284c7" stroke-width="1.5" stroke-dasharray="3,2" />
+        <line x1="50" y1="72" x2="115" y2="72" stroke="#0284c7" stroke-width="1" />
+        <line x1="50" y1="83" x2="115" y2="83" stroke="#0284c7" stroke-width="1" />
+        <text x="82" y="112" text-anchor="middle" font-size="10" font-weight="bold" fill="#334155">Pressed into Bales</text>
+        <text x="82" y="124" text-anchor="middle" font-size="9" fill="#64748b">High-density blocks</text>
+      </g>
+
+      <line x1="585" y1="85" x2="610" y2="85" stroke="#0284c7" stroke-width="2.5" marker-end="url(#arrow-sky)" />
+
+      {/* STAGE 4: CRUSHING & SHREDDING */}
+      <g transform="translate(615, 20)">
+        <rect width="150" height="130" rx="12" fill="#ffffff" stroke="#cbd5e1" stroke-width="1.5" />
+        <rect width="150" height="28" rx="12" fill="#f0f9ff" />
+        <rect y="16" width="150" height="12" fill="#f0f9ff" />
+        <circle cx="22" cy="14" r="9" fill="#0284c7" />
+        <text x="22" y="18" text-anchor="middle" font-size="11" font-weight="bold" fill="#ffffff">4</text>
+        <text x="38" y="18" font-size="12" font-weight="bold" fill="#0369a1">SHREDDING</text>
+        {/* Rotating blades */}
+        <circle cx="55" cy="65" r="16" fill="#f1f5f9" stroke="#334155" stroke-width="2" />
+        <path d="M 45 65 L 65 65 M 55 55 L 55 75" stroke="#0284c7" stroke-width="2" />
+        <circle cx="95" cy="65" r="16" fill="#f1f5f9" stroke="#334155" stroke-width="2" />
+        <path d="M 85 65 L 105 65 M 95 55 L 95 75" stroke="#0284c7" stroke-width="2" />
+        {/* Flakes */}
+        <circle cx="65" cy="90" r="2" fill="#0284c7" />
+        <circle cx="75" cy="94" r="2.5" fill="#0284c7" />
+        <circle cx="85" cy="90" r="2" fill="#0284c7" />
+        <text x="75" y="112" text-anchor="middle" font-size="10" font-weight="bold" fill="#334155">Cut into Flakes</text>
+        <text x="75" y="124" text-anchor="middle" font-size="9" fill="#64748b">Rotary blade crush</text>
+      </g>
+
+      {/* Connecting Arrow: Stage 4 down and back to Stage 5 */}
+      <path d="M 690 155 L 690 180 Q 690 190 680 190 L 640 190" fill="none" stroke="#0d9488" stroke-width="2.5" marker-end="url(#arrow-teal)" />
+
+      {/* ROW 2: Stages 5 to 8 */}
+      {/* STAGE 5: WASHING & STERILIZING */}
+      <g transform="translate(465, 205)">
+        <rect width="165" height="135" rx="12" fill="#ffffff" stroke="#cbd5e1" stroke-width="1.5" />
+        <rect width="165" height="28" rx="12" fill="#f0fdfa" />
+        <rect y="16" width="165" height="12" fill="#f0fdfa" />
+        <circle cx="22" cy="14" r="9" fill="#0d9488" />
+        <text x="22" y="18" text-anchor="middle" font-size="11" font-weight="bold" fill="#ffffff">5</text>
+        <text x="38" y="18" font-size="12" font-weight="bold" fill="#115e59">WASHING</text>
+        {/* Water bath vat */}
+        <rect x="35" y="44" width="95" height="42" rx="4" fill="#ccfbf1" stroke="#0d9488" stroke-width="1.5" />
+        <path d="M 40 55 Q 55 50 70 55 Q 85 60 100 55 Q 115 50 125 55" fill="none" stroke="#0f766e" stroke-width="2" />
+        <text x="82" y="74" text-anchor="middle" font-size="8" font-weight="bold" fill="#0f766e">WATER &amp; DETERGENT</text>
+        <text x="82" y="112" text-anchor="middle" font-size="10" font-weight="bold" fill="#334155">Flakes Washed</text>
+        <text x="82" y="125" text-anchor="middle" font-size="9" fill="#64748b">Labels &amp; adhesive removed</text>
+      </g>
+
+      <line x1="460" y1="272" x2="435" y2="272" stroke="#0d9488" stroke-width="2.5" marker-end="url(#arrow-teal)" />
+
+      {/* STAGE 6: PELLETIZING */}
+      <g transform="translate(265, 205)">
+        <rect width="165" height="135" rx="12" fill="#ffffff" stroke="#cbd5e1" stroke-width="1.5" />
+        <rect width="165" height="28" rx="12" fill="#f0fdfa" />
+        <rect y="16" width="165" height="12" fill="#f0fdfa" />
+        <circle cx="22" cy="14" r="9" fill="#0d9488" />
+        <text x="22" y="18" text-anchor="middle" font-size="11" font-weight="bold" fill="#ffffff">6</text>
+        <text x="38" y="18" font-size="12" font-weight="bold" fill="#115e59">PELLETIZING</text>
+        {/* Extruder & pellets */}
+        <rect x="35" y="50" width="60" height="22" rx="3" fill="#e2e8f0" stroke="#475569" stroke-width="1.5" />
+        <polygon points="95,50 115,61 95,72" fill="#f59e0b" />
+        <circle cx="120" cy="58" r="3" fill="#0d9488" />
+        <circle cx="128" cy="62" r="3" fill="#0d9488" />
+        <circle cx="122" cy="68" r="3" fill="#0d9488" />
+        <text x="82" y="112" text-anchor="middle" font-size="10" font-weight="bold" fill="#334155">Plastic Pellets Formed</text>
+        <text x="82" y="125" text-anchor="middle" font-size="9" fill="#64748b">Flakes melted &amp; extruded</text>
+      </g>
+
+      <line x1="260" y1="272" x2="235" y2="272" stroke="#0d9488" stroke-width="2.5" marker-end="url(#arrow-teal)" />
+
+      {/* STAGE 7 & 8: HEATING & FINISHED PRODUCTS */}
+      <g transform="translate(15, 205)">
+        <rect width="215" height="135" rx="12" fill="#ffffff" stroke="#0d9488" stroke-width="2" />
+        <rect width="215" height="28" rx="12" fill="#ccfbf1" />
+        <rect y="16" width="215" height="12" fill="#ccfbf1" />
+        <circle cx="22" cy="14" r="9" fill="#0d9488" />
+        <text x="22" y="18" text-anchor="middle" font-size="11" font-weight="bold" fill="#ffffff">7</text>
+        <text x="38" y="18" font-size="12" font-weight="bold" fill="#134e4a">NEW END PRODUCTS</text>
+        {/* Products illustrations */}
+        <g transform="translate(25, 42)">
+          {/* New Bottle */}
+          <rect x="10" y="8" width="16" height="30" rx="3" fill="#38bdf8" stroke="#0284c7" />
+          <rect x="14" y="2" width="8" height="6" fill="#0284c7" />
+          <text x="18" y="48" text-anchor="middle" font-size="7" font-weight="bold" fill="#334155">Bottles</text>
+
+          {/* Clothing / Fleece */}
+          <path d="M 60 5 L 75 10 L 70 20 L 65 17 L 65 36 L 50 36 L 50 17 L 45 20 L 40 10 Z" fill="#6366f1" stroke="#4338ca" />
+          <text x="58" y="48" text-anchor="middle" font-size="7" font-weight="bold" fill="#334155">Fleece Jacket</text>
+
+          {/* Container / Bags */}
+          <rect x="100" y="10" width="28" height="26" rx="4" fill="#facc15" stroke="#ca8a04" />
+          <line x1="108" y1="10" x2="108" y2="4" stroke="#ca8a04" stroke-width="1.5" />
+          <line x1="120" y1="10" x2="120" y2="4" stroke="#ca8a04" stroke-width="1.5" />
+          <line x1="108" y1="4" x2="120" y2="4" stroke="#ca8a04" stroke-width="1.5" />
+          <text x="114" y="48" text-anchor="middle" font-size="7" font-weight="bold" fill="#334155">Containers</text>
+        </g>
+        <text x="107" y="112" text-anchor="middle" font-size="10" font-weight="bold" fill="#0f766e">Manufactured Products</text>
+        <text x="107" y="125" text-anchor="middle" font-size="9" fill="#475569">Clothes, bottles, containers &amp; pens</text>
+      </g>
+    </svg>
   </div>
 </div>`,
       questionGroups: [
@@ -1923,9 +2418,21 @@ export const cambridge16Test4Writing: IELTSMockTest = {
       title: "Writing Task 2",
       subtitle: "Autonomous driverless vehicles essay",
       passageContent: `
-        <div class="p-4 bg-slate-50 border border-slate-200 rounded-xl text-slate-800 text-sm">
-          <p class="font-bold text-slate-900 mb-1">WRITING TASK 2 TOPIC:</p>
-          <p class="italic text-slate-700">"In the future, all cars, buses and trucks will be driverless. The only people travelling inside these vehicles will be passengers. Do you think the advantages of driverless vehicles outweigh the disadvantages?"</p>
+        <div class="my-4 p-5 bg-[#f8f9fa] border-2 border-slate-300 rounded-xl font-sans shadow-2xs">
+          <div class="flex items-center justify-between border-b border-slate-200 pb-2 mb-3">
+            <span class="font-extrabold text-xs uppercase tracking-wider text-slate-600">Official Cambridge CD-IELTS • Writing Task 2</span>
+            <span class="text-xs font-semibold text-slate-500">Suggested Time: 40 Minutes</span>
+          </div>
+          <p class="text-xs font-bold text-slate-700 uppercase tracking-wide mb-2">Write about the following topic:</p>
+          <div class="p-4 bg-white border border-slate-300 rounded-lg text-sm sm:text-base font-semibold text-slate-900 leading-relaxed shadow-inner">
+            "In the future, all cars, buses and trucks will be driverless.<br/><br/>
+            The only people travelling inside these vehicles will be passengers.<br/><br/>
+            Do you think the advantages of driverless vehicles outweigh the disadvantages?"
+          </div>
+          <div class="mt-4 space-y-1 text-xs text-slate-700">
+            <p class="italic">Give reasons for your answer and include any relevant examples from your own knowledge or experience.</p>
+            <p class="font-extrabold text-slate-900">Write at least 250 words.</p>
+          </div>
         </div>
       `,
       questionGroups: [

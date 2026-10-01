@@ -52,7 +52,7 @@ export const CDHeader: React.FC<CDHeaderProps> = ({
               <span className="font-extrabold text-xs tracking-tight text-slate-900 hidden xl:inline">MOCK TEST <span className="text-[10px] text-slate-500 font-normal">from Master IELTS AI</span></span>
             </div>
             <span className="font-bold text-slate-900 text-xs sm:text-sm whitespace-nowrap">
-              <span className="hidden sm:inline">IELTS Academic </span>{test.module === 'reading' ? 'Reading' : 'Listening'}
+              <span className="hidden sm:inline">IELTS Academic </span>{test.module === 'reading' ? 'Reading' : test.module === 'writing' ? 'Writing' : 'Listening'}
             </span>
             <span className="text-slate-400 hidden md:inline">|</span>
             <span className="text-slate-700 font-medium hidden md:inline">

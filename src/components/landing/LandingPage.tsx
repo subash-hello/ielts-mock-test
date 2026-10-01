@@ -322,8 +322,14 @@ export const LandingPage: React.FC<LandingPageProps> = ({
   const filteredTests = useMemo(() => {
     if (moduleFilter === 'full') return [];
     return candidateAvailableTests.filter((test) => {
-      if (test.book !== selectedBook) return false;
-      if (moduleFilter !== 'all' && test.module !== moduleFilter) return false;
+      if (moduleFilter === 'writing') {
+        if (test.module !== 'writing') return false;
+        // If specific book is selected and it has writing, respect it, otherwise show all writing
+        if (selectedBook === 16 && test.book !== 16) return false;
+      } else {
+        if (test.book !== selectedBook) return false;
+        if (moduleFilter !== 'all' && test.module !== moduleFilter) return false;
+      }
       if (searchQuery.trim()) {
         const query = searchQuery.toLowerCase();
         const matchesTitle = test.title.toLowerCase().includes(query);
@@ -1140,13 +1146,22 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                 <button
                   key={b}
                   onClick={() => setSelectedBook(b)}
-                  className={`px-3.5 sm:px-4 py-1.5 sm:py-2 rounded-xl text-xs font-extrabold transition-all cursor-pointer shrink-0 ${
+                  className={`px-3.5 sm:px-4 py-1.5 sm:py-2 rounded-xl text-xs font-extrabold transition-all cursor-pointer shrink-0 flex items-center gap-1.5 ${
                     selectedBook === b
                       ? 'bg-slate-900 text-white shadow-sm'
                       : 'bg-white hover:bg-slate-100 text-slate-700 border border-slate-300 shadow-xs'
                   }`}
                 >
-                  Cambridge {b}
+                  <span>Cambridge {b}</span>
+                  {b === 16 && (
+                    <span className={`px-1.5 py-0.5 rounded text-[9px] font-black uppercase tracking-wider ${
+                      selectedBook === 16
+                        ? 'bg-violet-500 text-white'
+                        : 'bg-violet-100 text-violet-800 border border-violet-200'
+                    }`}>
+                      + Writing
+                    </span>
+                  )}
                 </button>
               ))}
             </div>
@@ -1172,7 +1187,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                 }`}
               >
                 <Layers className="w-3.5 h-3.5" />
-                <span>Full Mock Tests (95m)</span>
+                <span>Full Mock Tests (95–155m)</span>
               </button>
               <button
                 onClick={() => setModuleFilter('reading')}
@@ -1197,7 +1212,10 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                 <span>Listening (30m)</span>
               </button>
               <button
-                onClick={() => setModuleFilter('writing')}
+                onClick={() => {
+                  setModuleFilter('writing');
+                  setSelectedBook(16);
+                }}
                 className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition cursor-pointer shrink-0 ${
                   moduleFilter === 'writing'
                     ? 'bg-violet-600 text-white shadow-xs'
@@ -1206,6 +1224,11 @@ export const LandingPage: React.FC<LandingPageProps> = ({
               >
                 <PenTool className="w-3.5 h-3.5" />
                 <span>Writing (60m)</span>
+                <span className={`text-[10px] font-mono px-1 rounded font-extrabold ${
+                  moduleFilter === 'writing' ? 'bg-white/20 text-white' : 'bg-violet-100 text-violet-800'
+                }`}>
+                  Book 16
+                </span>
               </button>
             </div>
           </div>
@@ -1249,6 +1272,14 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                         </span>
                         <span className="font-mono font-medium">60 Mins • 40 Qs</span>
                       </div>
+                      {fullMock.writingTest && (
+                        <div className="flex items-center justify-between text-slate-600">
+                          <span className="flex items-center gap-1.5 font-semibold text-violet-700">
+                            <PenTool className="w-3.5 h-3.5" /> Writing Section
+                          </span>
+                          <span className="font-mono font-medium">60 Mins • 2 Tasks</span>
+                        </div>
+                      )}
                     </div>
 
                     <div className="flex items-center gap-2 text-[11px] text-slate-500">
@@ -1257,7 +1288,9 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                         <span>{fullMock.totalDurationMinutes} Mins Total</span>
                       </span>
                       <span>•</span>
-                      <span className="text-emerald-700 font-semibold">80 Questions</span>
+                      <span className="text-emerald-700 font-semibold">
+                        {fullMock.writingTest ? '80 Qs + 2 Writing Tasks' : '80 Questions'}
+                      </span>
                     </div>
                   </div>
 
@@ -1332,7 +1365,9 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                       <span>•</span>
                       <span className="flex items-center gap-1 text-emerald-700 font-semibold">
                         <CheckCircle className="w-3.5 h-3.5" />
-                        <span>{totalQ} Questions</span>
+                        <span>
+                          {isWriting ? '2 Tasks (Task 1 & 2)' : `${totalQ} Questions`}
+                        </span>
                       </span>
                     </div>
 
@@ -1341,7 +1376,11 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                         <span className="text-slate-600 font-medium text-[11px]">Last Attempt</span>
                         {pastAttempt.isPublished !== false ? (
                           <span className="font-mono font-black text-emerald-700 text-xs">
-                            Band {pastAttempt.bandScore.toFixed(1)} ({pastAttempt.correctCount}/{pastAttempt.totalQuestions})
+                            {pastAttempt.writingSubmission ? (
+                              `Band ${pastAttempt.bandScore.toFixed(1)} (T1: ${pastAttempt.writingSubmission.task1Band ?? '—'}, T2: ${pastAttempt.writingSubmission.task2Band ?? '—'})`
+                            ) : (
+                              `Band ${pastAttempt.bandScore.toFixed(1)} (${pastAttempt.correctCount}/${pastAttempt.totalQuestions})`
+                            )}
                           </span>
                         ) : (
                           <span className="font-mono font-bold text-amber-700 text-[10px] bg-amber-100 border border-amber-200 px-2 py-0.5 rounded">

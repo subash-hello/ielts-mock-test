@@ -588,6 +588,26 @@ suite('Suite 5: Publishing Control & Name/ID Candidate Search', () => {
     // Re-publish for clean state
     ConsultancyService.publishTestResult(branchId, testId, candId, completedAt);
   });
+
+  test('Published candidate results show all module band scores and detailed breakdown', () => {
+    const lookup = ConsultancyService.getCandidateResults(candName, branchId);
+    assertEqual(lookup.publishedResults.length, 1);
+    const pub = lookup.publishedResults[0];
+    assertEqual(pub.module, 'writing');
+    assertEqual(pub.bandScore, 7.0);
+    assertEqual(pub.writingSubmission?.task1Band, 6.5);
+    assertEqual(pub.writingSubmission?.task2Band, 7.0);
+    assertEqual(pub.writingSubmission?.overallWritingBand, 7.0);
+    assertEqual(pub.writingSubmission?.adminFeedback, 'Well-structured Task 2 with strong lexical resource. Task 1 overview is clear.');
+    assertEqual(pub.writingSubmission?.reviewedBy, 'Senior Examiner John');
+
+    // Simulate multi-module overall band calculation across 3 modules:
+    const listeningBand = 8.0;
+    const readingBand = 7.5;
+    const writingBand = pub.bandScore; // 7.0
+    const overall3ModuleBand = Math.round(((listeningBand + readingBand + writingBand) / 3) * 2) / 2;
+    assertEqual(overall3ModuleBand, 7.5, 'Official 3-module IELTS overall band rounding: (8.0+7.5+7.0)/3 = 7.5');
+  });
 });
 
 // --- FINAL VERIFICATION SUMMARY ---

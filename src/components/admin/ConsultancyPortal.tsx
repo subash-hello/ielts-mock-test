@@ -2237,71 +2237,192 @@ export const ConsultancyPortal: React.FC<ConsultancyPortalProps> = ({
               </button>
             </div>
 
-            <div className="grid grid-cols-3 gap-3 text-center text-xs">
-              <div className="bg-slate-50 p-3 rounded-xl border border-slate-200">
-                <span className="text-slate-500 block text-[11px]">Estimated Band</span>
-                <span className="text-xl font-black text-slate-900">
-                  Band {scorecardModalResult.bandScore.toFixed(1)}
-                </span>
-              </div>
-              <div className="bg-slate-50 p-3 rounded-xl border border-slate-200">
-                <span className="text-slate-500 block text-[11px]">Raw Accuracy</span>
-                <span className="text-xl font-black text-emerald-600">
-                  {scorecardModalResult.correctCount} / {scorecardModalResult.totalQuestions || 40}
-                </span>
-              </div>
-              <div className="bg-slate-50 p-3 rounded-xl border border-slate-200">
-                <span className="text-slate-500 block text-[11px]">Time Spent</span>
-                <span className="text-xl font-black text-blue-600">
-                  {Math.floor(scorecardModalResult.timeTakenSeconds / 60)}m
-                </span>
-              </div>
-            </div>
-
-            {/* Answer Responses Preview */}
-            <div className="flex-1 overflow-y-auto space-y-2 border border-slate-200 rounded-xl p-3 bg-slate-50/50">
-              <span className="font-bold text-xs text-slate-700 block mb-2">
-                Recorded Candidate Answer Entries (40 Questions)
-              </span>
-
-              {scorecardModalResult.answers && Object.keys(scorecardModalResult.answers).length > 0 ? (
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
-                  {Array.from({ length: scorecardModalResult.totalQuestions || 40 }, (_, idx) => {
-                    const qNum = idx + 1;
-                    const ans = scorecardModalResult.answers[qNum];
-                    const ansDisplay = Array.isArray(ans) ? ans.join(', ') : ans || '—';
-                    return (
-                      <div
-                        key={qNum}
-                        className="bg-white border border-slate-200 p-2 rounded-lg text-xs"
-                      >
-                        <span className="font-mono text-slate-400 text-[10px] block">
-                          Q{qNum}:
-                        </span>
-                        <span className="font-semibold text-slate-800 truncate block">
-                          {ansDisplay}
-                        </span>
-                      </div>
-                    );
-                  })}
+            {/* Metric Summary Cards */}
+            {scorecardModalResult.module === 'writing' || scorecardModalResult.writingSubmission ? (
+              <div className="grid grid-cols-3 gap-3 text-center text-xs">
+                <div className="bg-slate-50 p-3 rounded-xl border border-slate-200">
+                  <span className="text-slate-500 block text-[11px]">Writing Band</span>
+                  <span className="text-xl font-black text-slate-900 font-mono">
+                    {scorecardModalResult.writingSubmission?.overallWritingBand
+                      ? `Band ${scorecardModalResult.writingSubmission.overallWritingBand.toFixed(1)}`
+                      : scorecardModalResult.bandScore > 0
+                      ? `Band ${scorecardModalResult.bandScore.toFixed(1)}`
+                      : 'Needs Grade'}
+                  </span>
                 </div>
-              ) : (
-                <div className="text-center py-6 text-xs text-slate-400 italic">
-                  Answers recorded and evaluated in diagnostic report.
+                <div className="bg-slate-50 p-3 rounded-xl border border-slate-200">
+                  <span className="text-slate-500 block text-[11px]">Task 1 Words</span>
+                  <span className={`text-base font-black ${
+                    (scorecardModalResult.writingSubmission?.task1WordCount || 0) >= 150
+                      ? 'text-emerald-700'
+                      : 'text-amber-700'
+                  }`}>
+                    {scorecardModalResult.writingSubmission?.task1WordCount || 0}w{' '}
+                    <span className="text-[10px] font-normal text-slate-500">(Min: 150)</span>
+                  </span>
                 </div>
-              )}
-            </div>
+                <div className="bg-slate-50 p-3 rounded-xl border border-slate-200">
+                  <span className="text-slate-500 block text-[11px]">Task 2 Words</span>
+                  <span className={`text-base font-black ${
+                    (scorecardModalResult.writingSubmission?.task2WordCount || 0) >= 250
+                      ? 'text-emerald-700'
+                      : 'text-amber-700'
+                  }`}>
+                    {scorecardModalResult.writingSubmission?.task2WordCount || 0}w{' '}
+                    <span className="text-[10px] font-normal text-slate-500">(Min: 250)</span>
+                  </span>
+                </div>
+              </div>
+            ) : (
+              <div className="grid grid-cols-3 gap-3 text-center text-xs">
+                <div className="bg-slate-50 p-3 rounded-xl border border-slate-200">
+                  <span className="text-slate-500 block text-[11px]">Estimated Band</span>
+                  <span className="text-xl font-black text-slate-900">
+                    Band {scorecardModalResult.bandScore.toFixed(1)}
+                  </span>
+                </div>
+                <div className="bg-slate-50 p-3 rounded-xl border border-slate-200">
+                  <span className="text-slate-500 block text-[11px]">Raw Accuracy</span>
+                  <span className="text-xl font-black text-emerald-600">
+                    {scorecardModalResult.correctCount} / {scorecardModalResult.totalQuestions || 40}
+                  </span>
+                </div>
+                <div className="bg-slate-50 p-3 rounded-xl border border-slate-200">
+                  <span className="text-slate-500 block text-[11px]">Time Spent</span>
+                  <span className="text-xl font-black text-blue-600">
+                    {Math.floor(scorecardModalResult.timeTakenSeconds / 60)}m
+                  </span>
+                </div>
+              </div>
+            )}
+
+            {/* Answer Responses Preview OR Writing Submissions Preview */}
+            {scorecardModalResult.module === 'writing' || scorecardModalResult.writingSubmission ? (
+              <div className="flex-1 overflow-y-auto space-y-4 border border-slate-200 rounded-xl p-4 bg-slate-50/50 text-xs">
+                {/* Examiner Rubric Remarks (if graded) */}
+                {scorecardModalResult.writingSubmission?.overallWritingBand ? (
+                  <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-3 space-y-1">
+                    <div className="flex items-center justify-between font-bold text-emerald-900">
+                      <span>Evaluated Band Breakdown:</span>
+                      <span>
+                        T1: Band {scorecardModalResult.writingSubmission.task1Band ?? '—'} • T2: Band {scorecardModalResult.writingSubmission.task2Band ?? '—'}
+                      </span>
+                    </div>
+                    {scorecardModalResult.writingSubmission.adminFeedback && (
+                      <p className="italic text-emerald-800 text-[11px] pt-1">
+                        "{scorecardModalResult.writingSubmission.adminFeedback}"
+                      </p>
+                    )}
+                  </div>
+                ) : (
+                  <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 flex items-center justify-between gap-2">
+                    <span className="text-amber-800 font-medium">
+                      This writing submission has not yet been marked by an examiner.
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const target = scorecardModalResult;
+                        setScorecardModalResult(null);
+                        handleOpenWritingEvaluation(target);
+                      }}
+                      className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-bold text-xs shrink-0 cursor-pointer shadow-xs"
+                    >
+                      Input Band Score Now
+                    </button>
+                  </div>
+                )}
+
+                {/* Task 1 Preview */}
+                <div className="bg-white border border-slate-200 rounded-xl p-3.5 space-y-2">
+                  <div className="flex items-center justify-between border-b pb-1.5 border-slate-100">
+                    <span className="font-bold text-slate-800">Task 1 Written Response</span>
+                    <span className="text-[11px] text-slate-500 font-mono">
+                      {scorecardModalResult.writingSubmission?.task1WordCount || 0} words
+                    </span>
+                  </div>
+                  <div className="max-h-36 overflow-y-auto whitespace-pre-wrap text-slate-700 font-sans text-xs leading-relaxed select-text">
+                    {scorecardModalResult.writingSubmission?.task1Essay || (
+                      <span className="text-slate-400 italic">No essay written for Task 1.</span>
+                    )}
+                  </div>
+                </div>
+
+                {/* Task 2 Preview */}
+                <div className="bg-white border border-slate-200 rounded-xl p-3.5 space-y-2">
+                  <div className="flex items-center justify-between border-b pb-1.5 border-slate-100">
+                    <span className="font-bold text-slate-800">Task 2 Written Response</span>
+                    <span className="text-[11px] text-slate-500 font-mono">
+                      {scorecardModalResult.writingSubmission?.task2WordCount || 0} words
+                    </span>
+                  </div>
+                  <div className="max-h-44 overflow-y-auto whitespace-pre-wrap text-slate-700 font-sans text-xs leading-relaxed select-text">
+                    {scorecardModalResult.writingSubmission?.task2Essay || (
+                      <span className="text-slate-400 italic">No essay written for Task 2.</span>
+                    )}
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div className="flex-1 overflow-y-auto space-y-2 border border-slate-200 rounded-xl p-3 bg-slate-50/50">
+                <span className="font-bold text-xs text-slate-700 block mb-2">
+                  Recorded Candidate Answer Entries (40 Questions)
+                </span>
+
+                {scorecardModalResult.answers && Object.keys(scorecardModalResult.answers).length > 0 ? (
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
+                    {Array.from({ length: scorecardModalResult.totalQuestions || 40 }, (_, idx) => {
+                      const qNum = idx + 1;
+                      const ans = scorecardModalResult.answers[qNum];
+                      const ansDisplay = Array.isArray(ans) ? ans.join(', ') : ans || '—';
+                      return (
+                        <div
+                          key={qNum}
+                          className="bg-white border border-slate-200 p-2 rounded-lg text-xs"
+                        >
+                          <span className="font-mono text-slate-400 text-[10px] block">
+                            Q{qNum}:
+                          </span>
+                          <span className="font-semibold text-slate-800 truncate block">
+                            {ansDisplay}
+                          </span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <div className="text-center py-6 text-xs text-slate-400 italic">
+                    Answers recorded and evaluated in diagnostic report.
+                  </div>
+                )}
+              </div>
+            )}
 
             <div className="pt-2 flex items-center justify-between border-t border-slate-100 text-xs">
               <span className="text-slate-500">
                 Transmitted: {new Date(scorecardModalResult.completedAt).toLocaleString()}
               </span>
-              <button
-                onClick={() => setScorecardModalResult(null)}
-                className="px-4 py-2 bg-slate-900 text-white rounded-lg font-semibold cursor-pointer"
-              >
-                Close Scorecard
-              </button>
+              <div className="flex items-center gap-2">
+                {(scorecardModalResult.module === 'writing' || scorecardModalResult.writingSubmission) && (
+                  <button
+                    onClick={() => {
+                      const target = scorecardModalResult;
+                      setScorecardModalResult(null);
+                      handleOpenWritingEvaluation(target);
+                    }}
+                    className="px-3.5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-bold text-xs cursor-pointer shadow-xs flex items-center gap-1.5"
+                  >
+                    <PenTool className="w-3.5 h-3.5" />
+                    <span>Grade / Edit Writing</span>
+                  </button>
+                )}
+                <button
+                  onClick={() => setScorecardModalResult(null)}
+                  className="px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white rounded-lg font-semibold cursor-pointer"
+                >
+                  Close Scorecard
+                </button>
+              </div>
             </div>
           </div>
         </div>
