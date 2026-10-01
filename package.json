@@ -8,6 +8,7 @@
     "build": "tsc -b && vite build",
     "lint": "oxlint",
     "preview": "vite preview",
+    "test": "npx tsx scripts/systemVerificationTest.ts",
     "upload:supabase": "npx tsx scripts/uploadToSupabase.ts"
   },
   "dependencies": {

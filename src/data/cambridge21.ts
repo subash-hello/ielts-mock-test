@@ -1220,6 +1220,26 @@ export const cambridge21Test2Reading: IELTSMockTest = {
               "explanation": "Official Cambridge answer: YES"
             }
           ]
+        },
+        {
+          "id": "r-sec3-g4-40",
+          "type": "multiple_choice",
+          "title": "Question 40",
+          "instructions": "Choose the correct letter, A, B, C or D. Write the correct letter in box 40 on your answer sheet.",
+          "questions": [
+            {
+              "questionNumber": 40,
+              "prompt": "What would be a suitable subtitle for Reading Passage 3?",
+              "options": [
+                "A. How to make the most of what AI has to offer",
+                "B. Why AI may not be the answer to our problems",
+                "C. Why governments should not invest in AI systems",
+                "D. How AI could improve the efficiency of the public sector"
+              ],
+              "correctAnswer": "B",
+              "explanation": "Official Cambridge answer: B"
+            }
+          ]
         }
       ]
     }

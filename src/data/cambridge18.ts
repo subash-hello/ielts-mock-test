@@ -2996,13 +2996,13 @@ export const cambridge18Test3Listening: IELTSMockTest = {
           ]
         },
         {
-          "id": "l-part3-g2-21-22",
+          "id": "l-part3-g2-23-24",
           "type": "multiple_choice_multi",
-          "title": "Questions 21 and 22",
+          "title": "Questions 23 and 24",
           "instructions": "Choose TWO letters, A-E. Which TWO predictions about the future of work are the students doubtful about? A   Work will be more rewarding.",
           "questions": [
             {
-              "questionNumber": 21,
+              "questionNumber": 23,
               "prompt": "Which TWO predictions about the future of work are the students doubtful about? (First choice)",
               "options": [
                 "A   Work will be more rewarding.",
@@ -3011,11 +3011,11 @@ export const cambridge18Test3Listening: IELTSMockTest = {
                 "D   Working hours will be shorter.",
                 "E   People will change jobs more frequently."
               ],
-              "correctAnswer": "A",
-              "explanation": "Official Cambridge answer: A"
+              "correctAnswer": "B",
+              "explanation": "Official Cambridge answer: B"
             },
             {
-              "questionNumber": 22,
+              "questionNumber": 24,
               "prompt": "Which TWO predictions about the future of work are the students doubtful about? (Second choice)",
               "options": [
                 "A   Work will be more rewarding.",
@@ -3024,8 +3024,8 @@ export const cambridge18Test3Listening: IELTSMockTest = {
                 "D   Working hours will be shorter.",
                 "E   People will change jobs more frequently."
               ],
-              "correctAnswer": "E",
-              "explanation": "Official Cambridge answer: E"
+              "correctAnswer": "C",
+              "explanation": "Official Cambridge answer: C"
             }
           ]
         },

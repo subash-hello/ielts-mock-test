@@ -485,6 +485,80 @@ export const cambridge20Test1Listening: IELTSMockTest = {
       "audioUrl": "/audio/cam20-test1-part2.mp3",
       "questionGroups": [
         {
+          "id": "l-part2-g1-11-16",
+          "type": "multiple_choice",
+          "title": "Questions 11–16",
+          "instructions": "Choose the correct letter, A, B or C.",
+          "questions": [
+            {
+              "questionNumber": 11,
+              "prompt": "Heather says pottery differs from other art forms because ____",
+              "options": [
+                "A. it lasts longer in the ground.",
+                "B. it is practised by more people.",
+                "C. it can be repaired more easily."
+              ],
+              "correctAnswer": "A",
+              "explanation": "Official Cambridge answer: A"
+            },
+            {
+              "questionNumber": 12,
+              "prompt": "Archaeologists sometimes identify the use of ancient pottery from",
+              "options": [
+                "A. the clay it was made with.",
+                "B. the marks that are on it.",
+                "C. the basic shape of it."
+              ],
+              "correctAnswer": "B",
+              "explanation": "Official Cambridge answer: B"
+            },
+            {
+              "questionNumber": 13,
+              "prompt": "Some people join Heather's pottery class because they want to",
+              "options": [
+                "A. create an item that looks very old.",
+                "B. find something that they are good at.",
+                "C. make something that will outlive them."
+              ],
+              "correctAnswer": "C",
+              "explanation": "Official Cambridge answer: C"
+            },
+            {
+              "questionNumber": 14,
+              "prompt": "What does Heather value most about being a potter?",
+              "options": [
+                "A. its calming effect",
+                "B. its messy nature",
+                "C. its physical benefits"
+              ],
+              "correctAnswer": "A",
+              "explanation": "Official Cambridge answer: A"
+            },
+            {
+              "questionNumber": 15,
+              "prompt": "Most of the visitors to Edelman Pottery",
+              "options": [
+                "A. bring friends to join courses.",
+                "B. have never made a pot before.",
+                "C. try to learn techniques too quickly."
+              ],
+              "correctAnswer": "B",
+              "explanation": "Official Cambridge answer: B"
+            },
+            {
+              "questionNumber": 16,
+              "prompt": "Heather reminds her visitors that they should",
+              "options": [
+                "A. put on their aprons.",
+                "B. change their clothes.",
+                "C. take off their jewellery"
+              ],
+              "correctAnswer": "C",
+              "explanation": "Official Cambridge answer: C"
+            }
+          ]
+        },
+        {
           "id": "l-part2-g1-17-18",
           "type": "multiple_choice_multi",
           "title": "Questions 17 and 18",
@@ -560,6 +634,40 @@ export const cambridge20Test1Listening: IELTSMockTest = {
       "subtitle": "Choose TWO letters, A–E.",
       "audioUrl": "/audio/cam20-test1-part3.mp3",
       "questionGroups": [
+        {
+          "id": "l-part3-g0-21-22",
+          "type": "multiple_choice_multi",
+          "title": "Questions 21 and 22",
+          "instructions": "Choose TWO letters, A–E. Which TWO things do the students both believe are responsible for the increase in loneliness?",
+          "questions": [
+            {
+              "questionNumber": 21,
+              "prompt": "Which TWO things do the students both believe are responsible for the increase in loneliness? (First choice)",
+              "options": [
+                "A. social media",
+                "B. smaller nuclear families",
+                "C. urban design",
+                "D. longer lifespans",
+                "E. a mobile workforce"
+              ],
+              "correctAnswer": "C",
+              "explanation": "Official Cambridge answer: C"
+            },
+            {
+              "questionNumber": 22,
+              "prompt": "Which TWO things do the students both believe are responsible for the increase in loneliness? (Second choice)",
+              "options": [
+                "A. social media",
+                "B. smaller nuclear families",
+                "C. urban design",
+                "D. longer lifespans",
+                "E. a mobile workforce"
+              ],
+              "correctAnswer": "E",
+              "explanation": "Official Cambridge answer: E"
+            }
+          ]
+        },
         {
           "id": "l-part3-g1-23-24",
           "type": "multiple_choice_multi",
