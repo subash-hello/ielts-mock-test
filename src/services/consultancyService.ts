@@ -734,19 +734,64 @@ export class ConsultancyService {
   }
 
   // --- BRANCH ACTIVE LAUNCHED TEST (FOR ALL STUDENT TERMINALS) ---
-  public static getActiveLaunchedTest(consultancyId: string): {
+  public static getActiveLaunchedTest(consultancyId?: string): {
+    consultancyId?: string;
     testId: string;
     title: string;
     launchedAt: string;
     isFullMock?: boolean;
   } | null {
-    const raw = localStorage.getItem(`ielts_launched_test_${consultancyId}`);
-    if (!raw) return null;
-    try {
-      return JSON.parse(raw);
-    } catch {
-      return null;
+    let specific: any = null;
+    if (consultancyId) {
+      const raw = localStorage.getItem(`ielts_launched_test_${consultancyId}`);
+      if (raw) {
+        try {
+          specific = JSON.parse(raw);
+        } catch {}
+      }
     }
+
+    // Check latest global launched test
+    let latest: any = null;
+    const globalRaw = localStorage.getItem('ielts_latest_launched_test');
+    if (globalRaw) {
+      try {
+        latest = JSON.parse(globalRaw);
+      } catch {}
+    }
+
+    // Compare timestamps to return the truly newest active test session
+    if (specific && latest) {
+      const specTime = new Date(specific.launchedAt || 0).getTime();
+      const latTime = new Date(latest.launchedAt || 0).getTime();
+      return latTime >= specTime ? latest : specific;
+    }
+    if (specific) return specific;
+    if (latest) return latest;
+
+    // Scan any active launched test in storage to find the newest session
+    try {
+      if (typeof window !== 'undefined' && window.localStorage) {
+        let newest: any = null;
+        for (let i = 0; i < localStorage.length; i++) {
+          const key = localStorage.key(i);
+          if (key && key.startsWith('ielts_launched_test_')) {
+            const val = localStorage.getItem(key);
+            if (val) {
+              const parsed = JSON.parse(val);
+              if (parsed && parsed.testId) {
+                if (!newest || new Date(parsed.launchedAt || 0).getTime() > new Date(newest.launchedAt || 0).getTime()) {
+                  newest = parsed;
+                }
+              }
+            }
+          }
+        }
+        if (newest) return newest;
+      }
+    } catch {}
+
+    return null;
   }
 
   public static launchTestToBranch(
@@ -757,17 +802,30 @@ export class ConsultancyService {
   ): void {
     if (!testId) {
       localStorage.removeItem(`ielts_launched_test_${consultancyId}`);
+      try {
+        const latestRaw = localStorage.getItem('ielts_latest_launched_test');
+        if (latestRaw) {
+          const parsed = JSON.parse(latestRaw);
+          if (parsed?.consultancyId === consultancyId) {
+            localStorage.removeItem('ielts_latest_launched_test');
+          }
+        }
+      } catch {
+        localStorage.removeItem('ielts_latest_launched_test');
+      }
       this.broadcast('BRANCH_TEST_LAUNCHED', { consultancyId, testId: null });
       return;
     }
     const data = {
+      consultancyId,
       testId,
       title: title || testId,
       launchedAt: new Date().toISOString(),
       isFullMock: isFullMock ?? testId.includes('full')
     };
     localStorage.setItem(`ielts_launched_test_${consultancyId}`, JSON.stringify(data));
-    this.broadcast('BRANCH_TEST_LAUNCHED', { consultancyId, ...data });
+    localStorage.setItem('ielts_latest_launched_test', JSON.stringify(data));
+    this.broadcast('BRANCH_TEST_LAUNCHED', data);
   }
 
   public static forceSubmitStation(consultancyId: string, stationId: string): void {

@@ -19,7 +19,7 @@ import {
 import type { Consultancy, LabStation } from '../../types/consultancy';
 import type { IELTSMockTest, FullMockTest } from '../../types/ielts';
 import { ConsultancyService } from '../../services/consultancyService';
-import { buildFullMockTests, allFullMockTests } from '../../data/mockTests';
+import { buildFullMockTests, allFullMockTests, allMockTests } from '../../data/mockTests';
 
 interface StudentTerminalViewProps {
   initialStationName?: string;
@@ -98,9 +98,10 @@ export const StudentTerminalView: React.FC<StudentTerminalViewProps> = ({
     title: string;
     launchedAt: string;
     isFullMock?: boolean;
+    consultancyId?: string;
   } | null>(() => {
     const c = ConsultancyService.getConsultancyByBranchCode(branchCode);
-    return c ? ConsultancyService.getActiveLaunchedTest(c.id) : null;
+    return ConsultancyService.getActiveLaunchedTest(c?.id);
   });
 
   // Audio Test Tone generator (440Hz standard)
@@ -146,32 +147,45 @@ export const StudentTerminalView: React.FC<StudentTerminalViewProps> = ({
 
   // Subscribe to live branch launched test & teacher commands
   useEffect(() => {
-    if (!consultancy) return;
-
-    // Check on mount
-    setActiveLaunchedTest(ConsultancyService.getActiveLaunchedTest(consultancy.id));
+    // Check immediately on mount
+    const initialActive = ConsultancyService.getActiveLaunchedTest(consultancy?.id);
+    setActiveLaunchedTest(initialActive);
+    if (initialActive?.consultancyId && (!consultancy || consultancy.id !== initialActive.consultancyId)) {
+      const targetC = ConsultancyService.getConsultancyById(initialActive.consultancyId);
+      if (targetC) {
+        setConsultancy(targetC);
+        if (targetC.branchCode) setBranchCode(targetC.branchCode);
+      }
+    }
 
     const unsubscribe = ConsultancyService.subscribe((event) => {
       if (event.type === 'BRANCH_TEST_LAUNCHED') {
         const payload = event.payload;
-        if (payload?.consultancyId === consultancy.id) {
-          if (payload.testId) {
-            setActiveLaunchedTest({
-              testId: payload.testId,
-              title: payload.title || payload.testId,
-              launchedAt: payload.launchedAt || new Date().toISOString(),
-              isFullMock: payload.isFullMock
-            });
-          } else {
-            setActiveLaunchedTest(null);
+        if (payload?.testId) {
+          setActiveLaunchedTest({
+            testId: payload.testId,
+            title: payload.title || payload.testId,
+            launchedAt: payload.launchedAt || new Date().toISOString(),
+            isFullMock: payload.isFullMock,
+            consultancyId: payload.consultancyId
+          });
+          if (payload.consultancyId) {
+            const targetC = ConsultancyService.getConsultancyById(payload.consultancyId);
+            if (targetC) {
+              setConsultancy(targetC);
+              if (targetC.branchCode) setBranchCode(targetC.branchCode);
+            }
           }
+        } else {
+          const remaining = ConsultancyService.getActiveLaunchedTest(consultancy?.id);
+          setActiveLaunchedTest(remaining);
         }
       } else if (event.type === 'STATION_COMMAND') {
         const { stationId, command, testId } = event.payload || {};
         const cleanPc = pcNumber.trim().toUpperCase();
         if (stationId === currentStation?.id || stationId === currentStation?.name || stationId === cleanPc) {
           if (command === 'START_TEST') {
-            const foundTest = tests.find((t) => t.id === testId) || tests[0];
+            const foundTest = tests.find((t) => t.id === testId) || allMockTests.find((t) => t.id === testId) || tests[0];
             if (foundTest) {
               handleLaunchExam(foundTest);
             }
@@ -180,11 +194,18 @@ export const StudentTerminalView: React.FC<StudentTerminalViewProps> = ({
       }
     });
 
-    // Polling sync every 2 seconds
+    // Polling sync every 1 second
     const interval = setInterval(() => {
-      const active = ConsultancyService.getActiveLaunchedTest(consultancy.id);
+      const active = ConsultancyService.getActiveLaunchedTest(consultancy?.id);
       setActiveLaunchedTest(active);
-    }, 2000);
+      if (active?.consultancyId && (!consultancy || consultancy.id !== active.consultancyId)) {
+        const targetC = ConsultancyService.getConsultancyById(active.consultancyId);
+        if (targetC) {
+          setConsultancy(targetC);
+          if (targetC.branchCode) setBranchCode(targetC.branchCode);
+        }
+      }
+    }, 1000);
 
     return () => {
       unsubscribe();
@@ -244,7 +265,7 @@ export const StudentTerminalView: React.FC<StudentTerminalViewProps> = ({
     }
 
     if (activeLaunchedTest.isFullMock || activeLaunchedTest.testId.includes('full')) {
-      const allFull = buildFullMockTests(tests);
+      const allFull = buildFullMockTests(tests.length > 0 ? tests : allMockTests);
       const fm = allFull.find((f) => f.id === activeLaunchedTest.testId) || allFull[0];
       if (fm) {
         handleLaunchExam(fm.listeningTest, fm);
@@ -252,7 +273,10 @@ export const StudentTerminalView: React.FC<StudentTerminalViewProps> = ({
       }
     }
 
-    const foundTest = tests.find((t) => t.id === activeLaunchedTest.testId) || tests[0];
+    const foundTest =
+      tests.find((t) => t.id === activeLaunchedTest.testId) ||
+      allMockTests.find((t) => t.id === activeLaunchedTest.testId) ||
+      tests[0];
     if (foundTest) {
       handleLaunchExam(foundTest);
     }

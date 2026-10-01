@@ -102,10 +102,9 @@ export const LandingPage: React.FC<LandingPageProps> = ({
     title: string;
     launchedAt: string;
     isFullMock?: boolean;
+    consultancyId?: string;
   } | null>(() => {
-    return candidateSession?.consultancyId
-      ? ConsultancyService.getActiveLaunchedTest(candidateSession.consultancyId)
-      : null;
+    return ConsultancyService.getActiveLaunchedTest(candidateSession?.consultancyId);
   });
 
   // Sync candidateNameInput when candidateSession updates
@@ -117,26 +116,26 @@ export const LandingPage: React.FC<LandingPageProps> = ({
 
   // Subscribe and poll for active branch launched test
   useEffect(() => {
-    if (!candidateSession?.consultancyId) {
-      setActiveLaunchedTest(null);
-      return;
-    }
-    const cid = candidateSession.consultancyId;
+    const cid = candidateSession?.consultancyId;
     setActiveLaunchedTest(ConsultancyService.getActiveLaunchedTest(cid));
 
     const unsubscribe = ConsultancyService.subscribe((event) => {
       if (event.type === 'BRANCH_TEST_LAUNCHED') {
         const payload = event.payload;
-        if (payload?.consultancyId === cid) {
-          if (payload.testId) {
+        if (payload?.testId) {
+          if (!cid || !payload.consultancyId || payload.consultancyId === cid) {
             setActiveLaunchedTest({
               testId: payload.testId,
               title: payload.title || payload.testId,
               launchedAt: payload.launchedAt || new Date().toISOString(),
-              isFullMock: payload.isFullMock
+              isFullMock: payload.isFullMock,
+              consultancyId: payload.consultancyId
             });
-          } else {
-            setActiveLaunchedTest(null);
+          }
+        } else {
+          if (!cid || !payload.consultancyId || payload.consultancyId === cid) {
+            const remaining = ConsultancyService.getActiveLaunchedTest(cid);
+            setActiveLaunchedTest(remaining);
           }
         }
       }
@@ -145,7 +144,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
     const interval = setInterval(() => {
       const active = ConsultancyService.getActiveLaunchedTest(cid);
       setActiveLaunchedTest(active);
-    }, 1500);
+    }, 1000);
 
     return () => {
       unsubscribe();
@@ -181,8 +180,9 @@ export const LandingPage: React.FC<LandingPageProps> = ({
       candidateSession?.candidateId ||
       '00' + Math.floor(1000 + Math.random() * 9000);
     const targetBand = candidateSession?.targetBand || 7.5;
-    const cid = candidateSession?.consultancyId || 'apex-global';
-    const cname = candidateSession?.consultancyName || 'Apex Global Education';
+    const cid = activeLaunchedTest?.consultancyId || candidateSession?.consultancyId || 'apex-global';
+    const cObj = ConsultancyService.getConsultancyById(cid);
+    const cname = candidateSession?.consultancyName || cObj?.name || 'IELTS Mock Test Station';
     const station = candidateSession?.stationName || 'PC-01';
 
     if (candidateSession) {
@@ -641,8 +641,8 @@ export const LandingPage: React.FC<LandingPageProps> = ({
         </div>
       )}
 
-      {/* 3. CANDIDATE TEST STATION (IF LOGGED IN UNDER CANDIDATE SESSION) */}
-      {candidateSession ? (
+      {/* 3. CANDIDATE TEST STATION (IF ACTIVELY LAUNCHED OR LOGGED IN UNDER CANDIDATE SESSION) */}
+      {(candidateSession || activeLaunchedTest) ? (
         <>
           <section id="test-station" className="relative z-10 py-8 sm:py-12 bg-slate-50 min-h-[75vh] flex flex-col justify-center">
             <div className="max-w-3xl mx-auto px-4 sm:px-6 w-full space-y-6">
@@ -650,12 +650,12 @@ export const LandingPage: React.FC<LandingPageProps> = ({
               <div className="bg-white border border-slate-200 rounded-2xl p-4 sm:p-5 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div className="flex items-center gap-3.5">
                   <div className="w-12 h-12 rounded-xl bg-indigo-50 border border-indigo-200 flex items-center justify-center text-indigo-700 font-mono font-black text-sm shadow-xs shrink-0">
-                    {candidateSession.stationName || 'PC-01'}
+                    {candidateSession?.stationName || 'PC-01'}
                   </div>
                   <div>
                     <div className="flex items-center gap-2">
                       <h3 className="text-sm sm:text-base font-bold text-slate-900">
-                        Station: {candidateSession.stationName || 'PC-01'}
+                        Station: {candidateSession?.stationName || 'PC-01'}
                       </h3>
                       <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
                       <span className="text-[11px] font-semibold text-emerald-700">
@@ -663,7 +663,15 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                       </span>
                     </div>
                     <p className="text-xs text-slate-500">
-                      {candidateSession.consultancyName} • Candidate ID: <strong className="font-mono text-indigo-700">{candidateSession.candidateId}</strong>
+                      {candidateSession?.consultancyName ||
+                        (activeLaunchedTest?.consultancyId
+                          ? ConsultancyService.getConsultancyById(activeLaunchedTest.consultancyId)?.name
+                          : 'Educational Consultancy Lab')}
+                      {candidateSession?.candidateId ? (
+                        <> • Candidate ID: <strong className="font-mono text-indigo-700">{candidateSession.candidateId}</strong></>
+                      ) : (
+                        <> • Live Exam Station</>
+                      )}
                     </p>
                   </div>
                 </div>
@@ -678,7 +686,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                       <span>Check Results</span>
                     </button>
                   )}
-                  {onLogout && (
+                  {candidateSession && onLogout && (
                     <button
                       onClick={onLogout}
                       className="px-3 py-1.5 rounded-lg bg-slate-100 hover:bg-red-50 hover:text-red-700 text-slate-600 text-xs font-semibold border border-slate-200 transition cursor-pointer"
@@ -835,7 +843,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                   <div className="space-y-2 max-w-lg mx-auto">
                     <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-slate-100 text-slate-700 text-xs font-semibold">
                       <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                      <span>Station {candidateSession.stationName || 'PC-01'} Connected to Invigilator Radar</span>
+                      <span>Station {candidateSession?.stationName || 'PC-01'} Connected to Invigilator Radar</span>
                     </div>
 
                     <h2 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
@@ -886,7 +894,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
 
           {/* Dedicated Candidate Terminal Footer */}
           <footer className="border-t border-slate-200 bg-white px-6 py-4 text-center text-xs text-slate-500">
-            British Council &amp; IDP CD-IELTS Standard Computer Terminal • Station {candidateSession.stationName || 'PC-01'} • Official Invigilator Telemetry Active
+            British Council &amp; IDP CD-IELTS Standard Computer Terminal • Station {candidateSession?.stationName || 'PC-01'} • Official Invigilator Telemetry Active
           </footer>
         </>
       ) : (

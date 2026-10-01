@@ -764,11 +764,12 @@ export const App: React.FC = () => {
             const cleanCid = candidate.consultancyId || selectedConsultancyId || 'apex-global';
             setTerminalStationName(cleanStation);
             setSelectedConsultancyId(cleanCid);
+            const cObj = ConsultancyService.getConsultancyById(cleanCid);
             const sess: CandidateSession = {
               stationName: cleanStation,
-              branchCode: 'APEX-2026',
+              branchCode: cObj?.branchCode || cObj?.accessCode || 'APEX-2026',
               consultancyId: cleanCid,
-              consultancyName: 'Apex Global Education',
+              consultancyName: cObj?.name || 'Educational Consultancy Lab',
               candidateName: candidate.name,
               candidateId: candidate.candidateId,
               targetBand: candidate.targetBand || 7.5,

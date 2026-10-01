@@ -1723,9 +1723,13 @@ export const ConsultancyPortal: React.FC<ConsultancyPortalProps> = ({
                 Selecting a full mock test enables both the reading and listening modules for that test. Students can take them as a combined real-like exam.
               </p>
 
-              {[18, 19, 20, 21].map((book) => {
+              {[16, 18, 19, 20, 21].map((book) => {
                 const bookFullTests = allFullMockTests.filter(f => f.book === book);
-                const bookTestIds = bookFullTests.flatMap(f => [f.readingTest.id, f.listeningTest.id]);
+                const bookTestIds = bookFullTests.flatMap(f => [
+                  f.readingTest.id,
+                  f.listeningTest.id,
+                  ...(f.writingTest ? [f.writingTest.id] : [])
+                ]);
                 const allBookSelected = bookTestIds.every(id => assignedTestIds.includes(id));
                 const someBookSelected = bookTestIds.some(id => assignedTestIds.includes(id));
 
@@ -1771,37 +1775,46 @@ export const ConsultancyPortal: React.FC<ConsultancyPortalProps> = ({
                       {bookFullTests.map((fullTest) => {
                         const readingSelected = assignedTestIds.includes(fullTest.readingTest.id);
                         const listeningSelected = assignedTestIds.includes(fullTest.listeningTest.id);
-                        const bothSelected = readingSelected && listeningSelected;
+                        const writingSelected = fullTest.writingTest ? assignedTestIds.includes(fullTest.writingTest.id) : true;
+                        const allSelected = readingSelected && listeningSelected && writingSelected;
 
                         return (
                           <div
                             key={fullTest.id}
                             className={`flex items-center justify-between px-4 py-3 transition ${
-                              bothSelected ? 'bg-indigo-50/50' : 'hover:bg-slate-50'
+                              allSelected ? 'bg-indigo-50/50' : 'hover:bg-slate-50'
                             }`}
                           >
                             <div className="flex items-center gap-3">
                               <div
                                 onClick={() => {
                                   let newIds = [...assignedTestIds];
-                                  if (bothSelected) {
-                                    newIds = newIds.filter(id => id !== fullTest.readingTest.id && id !== fullTest.listeningTest.id);
+                                  if (allSelected) {
+                                    newIds = newIds.filter(
+                                      id =>
+                                        id !== fullTest.readingTest.id &&
+                                        id !== fullTest.listeningTest.id &&
+                                        (!fullTest.writingTest || id !== fullTest.writingTest.id)
+                                    );
                                   } else {
                                     if (!newIds.includes(fullTest.readingTest.id)) newIds.push(fullTest.readingTest.id);
                                     if (!newIds.includes(fullTest.listeningTest.id)) newIds.push(fullTest.listeningTest.id);
+                                    if (fullTest.writingTest && !newIds.includes(fullTest.writingTest.id)) {
+                                      newIds.push(fullTest.writingTest.id);
+                                    }
                                   }
                                   ConsultancyService.setAssignedTestIds(consultancyId, newIds);
                                   setAssignedTestIds(newIds);
                                 }}
                                 className={`w-5 h-5 rounded border-2 flex items-center justify-center cursor-pointer transition ${
-                                  bothSelected
+                                  allSelected
                                     ? 'bg-indigo-600 border-indigo-600'
-                                    : someBookSelected && (readingSelected || listeningSelected)
+                                    : someBookSelected && (readingSelected || listeningSelected || (fullTest.writingTest && assignedTestIds.includes(fullTest.writingTest.id)))
                                     ? 'bg-indigo-200 border-indigo-400'
                                     : 'border-slate-300 hover:border-indigo-400'
                                 }`}
                               >
-                                {bothSelected && <Check className="w-3 h-3 text-white" />}
+                                {allSelected && <Check className="w-3 h-3 text-white" />}
                               </div>
                               <div>
                                 <div className="text-xs font-bold text-slate-900">
@@ -1861,6 +1874,34 @@ export const ConsultancyPortal: React.FC<ConsultancyPortalProps> = ({
                                 <span>Listening (35m)</span>
                                 {listeningSelected && <Check className="w-2.5 h-2.5 ml-0.5 text-purple-700" />}
                               </button>
+                              {fullTest.writingTest && (
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    let newIds = [...assignedTestIds];
+                                    if (assignedTestIds.includes(fullTest.writingTest!.id)) {
+                                      newIds = newIds.filter(id => id !== fullTest.writingTest!.id);
+                                    } else {
+                                      newIds.push(fullTest.writingTest!.id);
+                                    }
+                                    ConsultancyService.setAssignedTestIds(consultancyId, newIds);
+                                    setAssignedTestIds(newIds);
+                                  }}
+                                  className={`inline-flex items-center gap-1 text-[11px] font-semibold px-2.5 py-1 rounded-full border cursor-pointer transition ${
+                                    assignedTestIds.includes(fullTest.writingTest.id)
+                                      ? 'bg-emerald-50 text-emerald-700 border-emerald-300 font-bold shadow-2xs'
+                                      : 'bg-slate-50 text-slate-400 border-slate-200 hover:border-slate-300'
+                                  }`}
+                                  title="Click to toggle Writing module"
+                                >
+                                  <PenTool className="w-3 h-3" />
+                                  <span>Writing (60m)</span>
+                                  {assignedTestIds.includes(fullTest.writingTest.id) && (
+                                    <Check className="w-2.5 h-2.5 ml-0.5 text-emerald-700" />
+                                  )}
+                                </button>
+                              )}
                             </div>
                           </div>
                         );
