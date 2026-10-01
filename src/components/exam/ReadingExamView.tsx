@@ -1481,20 +1481,72 @@ export const ReadingExamView: React.FC<ReadingExamViewProps> = ({
                   </div>
 
                   {/* MATCHING HEADINGS LIST BANNER */}
-                  {group.type === 'matching_headings' && group.headingList && (
-                    <div className="bg-[#f8fafc] border border-slate-300 rounded-lg p-4 text-xs space-y-2">
-                      <h4 className="font-bold uppercase tracking-wider text-slate-900 text-[11px] pb-1 border-b border-slate-200">
-                        List of Headings
-                      </h4>
-                      <div className="grid grid-cols-1 gap-1.5 text-slate-800 font-medium">
-                        {group.headingList.map((hdg) => (
-                          <div key={hdg} className="py-0.5">
-                            {hdg}
-                          </div>
-                        ))}
+                  {group.type === 'matching_headings' && (() => {
+                    const headings = group.headingList || group.options || group.questions[0]?.options || [];
+                    if (headings.length === 0) return null;
+
+                    return (
+                      <div className="bg-[#fafafa] border border-slate-300 rounded-lg p-4 text-xs space-y-3 my-3 shadow-2xs">
+                        <div className="flex items-center justify-between pb-2 border-b border-slate-200">
+                          <h4 className="font-bold uppercase tracking-wider text-slate-900 text-xs">
+                            List of Headings
+                          </h4>
+                          <span className="text-[11px] text-slate-500 font-normal">
+                            Click any heading to assign to active question or choose from dropdown below
+                          </span>
+                        </div>
+                        <div className="grid grid-cols-1 gap-1.5 text-slate-800">
+                          {headings.map((hdg, hIdx) => {
+                            const romanMatch = hdg.trim().match(/^([ivxIVX]+)[\.\s-]+(.*)$/);
+                            const roman = romanMatch ? romanMatch[1].toLowerCase() : hdg.trim().toLowerCase();
+                            const text = romanMatch ? romanMatch[2].trim() : hdg.trim();
+                            const isSelectedForCurrent = answers[currentQuestion] === roman;
+                            const usedByQ = group.questions.find(
+                              (q) => (answers[q.questionNumber] as string)?.trim().toLowerCase() === roman
+                            )?.questionNumber;
+
+                            return (
+                              <div
+                                key={hIdx}
+                                onClick={() => {
+                                  if (currentQuestion >= group.questions[0]?.questionNumber && currentQuestion <= group.questions[group.questions.length - 1]?.questionNumber) {
+                                    onAnswerChange(currentQuestion, roman);
+                                  }
+                                }}
+                                className={`p-2.5 rounded border transition cursor-pointer flex items-baseline gap-2.5 ${
+                                  isSelectedForCurrent
+                                    ? 'bg-slate-900 text-white border-slate-900 shadow-2xs'
+                                    : usedByQ
+                                    ? 'bg-slate-100 border-slate-300 text-slate-700'
+                                    : 'bg-white hover:bg-slate-50 border-slate-200 hover:border-slate-400 text-slate-900'
+                                }`}
+                              >
+                                <span
+                                  className={`font-mono font-bold text-xs uppercase px-2 py-0.5 rounded-xs shrink-0 ${
+                                    isSelectedForCurrent
+                                      ? 'bg-white/20 text-white'
+                                      : 'bg-slate-100 text-slate-900 border border-slate-300'
+                                  }`}
+                                >
+                                  {roman}
+                                </span>
+                                <span className="text-xs font-serif leading-relaxed flex-1">
+                                  {text}
+                                </span>
+                                {usedByQ && (
+                                  <span className={`text-[10px] font-sans font-bold px-2 py-0.5 rounded ${
+                                    isSelectedForCurrent ? 'bg-white/20 text-white' : 'bg-slate-200 text-slate-700'
+                                  }`}>
+                                    Question {usedByQ}
+                                  </span>
+                                )}
+                              </div>
+                            );
+                          })}
+                        </div>
                       </div>
-                    </div>
-                  )}
+                    );
+                  })()}
 
                   {/* DIAGRAM OR LABEL COMPLETION SVG SCHEMATIC */}
                   {group.type === 'diagram_labelling' && (
@@ -1696,53 +1748,66 @@ export const ReadingExamView: React.FC<ReadingExamViewProps> = ({
                             )}
 
                             {/* MATCHING HEADINGS (Enhanced Dropdown with Selected Heading indicator) */}
-                            {group.type === 'matching_headings' && (
-                              <div className="mt-2 ml-7 space-y-2">
-                                <div className="flex items-center gap-2">
-                                  <select
-                                    value={val}
-                                    onChange={(e) => onAnswerChange(qNum, e.target.value)}
-                                    className="w-full max-w-lg px-3 py-2 border border-slate-400 rounded-lg bg-white text-xs font-semibold text-slate-800 focus:outline-none focus:border-red-600 cursor-pointer shadow-inner"
-                                  >
-                                    <option value="">[ Click to Select Heading ▼ ]</option>
-                                    {(group.headingList || q.options || []).map((hdg) => {
-                                      const roman = hdg.split('.')[0].trim();
-                                      const usedByQ = group.questions.find(
-                                        (otherQ) =>
-                                          otherQ.questionNumber !== qNum &&
-                                          (answers[otherQ.questionNumber] as string)?.trim() === roman
-                                      )?.questionNumber;
+                            {group.type === 'matching_headings' && (() => {
+                              const headings = group.headingList || group.options || q.options || [];
 
-                                      return (
-                                        <option key={hdg} value={roman}>
-                                          {hdg} {usedByQ ? `(Selected in Q${usedByQ})` : ''}
-                                        </option>
-                                      );
-                                    })}
-                                  </select>
-
-                                  {val && (
-                                    <button
-                                      type="button"
-                                      onClick={() => onAnswerChange(qNum, '')}
-                                      className="px-2.5 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded text-xs font-bold transition cursor-pointer shrink-0"
-                                      title="Clear heading selection"
+                              return (
+                                <div className="mt-2 ml-7 space-y-2">
+                                  <div className="flex items-center gap-2">
+                                    <select
+                                      value={val.toLowerCase()}
+                                      onChange={(e) => onAnswerChange(qNum, e.target.value)}
+                                      className="w-full max-w-lg px-3 py-2 border border-slate-400 rounded-lg bg-white text-xs font-semibold text-slate-800 focus:outline-none focus:border-red-600 cursor-pointer shadow-inner"
                                     >
-                                      ✕ Clear
-                                    </button>
-                                  )}
-                                </div>
+                                      <option value="">[ Click to Select Heading ▼ ]</option>
+                                      {headings.map((hdg, hIdx) => {
+                                        const romanMatch = hdg.trim().match(/^([ivxIVX]+)[\.\s-]+(.*)$/);
+                                        const roman = romanMatch ? romanMatch[1].toLowerCase() : hdg.trim().toLowerCase();
+                                        const text = romanMatch ? romanMatch[2].trim() : hdg.trim();
+                                        const usedByQ = group.questions.find(
+                                          (otherQ) =>
+                                            otherQ.questionNumber !== qNum &&
+                                            (answers[otherQ.questionNumber] as string)?.trim().toLowerCase() === roman
+                                        )?.questionNumber;
 
-                                {val && (
-                                  <div className="inline-flex items-center gap-1.5 text-xs bg-slate-100 text-slate-800 font-medium px-2.5 py-1 rounded border border-slate-300">
-                                    <span className="font-bold text-slate-900">Current Heading:</span>
-                                    <span>
-                                      {(group.headingList || q.options || []).find((h) => h.startsWith(val + '.') || h === val) || val}
-                                    </span>
+                                        return (
+                                          <option key={hIdx} value={roman}>
+                                            {roman}. {text} {usedByQ ? `(Selected in Q${usedByQ})` : ''}
+                                          </option>
+                                        );
+                                      })}
+                                    </select>
+
+                                    {val && (
+                                      <button
+                                        type="button"
+                                        onClick={() => onAnswerChange(qNum, '')}
+                                        className="px-2.5 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded text-xs font-bold transition cursor-pointer shrink-0"
+                                        title="Clear heading selection"
+                                      >
+                                        ✕ Clear
+                                      </button>
+                                    )}
                                   </div>
-                                )}
-                              </div>
-                            )}
+
+                                  {val && (() => {
+                                    const matchedHdg = headings.find((h) => {
+                                      const m = h.trim().match(/^([ivxIVX]+)[\.\s-]+(.*)$/);
+                                      const r = m ? m[1].toLowerCase() : h.trim().toLowerCase();
+                                      return r === val.toLowerCase();
+                                    });
+                                    const matchText = matchedHdg ? matchedHdg.trim() : val;
+
+                                    return (
+                                      <div className="inline-flex items-center gap-1.5 text-xs bg-slate-100 text-slate-800 font-medium px-2.5 py-1 rounded border border-slate-300">
+                                        <span className="font-bold text-slate-900">Current Heading:</span>
+                                        <span>{matchText}</span>
+                                      </div>
+                                    );
+                                  })()}
+                                </div>
+                              );
+                            })()}
                           </div>
                         );
                       })}

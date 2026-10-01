@@ -196,57 +196,145 @@ export const cambridge16Test1Reading: IELTSMockTest = {
           type: "matching_headings",
           title: "Questions 14 – 20",
           instructions: "Reading Passage 2 has seven paragraphs, A–G. Choose the correct heading for each paragraph from the list of headings below. Write the correct number, i–ix, in boxes 14–20 on your answer sheet.",
+          headingList: [
+            "i. The areas and artefacts within the pyramid itself",
+            "ii. A difficult task for those involved",
+            "iii. A king who saved his people",
+            "iv. A single certainty among other less definite facts",
+            "v. An overview of the external buildings and areas",
+            "vi. A pyramid design that others copied",
+            "vii. An idea for changing the design of burial structures",
+            "viii. An incredible experience despite the few remains",
+            "ix. The answers to some unexpected questions"
+          ],
           options: [
-            "i The areas and artefacts within the pyramid itself",
-            "ii A difficult task for those involved",
-            "iii A king who saved his people",
-            "iv A single certainty among other less definite facts",
-            "v An overview of the external buildings and areas",
-            "vi A pyramid design that others copied",
-            "vii An idea for changing the design of burial structures",
-            "viii An incredible experience despite the few remains",
-            "ix The answers to some unexpected questions"
+            "i. The areas and artefacts within the pyramid itself",
+            "ii. A difficult task for those involved",
+            "iii. A king who saved his people",
+            "iv. A single certainty among other less definite facts",
+            "v. An overview of the external buildings and areas",
+            "vi. A pyramid design that others copied",
+            "vii. An idea for changing the design of burial structures",
+            "viii. An incredible experience despite the few remains",
+            "ix. The answers to some unexpected questions"
           ],
           questions: [
             {
               questionNumber: 14,
               prompt: "Paragraph A",
+              options: [
+                "i. The areas and artefacts within the pyramid itself",
+                "ii. A difficult task for those involved",
+                "iii. A king who saved his people",
+                "iv. A single certainty among other less definite facts",
+                "v. An overview of the external buildings and areas",
+                "vi. A pyramid design that others copied",
+                "vii. An idea for changing the design of burial structures",
+                "viii. An incredible experience despite the few remains",
+                "ix. The answers to some unexpected questions"
+              ],
               correctAnswer: "iv",
               explanation: "Paragraph A mentions that while details of Djoser's reign are disputed, the single certainty is that he commissioned the Step Pyramid at Saqqara."
             },
             {
               questionNumber: 15,
               prompt: "Paragraph B",
+              options: [
+                "i. The areas and artefacts within the pyramid itself",
+                "ii. A difficult task for those involved",
+                "iii. A king who saved his people",
+                "iv. A single certainty among other less definite facts",
+                "v. An overview of the external buildings and areas",
+                "vi. A pyramid design that others copied",
+                "vii. An idea for changing the design of burial structures",
+                "viii. An incredible experience despite the few remains",
+                "ix. The answers to some unexpected questions"
+              ],
               correctAnswer: "vii",
               explanation: "Paragraph B details Imhotep's groundbreaking idea of changing from traditional mudbrick mastabas to quarried stone pyramids."
             },
             {
               questionNumber: 16,
               prompt: "Paragraph C",
+              options: [
+                "i. The areas and artefacts within the pyramid itself",
+                "ii. A difficult task for those involved",
+                "iii. A king who saved his people",
+                "iv. A single certainty among other less definite facts",
+                "v. An overview of the external buildings and areas",
+                "vi. A pyramid design that others copied",
+                "vii. An idea for changing the design of burial structures",
+                "viii. An incredible experience despite the few remains",
+                "ix. The answers to some unexpected questions"
+              ],
               correctAnswer: "ii",
               explanation: "Paragraph C highlights the immense physical difficulties and arduous task faced by the thousands of workers involved in stacking stone tiers."
             },
             {
               questionNumber: 17,
               prompt: "Paragraph D",
+              options: [
+                "i. The areas and artefacts within the pyramid itself",
+                "ii. A difficult task for those involved",
+                "iii. A king who saved his people",
+                "iv. A single certainty among other less definite facts",
+                "v. An overview of the external buildings and areas",
+                "vi. A pyramid design that others copied",
+                "vii. An idea for changing the design of burial structures",
+                "viii. An incredible experience despite the few remains",
+                "ix. The answers to some unexpected questions"
+              ],
               correctAnswer: "v",
               explanation: "Paragraph D provides an overview of the external buildings, courtyards, perimeter wall, and trench surrounding the pyramid."
             },
             {
               questionNumber: 18,
               prompt: "Paragraph E",
+              options: [
+                "i. The areas and artefacts within the pyramid itself",
+                "ii. A difficult task for those involved",
+                "iii. A king who saved his people",
+                "iv. A single certainty among other less definite facts",
+                "v. An overview of the external buildings and areas",
+                "vi. A pyramid design that others copied",
+                "vii. An idea for changing the design of burial structures",
+                "viii. An incredible experience despite the few remains",
+                "ix. The answers to some unexpected questions"
+              ],
               correctAnswer: "i",
               explanation: "Paragraph E explores the underground areas, corridors, burial chamber, and blue faience artefacts within the pyramid itself."
             },
             {
               questionNumber: 19,
               prompt: "Paragraph F",
+              options: [
+                "i. The areas and artefacts within the pyramid itself",
+                "ii. A difficult task for those involved",
+                "iii. A king who saved his people",
+                "iv. A single certainty among other less definite facts",
+                "v. An overview of the external buildings and areas",
+                "vi. A pyramid design that others copied",
+                "vii. An idea for changing the design of burial structures",
+                "viii. An incredible experience despite the few remains",
+                "ix. The answers to some unexpected questions"
+              ],
               correctAnswer: "viii",
               explanation: "Paragraph F recounts the exciting and incredible experience of archaeologists excavating the tomb despite early looting."
             },
             {
               questionNumber: 20,
               prompt: "Paragraph G",
+              options: [
+                "i. The areas and artefacts within the pyramid itself",
+                "ii. A difficult task for those involved",
+                "iii. A king who saved his people",
+                "iv. A single certainty among other less definite facts",
+                "v. An overview of the external buildings and areas",
+                "vi. A pyramid design that others copied",
+                "vii. An idea for changing the design of burial structures",
+                "viii. An incredible experience despite the few remains",
+                "ix. The answers to some unexpected questions"
+              ],
               correctAnswer: "vi",
               explanation: "Paragraph G concludes that the Step Pyramid became the archetype that subsequent Egyptian pyramid builders copied and refined."
             }
