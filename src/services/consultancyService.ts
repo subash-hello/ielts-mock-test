@@ -365,6 +365,34 @@ export class ConsultancyService {
           localStorage.setItem(`ielts_stations_${st.consultancyId}`, JSON.stringify(list));
         } catch {}
       }
+    } else if (eventObj.type === 'CONSULTANCY_UPDATED') {
+      const c = eventObj.payload;
+      if (c && c.id) {
+        try {
+          const list = this.getConsultancies();
+          const idx = list.findIndex((item) => item.id === c.id);
+          if (idx >= 0) {
+            list[idx] = c;
+          } else {
+            list.unshift(c);
+          }
+          localStorage.setItem('ielts_consultancies', JSON.stringify(list));
+        } catch {}
+      }
+    } else if (eventObj.type === 'CONSULTANCY_DELETED') {
+      const id = eventObj.payload;
+      if (id) {
+        try {
+          const deleted = this.getDeletedConsultancyIds();
+          const cleanId = String(id).toLowerCase().trim();
+          if (!deleted.includes(cleanId)) {
+            deleted.push(cleanId);
+            localStorage.setItem('ielts_deleted_consultancies', JSON.stringify(deleted));
+          }
+          const list = this.getConsultancies().filter((c) => c.id.toLowerCase() !== cleanId);
+          localStorage.setItem('ielts_consultancies', JSON.stringify(list));
+        } catch {}
+      }
     }
 
     // Dispatch locally to components
@@ -579,37 +607,60 @@ export class ConsultancyService {
   }
 
   // --- CONSULTANCIES MANAGEMENT (SUPER ADMIN) ---
-  public static getConsultancies(): Consultancy[] {
-    const raw = localStorage.getItem('ielts_consultancies');
-    if (!raw) {
-      localStorage.setItem('ielts_consultancies', JSON.stringify(DEFAULT_CONSULTANCIES));
-      return DEFAULT_CONSULTANCIES;
+  public static getDeletedConsultancyIds(): string[] {
+    try {
+      const raw = localStorage.getItem('ielts_deleted_consultancies');
+      return raw ? JSON.parse(raw) : [];
+    } catch {
+      return [];
     }
+  }
+
+  public static isConsultancyDeleted(id: string): boolean {
+    if (!id) return false;
+    const deleted = this.getDeletedConsultancyIds();
+    return deleted.includes(id.toLowerCase().trim());
+  }
+
+  public static getConsultancies(): Consultancy[] {
+    const deletedIds = this.getDeletedConsultancyIds();
+    const raw = localStorage.getItem('ielts_consultancies');
+    let list: Consultancy[] = [];
+
+    if (!raw) {
+      list = DEFAULT_CONSULTANCIES.filter((d) => !deletedIds.includes(d.id.toLowerCase()));
+      localStorage.setItem('ielts_consultancies', JSON.stringify(list));
+      return list;
+    }
+
     try {
       const parsed: Consultancy[] = JSON.parse(raw);
       if (Array.isArray(parsed) && parsed.length > 0) {
-        // Merge missing default consultancies (like KIEC) into local storage
+        list = parsed.filter((c) => !deletedIds.includes(c.id.toLowerCase()));
+
+        // Merge missing default consultancies EXCEPT those explicitly deleted
         let changed = false;
         for (const def of DEFAULT_CONSULTANCIES) {
-          const exists = parsed.some(
+          if (deletedIds.includes(def.id.toLowerCase())) continue;
+          const exists = list.some(
             (c) =>
-              c.id === def.id ||
+              c.id.toLowerCase() === def.id.toLowerCase() ||
               (c.adminEmail && c.adminEmail.trim().toLowerCase() === def.adminEmail.toLowerCase()) ||
               (c.branchCode && c.branchCode.trim().toUpperCase() === def.branchCode.toUpperCase())
           );
           if (!exists) {
-            parsed.push(def);
+            list.push(def);
             changed = true;
           }
         }
-        if (changed) {
-          localStorage.setItem('ielts_consultancies', JSON.stringify(parsed));
+        if (changed || list.length !== parsed.length) {
+          localStorage.setItem('ielts_consultancies', JSON.stringify(list));
         }
-        return parsed;
+        return list;
       }
-      return DEFAULT_CONSULTANCIES;
+      return DEFAULT_CONSULTANCIES.filter((d) => !deletedIds.includes(d.id.toLowerCase()));
     } catch {
-      return DEFAULT_CONSULTANCIES;
+      return DEFAULT_CONSULTANCIES.filter((d) => !deletedIds.includes(d.id.toLowerCase()));
     }
   }
 
@@ -864,8 +915,7 @@ export class ConsultancyService {
     this.setCurrentCandidateSession(null);
   }
 
-  public static saveConsultancy(consultancy: Consultancy): void {
-    const list = this.getConsultancies();
+  public static saveConsultancy(consultancy: Consultancy, shouldBroadcast: boolean = true): void {
     consultancy.name = (consultancy.name || '').trim();
     consultancy.adminEmail = (consultancy.adminEmail || '').trim().toLowerCase();
     consultancy.branchCode = (consultancy.branchCode || consultancy.accessCode || '').trim().toUpperCase();
@@ -873,23 +923,78 @@ export class ConsultancyService {
     consultancy.examPassword = (consultancy.examPassword || '1234').trim();
     consultancy.adminPassword = (consultancy.adminPassword || consultancy.examPassword || '1234').trim();
 
+    // Revive from deleted list if it was previously deleted
+    const deleted = this.getDeletedConsultancyIds().filter((d) => d !== consultancy.id.toLowerCase());
+    localStorage.setItem('ielts_deleted_consultancies', JSON.stringify(deleted));
+
+    const list = this.getConsultancies();
     const existingIdx = list.findIndex(
       (c) =>
-        c.id === consultancy.id ||
-        (c.adminEmail && c.adminEmail.trim().toLowerCase() === consultancy.adminEmail.toLowerCase())
+        c.id.toLowerCase() === consultancy.id.toLowerCase() ||
+        (consultancy.branchCode && c.branchCode && c.branchCode.trim().toUpperCase() === consultancy.branchCode) ||
+        (consultancy.accessCode && c.accessCode && c.accessCode.trim().toUpperCase() === consultancy.accessCode) ||
+        (consultancy.adminEmail && c.adminEmail && c.adminEmail.trim().toLowerCase() === consultancy.adminEmail)
     );
     if (existingIdx >= 0) {
-      list[existingIdx] = consultancy;
+      list[existingIdx] = { ...list[existingIdx], ...consultancy, id: list[existingIdx].id };
     } else {
       list.unshift(consultancy);
     }
     localStorage.setItem('ielts_consultancies', JSON.stringify(list));
-    this.broadcast('CONSULTANCY_UPDATED', consultancy);
+    if (shouldBroadcast) {
+      this.broadcast('CONSULTANCY_UPDATED', list[existingIdx >= 0 ? existingIdx : 0]);
+    }
   }
 
   public static deleteConsultancy(id: string): void {
-    const list = this.getConsultancies().filter((c) => c.id !== id);
-    localStorage.setItem('ielts_consultancies', JSON.stringify(list));
+    if (!id) return;
+    const cleanId = id.trim().toLowerCase();
+
+    // 1. Record tombstone
+    const deleted = this.getDeletedConsultancyIds();
+    if (!deleted.includes(cleanId)) {
+      deleted.push(cleanId);
+    }
+
+    // 2. Remove from active list
+    const current = this.getConsultancies();
+    const target = current.find((c) => c.id.toLowerCase() === cleanId);
+    if (target?.branchCode && !deleted.includes(target.branchCode.toLowerCase())) {
+      deleted.push(target.branchCode.toLowerCase());
+    }
+    localStorage.setItem('ielts_deleted_consultancies', JSON.stringify(deleted));
+
+    const updated = current.filter((c) => {
+      if (c.id.toLowerCase() === cleanId) return false;
+      if (target) {
+        if (target.branchCode && c.branchCode && c.branchCode.toUpperCase() === target.branchCode.toUpperCase()) return false;
+        if (target.name && c.name && c.name.toLowerCase() === target.name.toLowerCase()) return false;
+      }
+      return true;
+    });
+    localStorage.setItem('ielts_consultancies', JSON.stringify(updated));
+
+    // 3. Clean up related station and session keys
+    try {
+      localStorage.removeItem(`ielts_stations_${id}`);
+      localStorage.removeItem(`ielts_assigned_tests_${id}`);
+      localStorage.removeItem(`ielts_students_${id}`);
+      localStorage.removeItem(`ielts_published_results_${id}`);
+      localStorage.removeItem(`ielts_launched_test_${id}`);
+      localStorage.removeItem(`ielts_stopped_test_${id}`);
+      if (target?.id) {
+        localStorage.removeItem(`ielts_stations_${target.id}`);
+        localStorage.removeItem(`ielts_assigned_tests_${target.id}`);
+        localStorage.removeItem(`ielts_students_${target.id}`);
+        localStorage.removeItem(`ielts_published_results_${target.id}`);
+        localStorage.removeItem(`ielts_launched_test_${target.id}`);
+        localStorage.removeItem(`ielts_stopped_test_${target.id}`);
+      }
+    } catch (e) {
+      console.error('Error clearing consultancy storage keys:', e);
+    }
+
+    // 4. Broadcast deletion event
     this.broadcast('CONSULTANCY_DELETED', id);
   }
 
@@ -1279,58 +1384,35 @@ export class ConsultancyService {
     launchedAt: string;
     isFullMock?: boolean;
   } | null {
-    if (consultancyId) {
-      const c = this.getConsultancyById(consultancyId) || this.getConsultancyByBranchCode(consultancyId);
-      const cids = [consultancyId];
-      if (c && c.id && !cids.includes(c.id)) cids.push(c.id);
-      if (c && c.branchCode && !cids.includes(c.branchCode)) cids.push(c.branchCode);
-
-      const maxStopped = this.getStoppedTimestamp(consultancyId);
-
-      for (const cid of cids) {
-        const raw = localStorage.getItem(`ielts_launched_test_${cid}`);
-        if (raw) {
-          try {
-            const parsed = JSON.parse(raw);
-            if (parsed && parsed.testId) {
-              const launchTime = parsed.launchedAt ? new Date(parsed.launchedAt).getTime() : 0;
-              if (maxStopped && maxStopped >= launchTime) {
-                // Already stopped by admin! Purge stale key
-                localStorage.removeItem(`ielts_launched_test_${cid}`);
-              } else {
-                return parsed;
-              }
-            }
-          } catch {}
-        }
-      }
-      // CRITICAL: When consultancyId is specified, never fall back to another consultancy's test!
+    if (!consultancyId) {
       return null;
     }
 
-    // Check latest global launched test (only when consultancyId was not specified)
-    const globalRaw = localStorage.getItem('ielts_latest_launched_test');
-    if (globalRaw) {
-      try {
-        const parsed = JSON.parse(globalRaw);
-        if (parsed && parsed.testId) {
-          const cid = parsed.consultancyId;
-          const stoppedAt = cid ? this.getStoppedTimestamp(cid) : 0;
-          const launchTime = parsed.launchedAt ? new Date(parsed.launchedAt).getTime() : 0;
-          if (stoppedAt && stoppedAt >= launchTime) {
-            localStorage.removeItem('ielts_latest_launched_test');
-            return null;
-          }
-          if (cid) {
-            const checkSpecific = localStorage.getItem(`ielts_launched_test_${cid}`);
-            if (checkSpecific) return parsed;
-          } else {
-            return parsed;
-          }
-        }
-      } catch {}
-    }
+    const c = this.getConsultancyById(consultancyId) || this.getConsultancyByBranchCode(consultancyId);
+    const cids = [consultancyId];
+    if (c && c.id && !cids.includes(c.id)) cids.push(c.id);
+    if (c && c.branchCode && !cids.includes(c.branchCode)) cids.push(c.branchCode);
 
+    const maxStopped = this.getStoppedTimestamp(consultancyId);
+
+    for (const cid of cids) {
+      const raw = localStorage.getItem(`ielts_launched_test_${cid}`);
+      if (raw) {
+        try {
+          const parsed = JSON.parse(raw);
+          if (parsed && parsed.testId) {
+            const launchTime = parsed.launchedAt ? new Date(parsed.launchedAt).getTime() : 0;
+            if (maxStopped && maxStopped >= launchTime) {
+              // Already stopped by admin! Purge stale key
+              localStorage.removeItem(`ielts_launched_test_${cid}`);
+            } else {
+              return parsed;
+            }
+          }
+        } catch {}
+      }
+    }
+    // Never fall back to another consultancy's test!
     return null;
   }
 

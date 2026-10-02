@@ -36,18 +36,44 @@ export const App: React.FC = () => {
 
   const [activeScreen, setActiveScreen] = useState<
     'landing' | 'exam' | 'submission-confirmed' | 'results' | 'super-admin' | 'consultancy' | 'terminal' | 'auth'
-  >('landing');
+  >(() => {
+    if (typeof window !== 'undefined') {
+      const p = new URLSearchParams(window.location.search);
+      const m = p.get('mode');
+      const st = p.get('station') || p.get('st') || p.get('pc');
+      if (m === 'terminal' || m === 'lab' || m === 'kiosk' || st) return 'terminal';
+    }
+    return 'landing';
+  });
 
   // Candidate ID lookup modal state (to check published results)
   const [isLookupModalOpen, setIsLookupModalOpen] = useState<boolean>(false);
   const [lookupInitialCandidateId, setLookupInitialCandidateId] = useState<string>('');
 
   const [selectedConsultancyId, setSelectedConsultancyId] = useState<string>(() => {
+    if (typeof window !== 'undefined') {
+      const p = new URLSearchParams(window.location.search);
+      const urlCid = p.get('consultancy') || p.get('cid');
+      if (urlCid) return urlCid;
+      const urlBranch = p.get('branch') || p.get('access') || p.get('code');
+      if (urlBranch) {
+        const found = ConsultancyService.getConsultancyByBranchCode(urlBranch);
+        if (found) return found.id;
+      }
+    }
     const saved = ConsultancyService.getCurrentCandidateSession();
     return saved?.consultancyId || 'apex-global';
   });
 
   const [terminalStationName, setTerminalStationName] = useState<string>(() => {
+    if (typeof window !== 'undefined') {
+      const p = new URLSearchParams(window.location.search);
+      const urlStation = p.get('station') || p.get('st') || p.get('pc');
+      if (urlStation) {
+        const clean = urlStation.trim().toUpperCase();
+        return clean.startsWith('PC-') ? clean : `PC-${clean.replace(/^PC/i, '')}`;
+      }
+    }
     const saved = ConsultancyService.getCurrentCandidateSession();
     return saved?.stationName || 'PC-01';
   });
@@ -124,6 +150,7 @@ export const App: React.FC = () => {
       const cid = params.get('consultancy') || params.get('cid');
       const station = params.get('station') || params.get('st') || params.get('pc');
       const branch = params.get('branch') || params.get('access') || params.get('code');
+      const cname = params.get('cname') || params.get('name');
 
       // Resolve target consultancy
       let targetCid = cid;
@@ -133,7 +160,28 @@ export const App: React.FC = () => {
       }
       if (targetCid) {
         setSelectedConsultancyId(targetCid);
-        const cObj = ConsultancyService.getConsultancyById(targetCid);
+        let cObj = ConsultancyService.getConsultancyById(targetCid);
+        if (!cObj && (cname || branch)) {
+          cObj = {
+            id: targetCid,
+            name: cname || 'Consultancy Testing Lab',
+            branch: 'Lab Station',
+            adminEmail: '',
+            phone: '',
+            accessCode: (branch || 'LAB01').toUpperCase(),
+            branchCode: (branch || 'LAB01').toUpperCase(),
+            examPassword: '1234',
+            adminPassword: '1234',
+            status: 'active',
+            computerLimit: 50,
+            testCredits: 500,
+            creditsUsed: 0,
+            createdAt: new Date().toISOString(),
+            validUntil: new Date(Date.now() + 365 * 24 * 3600 * 1000).toISOString(),
+            assignedTestIds: []
+          };
+          ConsultancyService.saveConsultancy(cObj);
+        }
         if (cObj) {
           localStorage.setItem('ielts_terminal_branch', cObj.branchCode || cObj.accessCode);
         }

@@ -28,7 +28,8 @@ import {
   Send,
   PenTool,
   QrCode,
-  Printer
+  Printer,
+  AlertTriangle
 } from 'lucide-react';
 import type {
   Consultancy,
@@ -151,6 +152,15 @@ export const ConsultancyPortal: React.FC<ConsultancyPortalProps> = ({
     adminFeedback: ''
   });
 
+  // Reusable confirmation modal state for robust non-blocking user prompts
+  const [confirmModal, setConfirmModal] = useState<{
+    title: string;
+    message: string;
+    confirmLabel?: string;
+    isDestructive?: boolean;
+    onConfirm: () => void;
+  } | null>(null);
+
   // Reload local state from service
   const reloadAll = () => {
     const targetCid = consultancy?.id || consultancyId;
@@ -258,9 +268,28 @@ export const ConsultancyPortal: React.FC<ConsultancyPortalProps> = ({
   const submittedStations = stations.filter((s) => s.status === 'submitted');
   const idleStations = stations.filter((s) => s.status === 'idle');
 
+  const getStationKioskUrl = (stationName?: string) => {
+    if (!consultancy) return `${window.location.origin}/?mode=terminal`;
+    const params = new URLSearchParams();
+    params.set('mode', 'terminal');
+    if (stationName) {
+      params.set('station', stationName);
+    }
+    params.set('cid', consultancy.id);
+    const branch = consultancy.branchCode || consultancy.accessCode;
+    if (branch) {
+      params.set('branch', branch);
+      params.set('access', branch);
+    }
+    if (consultancy.name) {
+      params.set('cname', consultancy.name);
+    }
+    return `${window.location.origin}/?${params.toString()}`;
+  };
+
   const copyLabPairingLink = () => {
     if (!consultancy) return;
-    const url = `${window.location.origin}/?mode=terminal&cid=${consultancy.id}`;
+    const url = getStationKioskUrl();
     navigator.clipboard.writeText(url);
     setCopiedLink(true);
     setTimeout(() => setCopiedLink(false), 2500);
@@ -268,7 +297,7 @@ export const ConsultancyPortal: React.FC<ConsultancyPortalProps> = ({
 
   const copyStationLink = (stationName: string) => {
     if (!consultancy) return;
-    const url = `${window.location.origin}/?mode=terminal&station=${encodeURIComponent(stationName)}&cid=${consultancy.id}`;
+    const url = getStationKioskUrl(stationName);
     navigator.clipboard.writeText(url);
     setCopiedStationName(stationName);
     setTimeout(() => setCopiedStationName(null), 2500);
@@ -372,25 +401,37 @@ export const ConsultancyPortal: React.FC<ConsultancyPortalProps> = ({
   const handleDeleteResult = (res: TestResult) => {
     const candidateName = res.candidateName || res.candidateId || 'Candidate';
     const testTitle = res.testTitle || res.testId;
-    if (window.confirm(`Are you sure you want to delete the test result for "${candidateName}" (${testTitle})? This action cannot be undone.`)) {
-      ConsultancyService.deleteTestResult(consultancyId, res.testId, res.candidateId, res.completedAt);
-      if (scorecardModalResult && scorecardModalResult.testId === res.testId && scorecardModalResult.candidateId === res.candidateId) {
-        setScorecardModalResult(null);
+    setConfirmModal({
+      title: 'Delete Test Result',
+      message: `Are you sure you want to delete the test result for "${candidateName}" (${testTitle})? This action cannot be undone.`,
+      confirmLabel: 'Delete Result',
+      isDestructive: true,
+      onConfirm: () => {
+        ConsultancyService.deleteTestResult(consultancyId, res.testId, res.candidateId, res.completedAt);
+        if (scorecardModalResult && scorecardModalResult.testId === res.testId && scorecardModalResult.candidateId === res.candidateId) {
+          setScorecardModalResult(null);
+        }
+        if (writingModalResult && writingModalResult.testId === res.testId && writingModalResult.candidateId === res.candidateId) {
+          setWritingModalResult(null);
+        }
+        reloadAll();
       }
-      if (writingModalResult && writingModalResult.testId === res.testId && writingModalResult.candidateId === res.candidateId) {
-        setWritingModalResult(null);
-      }
-      reloadAll();
-    }
+    });
   };
 
   const handleClearAllResults = () => {
-    if (window.confirm(`Are you sure you want to delete ALL ${testResults.length} test results? This will permanently delete candidate scores and mock test records for this consultancy.`)) {
-      ConsultancyService.clearAllResults(consultancyId);
-      setScorecardModalResult(null);
-      setWritingModalResult(null);
-      reloadAll();
-    }
+    setConfirmModal({
+      title: 'Clear All Test Results',
+      message: `Are you sure you want to delete ALL ${testResults.length} test results? This will permanently delete candidate scores and mock test records for this consultancy.`,
+      confirmLabel: 'Delete All Results',
+      isDestructive: true,
+      onConfirm: () => {
+        ConsultancyService.clearAllResults(consultancyId);
+        setScorecardModalResult(null);
+        setWritingModalResult(null);
+        reloadAll();
+      }
+    });
   };
 
   const handleLaunchTestToBranch = (testId: string) => {
@@ -1405,15 +1446,27 @@ export const ConsultancyPortal: React.FC<ConsultancyPortalProps> = ({
                             <button
                               onClick={() => {
                                 if (st.status === 'assigned') {
-                                  if (window.confirm(`Cancel test assignment for ${st.name}? The test will be removed from this terminal.`)) {
-                                    ConsultancyService.resetStation(consultancy.id, st.id);
-                                    reloadAll();
-                                  }
+                                  setConfirmModal({
+                                    title: 'Cancel Test Assignment',
+                                    message: `Cancel test assignment for ${st.name}? The test will be removed from this terminal.`,
+                                    confirmLabel: 'Cancel Assignment',
+                                    isDestructive: true,
+                                    onConfirm: () => {
+                                      ConsultancyService.resetStation(consultancy.id, st.id);
+                                      reloadAll();
+                                    }
+                                  });
                                 } else {
-                                  if (window.confirm(`End and submit test for ${st.name}?`)) {
-                                    ConsultancyService.forceSubmitStation(consultancy.id, st.id);
-                                    reloadAll();
-                                  }
+                                  setConfirmModal({
+                                    title: 'End and Submit Test',
+                                    message: `End and submit test for ${st.name}?`,
+                                    confirmLabel: 'End & Submit',
+                                    isDestructive: true,
+                                    onConfirm: () => {
+                                      ConsultancyService.forceSubmitStation(consultancy.id, st.id);
+                                      reloadAll();
+                                    }
+                                  });
                                 }
                               }}
                               className="px-2.5 py-1 bg-red-50 hover:bg-red-100 text-red-700 border border-red-200 rounded font-medium transition cursor-pointer"
@@ -1425,10 +1478,16 @@ export const ConsultancyPortal: React.FC<ConsultancyPortalProps> = ({
 
                           <button
                             onClick={() => {
-                              if (window.confirm(`Reset ${st.name} to Idle? This clears any active or assigned exam.`)) {
-                                ConsultancyService.resetStation(consultancy.id, st.id);
-                                reloadAll();
-                              }
+                              setConfirmModal({
+                                title: 'Reset Station to Idle',
+                                message: `Reset ${st.name} to Idle? This clears any active or assigned exam.`,
+                                confirmLabel: 'Reset Station',
+                                isDestructive: false,
+                                onConfirm: () => {
+                                  ConsultancyService.resetStation(consultancy.id, st.id);
+                                  reloadAll();
+                                }
+                              });
                             }}
                             className="p-1 hover:bg-slate-100 text-slate-400 hover:text-slate-700 rounded transition cursor-pointer"
                             title="Reset station to Idle (removes assigned test)"
@@ -1570,7 +1629,7 @@ export const ConsultancyPortal: React.FC<ConsultancyPortalProps> = ({
                     <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
                   </div>
                   <div className="font-mono text-xs text-slate-800 font-semibold select-all break-all bg-white px-3 py-1.5 rounded-lg border border-blue-200 inline-block">
-                    {window.location.origin}/?mode=terminal&amp;cid={consultancy.id}
+                    {getStationKioskUrl()}
                   </div>
                   <p className="text-[11px] text-slate-600">
                     💡 <strong>How it works:</strong> Open this single link on any student PC. It shows a 1-tap PC selector (PC-01, PC-02...) so the computer pairs immediately without typing passwords.
@@ -1729,7 +1788,7 @@ export const ConsultancyPortal: React.FC<ConsultancyPortalProps> = ({
                               </button>
                               <button
                                 onClick={() => {
-                                  const url = `${window.location.origin}/?mode=terminal&station=${encodeURIComponent(st.name)}&cid=${consultancy.id}`;
+                                  const url = getStationKioskUrl(st.name);
                                   window.open(url, '_blank');
                                 }}
                                 className="p-1.5 hover:bg-slate-100 text-slate-500 hover:text-blue-600 rounded-lg transition cursor-pointer border border-transparent hover:border-slate-200"
@@ -1739,10 +1798,16 @@ export const ConsultancyPortal: React.FC<ConsultancyPortalProps> = ({
                               </button>
                               <button
                                 onClick={() => {
-                                  if (window.confirm(`Remove ${st.name} from lab?`)) {
-                                    ConsultancyService.deleteStation(consultancy.id, st.id);
-                                    reloadAll();
-                                  }
+                                  setConfirmModal({
+                                    title: 'Remove Station',
+                                    message: `Remove ${st.name} from lab?`,
+                                    confirmLabel: 'Remove Station',
+                                    isDestructive: true,
+                                    onConfirm: () => {
+                                      ConsultancyService.deleteStation(consultancy.id, st.id);
+                                      reloadAll();
+                                    }
+                                  });
                                 }}
                                 className="p-1.5 hover:bg-red-50 text-slate-400 hover:text-red-600 rounded-lg transition cursor-pointer border border-transparent hover:border-red-200"
                                 title="Delete Station"
@@ -2357,9 +2422,7 @@ export const ConsultancyPortal: React.FC<ConsultancyPortalProps> = ({
               <div className="w-48 h-48 mx-auto p-2 bg-white rounded-xl border border-slate-200 shadow-xs flex items-center justify-center">
                 <img
                   src={`https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(
-                    `${window.location.origin}/?mode=terminal&station=${encodeURIComponent(
-                      selectedStationForQr.name
-                    )}&cid=${consultancy?.id}`
+                    getStationKioskUrl(selectedStationForQr.name)
                   )}`}
                   alt={`QR for ${selectedStationForQr.name}`}
                   className="w-full h-full object-contain"
@@ -2368,7 +2431,7 @@ export const ConsultancyPortal: React.FC<ConsultancyPortalProps> = ({
 
               <div className="space-y-1">
                 <div className="font-mono text-[11px] text-slate-800 font-bold select-all bg-slate-50 p-2 rounded-lg border border-slate-200 break-all">
-                  {window.location.origin}/?mode=terminal&amp;station={selectedStationForQr.name}&amp;cid={consultancy?.id}
+                  {getStationKioskUrl(selectedStationForQr.name)}
                 </div>
                 <p className="text-[11px] text-slate-500">
                   Scan with camera or open URL on {selectedStationForQr.name} to connect instantly.
@@ -2385,9 +2448,7 @@ export const ConsultancyPortal: React.FC<ConsultancyPortalProps> = ({
                 </button>
                 <button
                   onClick={() => {
-                    const url = `${window.location.origin}/?mode=terminal&station=${encodeURIComponent(
-                      selectedStationForQr.name
-                    )}&cid=${consultancy?.id}`;
+                    const url = getStationKioskUrl(selectedStationForQr.name);
                     window.open(url, '_blank');
                   }}
                   className="px-3 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-xl transition cursor-pointer border border-slate-300"
@@ -2435,9 +2496,7 @@ export const ConsultancyPortal: React.FC<ConsultancyPortalProps> = ({
             {/* Printable Cards Grid */}
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 max-h-[70vh] overflow-y-auto p-1">
               {stations.map((st) => {
-                const stationUrl = `${window.location.origin}/?mode=terminal&station=${encodeURIComponent(
-                  st.name
-                )}&cid=${consultancy?.id}`;
+                const stationUrl = getStationKioskUrl(st.name);
                 return (
                   <div
                     key={st.id}
@@ -3000,6 +3059,49 @@ export const ConsultancyPortal: React.FC<ConsultancyPortalProps> = ({
                   <span>Save & Publish Result to Candidate</span>
                 </button>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Reusable Action Confirmation Modal */}
+      {confirmModal && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center z-50 p-4 animate-in fade-in">
+          <div className="bg-white border border-slate-200 max-w-md w-full rounded-2xl p-6 shadow-2xl space-y-4">
+            <div className={`w-12 h-12 rounded-full flex items-center justify-center mx-auto ${
+              confirmModal.isDestructive ? 'bg-red-100 text-red-600' : 'bg-blue-100 text-blue-600'
+            }`}>
+              {confirmModal.isDestructive ? <AlertTriangle className="w-6 h-6" /> : <RotateCcw className="w-6 h-6" />}
+            </div>
+            <div className="text-center space-y-1.5">
+              <h3 className="font-bold text-lg text-slate-900">{confirmModal.title}</h3>
+              <p className="text-xs text-slate-600 leading-relaxed">
+                {confirmModal.message}
+              </p>
+            </div>
+            <div className="flex items-center gap-3 pt-2">
+              <button
+                type="button"
+                onClick={() => setConfirmModal(null)}
+                className="flex-1 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-xl transition cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  const action = confirmModal.onConfirm;
+                  setConfirmModal(null);
+                  action();
+                }}
+                className={`flex-1 py-2.5 text-white font-bold text-xs rounded-xl transition cursor-pointer shadow-sm ${
+                  confirmModal.isDestructive
+                    ? 'bg-red-600 hover:bg-red-700 shadow-red-600/20'
+                    : 'bg-blue-600 hover:bg-blue-700 shadow-blue-600/20'
+                }`}
+              >
+                {confirmModal.confirmLabel || 'Confirm'}
+              </button>
             </div>
           </div>
         </div>

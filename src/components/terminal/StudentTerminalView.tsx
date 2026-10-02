@@ -54,42 +54,102 @@ export const StudentTerminalView: React.FC<StudentTerminalViewProps> = ({
     return localStorage.getItem('ielts_candidate_name') || '';
   });
 
-  // Pre-load saved or URL parameters
-  const [branchCode, setBranchCode] = useState<string>(() => {
-    const urlParams = new URLSearchParams(window.location.search);
-    const fromUrl = urlParams.get('branch') || urlParams.get('access') || urlParams.get('code');
-    if (fromUrl) return fromUrl.toUpperCase();
+  // Resolve consultancy strictly prioritizing URL parameters (cid, branch, cname) or initialConsultancyId
+  const [consultancy, setConsultancy] = useState<Consultancy | undefined>(() => {
+    const urlParams = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : new URLSearchParams();
+    const explicitCid = urlParams.get('cid') || urlParams.get('consultancy');
+    const branchFromUrl = urlParams.get('branch') || urlParams.get('access') || urlParams.get('code');
+    const cnameFromUrl = urlParams.get('cname') || urlParams.get('name');
 
-    const saved = localStorage.getItem('ielts_terminal_branch');
-    if (saved) return saved;
-
-    if (initialConsultancyId) {
-      const c = ConsultancyService.getConsultancyById(initialConsultancyId);
-      if (c) return c.branchCode || c.accessCode;
+    // 1. Try finding by explicit CID in URL
+    if (explicitCid) {
+      const found = ConsultancyService.getConsultancyById(explicitCid);
+      if (found) {
+        if (found.branchCode || found.accessCode) {
+          localStorage.setItem('ielts_terminal_branch', found.branchCode || found.accessCode);
+        }
+        return found;
+      }
     }
-    return 'APEX-2026';
+
+    // 2. Try finding by branch code in URL
+    if (branchFromUrl) {
+      const found = ConsultancyService.getConsultancyByBranchCode(branchFromUrl);
+      if (found) {
+        localStorage.setItem('ielts_terminal_branch', found.branchCode || found.accessCode);
+        return found;
+      }
+    }
+
+    // 3. Auto-hydrate on student computer if cid/branch/cname was provided via link
+    if (explicitCid || branchFromUrl || cnameFromUrl) {
+      const autoBranch = (branchFromUrl || 'LAB01').trim().toUpperCase();
+      const autoId = explicitCid || (cnameFromUrl ? cnameFromUrl.toLowerCase().replace(/[^a-z0-9]/g, '-') : autoBranch.toLowerCase().replace(/[^a-z0-9]/g, '-'));
+      const autoC: Consultancy = {
+        id: autoId,
+        name: cnameFromUrl || (branchFromUrl ? `Consultancy (${branchFromUrl})` : 'Consultancy Testing Lab'),
+        branch: 'Lab Station',
+        adminEmail: '',
+        phone: '',
+        accessCode: autoBranch,
+        branchCode: autoBranch,
+        examPassword: '1234',
+        adminPassword: '1234',
+        status: 'active',
+        computerLimit: 50,
+        testCredits: 500,
+        creditsUsed: 0,
+        createdAt: new Date().toISOString(),
+        validUntil: new Date(Date.now() + 365 * 24 * 3600 * 1000).toISOString(),
+        assignedTestIds: []
+      };
+      // Save locally on student workstation without broadcasting to admin dashboard
+      ConsultancyService.saveConsultancy(autoC, false);
+      localStorage.setItem('ielts_terminal_branch', autoC.branchCode);
+      return autoC;
+    }
+
+    // 4. Try initialConsultancyId prop
+    if (initialConsultancyId) {
+      const found = ConsultancyService.getConsultancyById(initialConsultancyId);
+      if (found) return found;
+    }
+
+    // 5. Fall back to saved local branch
+    const saved = typeof window !== 'undefined' ? localStorage.getItem('ielts_terminal_branch') : null;
+    if (saved) {
+      const found = ConsultancyService.getConsultancyByBranchCode(saved);
+      if (found) return found;
+    }
+
+    // 6. Fallback to active consultancies
+    const all = ConsultancyService.getConsultancies();
+    return all[0];
+  });
+
+  const [branchCode, setBranchCode] = useState<string>(() => {
+    return consultancy?.branchCode || consultancy?.accessCode || 'APEX-2026';
   });
 
   const [pcNumber, setPcNumber] = useState<string>(() => {
-    const urlParams = new URLSearchParams(window.location.search);
+    const urlParams = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : new URLSearchParams();
     const fromUrl = urlParams.get('station') || urlParams.get('st') || urlParams.get('pc');
-    if (fromUrl) return fromUrl.toUpperCase();
-
-    return localStorage.getItem('ielts_terminal_pc') || initialStationName || 'PC-01';
+    if (fromUrl) {
+      const clean = fromUrl.trim().toUpperCase();
+      const formatted = clean.startsWith('PC-') ? clean : `PC-${clean.replace(/^PC/i, '')}`;
+      localStorage.setItem('ielts_terminal_pc', formatted);
+      return formatted;
+    }
+    if (initialStationName) return initialStationName;
+    return (typeof window !== 'undefined' && localStorage.getItem('ielts_terminal_pc')) || 'PC-01';
   });
 
   const allConsultancies = ConsultancyService.getConsultancies();
 
   const [loginError, setLoginError] = useState<string | null>(null);
-  const [consultancy, setConsultancy] = useState<Consultancy | undefined>(() => {
-    let found = ConsultancyService.getConsultancyByBranchCode(branchCode);
-    if (!found) found = ConsultancyService.getConsultancyById(branchCode.toLowerCase());
-    if (!found && initialConsultancyId) found = ConsultancyService.getConsultancyById(initialConsultancyId);
-    return found || allConsultancies[0];
-  });
 
   const [selectedConsultancyId, setSelectedConsultancyId] = useState<string>(() => {
-    return consultancy?.id || initialConsultancyId || allConsultancies[0]?.id || 'apex-global';
+    return consultancy?.id || initialConsultancyId || 'apex-global';
   });
 
   const [currentStation, setCurrentStation] = useState<LabStation | undefined>(undefined);
@@ -125,9 +185,10 @@ export const StudentTerminalView: React.FC<StudentTerminalViewProps> = ({
     isFullMock?: boolean;
     consultancyId?: string;
   } | null>(() => {
-    const c = ConsultancyService.getConsultancyByBranchCode(branchCode);
-    const stationTest = ConsultancyService.getStationAssignedTest(c?.id, pcNumber);
-    const branchActive = ConsultancyService.getActiveLaunchedTest(c?.id);
+    const activeCid = consultancy?.id;
+    if (!activeCid) return null;
+    const stationTest = ConsultancyService.getStationAssignedTest(activeCid, pcNumber);
+    const branchActive = ConsultancyService.getActiveLaunchedTest(activeCid);
 
     if (stationTest && branchActive) {
       const sTime = new Date(stationTest.launchedAt || 0).getTime();
@@ -164,10 +225,33 @@ export const StudentTerminalView: React.FC<StudentTerminalViewProps> = ({
     }
   };
 
+  // Keep consultancy synced with initialConsultancyId prop
+  useEffect(() => {
+    if (initialConsultancyId && (!consultancy || consultancy.id !== initialConsultancyId)) {
+      const c = ConsultancyService.getConsultancyById(initialConsultancyId);
+      if (c) {
+        setConsultancy(c);
+        setSelectedConsultancyId(c.id);
+        const b = c.branchCode || c.accessCode;
+        if (b) {
+          setBranchCode(b);
+          localStorage.setItem('ielts_terminal_branch', b);
+        }
+      }
+    }
+  }, [initialConsultancyId]);
+
   // Sync consultancy when branchCode changes
   useEffect(() => {
-    const found = ConsultancyService.getConsultancyByBranchCode(branchCode);
-    setConsultancy(found);
+    let found = consultancy;
+    if (!found || (found.branchCode !== branchCode && found.accessCode !== branchCode)) {
+      found = ConsultancyService.getConsultancyByBranchCode(branchCode);
+      if (!found) found = ConsultancyService.getConsultancyById(branchCode.toLowerCase());
+      if (found) {
+        setConsultancy(found);
+        setSelectedConsultancyId(found.id);
+      }
+    }
     if (found) {
       const stationTest = ConsultancyService.getStationAssignedTest(found.id, pcNumber);
       const branchActive = ConsultancyService.getActiveLaunchedTest(found.id);
@@ -183,21 +267,22 @@ export const StudentTerminalView: React.FC<StudentTerminalViewProps> = ({
       setActiveLaunchedTest(resolved);
 
       if (pcNumber) {
+        ConsultancyService.addStation(found.id, pcNumber);
         const stations = ConsultancyService.getStations(found.id);
         const normPc = ConsultancyService.normalizeStationName(pcNumber);
         const st = stations.find((s) => ConsultancyService.normalizeStationName(s.name) === normPc);
         setCurrentStation(st);
       }
     }
-  }, [branchCode, pcNumber, tests]);
+  }, [branchCode, pcNumber, tests, initialConsultancyId]);
 
   // Subscribe to live branch launched test & teacher commands & station assignments
   useEffect(() => {
     const syncActiveTest = () => {
-      // 1. Station-specific test assigned by teacher
-      const stationTest = ConsultancyService.getStationAssignedTest(consultancy?.id, pcNumber);
-      // 2. Branch-wide launched test
-      const branchActive = ConsultancyService.getActiveLaunchedTest(consultancy?.id);
+      const activeCid = consultancy?.id;
+      if (!activeCid) return;
+      const stationTest = ConsultancyService.getStationAssignedTest(activeCid, pcNumber);
+      const branchActive = ConsultancyService.getActiveLaunchedTest(activeCid);
 
       let resolved: {
         testId: string;
@@ -225,13 +310,6 @@ export const StudentTerminalView: React.FC<StudentTerminalViewProps> = ({
       if (resolved?.candidate?.name && !candidateNameInput.trim()) {
         setCandidateNameInput(resolved.candidate.name);
       }
-      if (resolved?.consultancyId && (!consultancy || consultancy.id !== resolved.consultancyId)) {
-        const targetC = ConsultancyService.getConsultancyById(resolved.consultancyId);
-        if (targetC) {
-          setConsultancy(targetC);
-          if (targetC.branchCode) setBranchCode(targetC.branchCode);
-        }
-      }
     };
 
     // Check immediately on mount
@@ -240,6 +318,10 @@ export const StudentTerminalView: React.FC<StudentTerminalViewProps> = ({
     const unsubscribe = ConsultancyService.subscribe((event) => {
       if (event.type === 'BRANCH_TEST_LAUNCHED') {
         const payload = event.payload;
+        // Ignore test events launched for other consultancies
+        if (payload?.consultancyId && consultancy?.id && payload.consultancyId !== consultancy.id) {
+          return;
+        }
         if (payload?.testId) {
           const cid = payload.consultancyId || consultancy?.id;
           const stoppedAt = cid ? ConsultancyService.getStoppedTimestamp(cid) : 0;
@@ -255,13 +337,6 @@ export const StudentTerminalView: React.FC<StudentTerminalViewProps> = ({
             isFullMock: payload.isFullMock,
             consultancyId: payload.consultancyId
           });
-          if (payload.consultancyId) {
-            const targetC = ConsultancyService.getConsultancyById(payload.consultancyId);
-            if (targetC) {
-              setConsultancy(targetC);
-              if (targetC.branchCode) setBranchCode(targetC.branchCode);
-            }
-          }
         } else {
           // Admin ENDED the test!
           const cid = payload?.consultancyId || consultancy?.id;

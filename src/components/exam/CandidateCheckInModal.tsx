@@ -52,16 +52,13 @@ export const CandidateCheckInModal: React.FC<CandidateCheckInModalProps> = ({
   });
 
   const [selectedCid, setSelectedCid] = useState<string>(() => {
-    if (initialConsultancyId && consultancies.some((c) => c.id === initialConsultancyId)) {
+    if (initialConsultancyId) {
       return initialConsultancyId;
     }
     const saved = localStorage.getItem('ielts_candidate_consultancy_id');
     if (saved && consultancies.some((c) => c.id === saved)) {
       return saved;
     }
-    // Prefer KIEC or Apex if available, otherwise first
-    const kiec = consultancies.find((c) => c.id === 'kiec-lalitpur');
-    if (kiec) return kiec.id;
     return consultancies[0]?.id || 'apex-global';
   });
 

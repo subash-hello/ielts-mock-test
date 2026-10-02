@@ -62,6 +62,8 @@ export const SuperAdminPortal: React.FC<SuperAdminPortalProps> = ({
     status: 'active'
   });
 
+  const [deletingConsultancy, setDeletingConsultancy] = useState<{ id: string; name: string } | null>(null);
+
   const reloadData = () => {
     setConsultancies(ConsultancyService.getConsultancies());
   };
@@ -148,10 +150,7 @@ export const SuperAdminPortal: React.FC<SuperAdminPortalProps> = ({
   };
 
   const handleDelete = (id: string, name: string) => {
-    if (window.confirm(`Are you sure you want to deactivate and remove ${name}?`)) {
-      ConsultancyService.deleteConsultancy(id);
-      reloadData();
-    }
+    setDeletingConsultancy({ id, name });
   };
 
   const filtered = consultancies.filter(
@@ -576,6 +575,44 @@ export const SuperAdminPortal: React.FC<SuperAdminPortalProps> = ({
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {deletingConsultancy && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center z-50 p-4 animate-in fade-in">
+          <div className="bg-white border border-slate-200 max-w-md w-full rounded-2xl p-6 shadow-2xl space-y-4">
+            <div className="w-12 h-12 rounded-full bg-red-100 text-red-600 flex items-center justify-center mx-auto">
+              <Trash2 className="w-6 h-6" />
+            </div>
+            <div className="text-center space-y-1.5">
+              <h3 className="font-bold text-lg text-slate-900">Delete Consultancy</h3>
+              <p className="text-xs text-slate-600 leading-relaxed">
+                Are you sure you want to permanently delete <strong className="text-slate-900">{deletingConsultancy.name}</strong>?
+                This will remove all workstation connections, candidates, and test history for this branch.
+              </p>
+            </div>
+            <div className="flex items-center gap-3 pt-2">
+              <button
+                type="button"
+                onClick={() => setDeletingConsultancy(null)}
+                className="flex-1 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-xl transition cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  ConsultancyService.deleteConsultancy(deletingConsultancy.id);
+                  setDeletingConsultancy(null);
+                  reloadData();
+                }}
+                className="flex-1 py-2.5 bg-red-600 hover:bg-red-700 text-white font-bold text-xs rounded-xl transition cursor-pointer shadow-sm shadow-red-600/20"
+              >
+                Yes, Delete
+              </button>
+            </div>
           </div>
         </div>
       )}
