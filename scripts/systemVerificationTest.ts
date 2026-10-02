@@ -486,6 +486,23 @@ suite('Suite 3: Consultancy Test Launch & Terminal Waiting Logic', () => {
     assertEqual(st01?.status, 'idle', 'PC-01 station status returned to idle');
     assertEqual(st01?.assignedTestId, undefined, 'PC-01 assignedTestId cleared');
 
+    // Tombstone must be set
+    const stoppedTime = ConsultancyService.getStoppedTimestamp(branchId);
+    assert(stoppedTime > 0, 'Stopped timestamp tombstone recorded');
+
+    // Simulate stale presence or storage resurrection attempt with old launch timestamp
+    const staleOlderLaunch = {
+      consultancyId: branchId,
+      testId: 'cambridge-16-test-1-reading',
+      title: 'Cambridge 16 Test 1',
+      launchedAt: new Date(stoppedTime - 10000).toISOString()
+    };
+    localStorage.setItem(`ielts_launched_test_${branchId}`, JSON.stringify(staleOlderLaunch));
+
+    // getActiveLaunchedTest must detect that the tombstone is newer and ignore/purge the resurrected item
+    const resurrectedCheck = ConsultancyService.getActiveLaunchedTest(branchId);
+    assertEqual(resurrectedCheck, null, 'Stale test resurrection blocked by stopped tombstone');
+
     // Even if another consultancy has an active test, branchId must strictly stay null
     ConsultancyService.launchTestToBranch('kangaroo', 'cambridge-18-test-1-reading', 'Kangaroo Reading', false);
     assertEqual(ConsultancyService.getActiveLaunchedTest(branchId), null, 'branchId is still null despite kangaroo test');

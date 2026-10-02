@@ -241,6 +241,13 @@ export const StudentTerminalView: React.FC<StudentTerminalViewProps> = ({
       if (event.type === 'BRANCH_TEST_LAUNCHED') {
         const payload = event.payload;
         if (payload?.testId) {
+          const cid = payload.consultancyId || consultancy?.id;
+          const stoppedAt = cid ? ConsultancyService.getStoppedTimestamp(cid) : 0;
+          const launchedAt = payload.launchedAt ? new Date(payload.launchedAt).getTime() : 0;
+          if (stoppedAt && stoppedAt >= launchedAt) {
+            setActiveLaunchedTest(null);
+            return;
+          }
           setActiveLaunchedTest({
             testId: payload.testId,
             title: payload.title || payload.testId,
@@ -257,16 +264,39 @@ export const StudentTerminalView: React.FC<StudentTerminalViewProps> = ({
           }
         } else {
           // Admin ENDED the test!
-          if (!payload?.consultancyId || !consultancy || payload.consultancyId === consultancy.id) {
-            setActiveLaunchedTest(null);
-            setCurrentStation((prev) =>
-              prev ? { ...prev, status: 'idle', assignedTestId: undefined, testTitle: undefined } : prev
-            );
+          const cid = payload?.consultancyId || consultancy?.id;
+          if (cid) {
+            try {
+              localStorage.setItem(`ielts_stopped_test_${cid}`, String(payload?.stoppedAt || Date.now()));
+              localStorage.removeItem(`ielts_launched_test_${cid}`);
+            } catch {}
           }
+          localStorage.removeItem('ielts_latest_launched_test');
+          setActiveLaunchedTest(null);
+          setCurrentStation((prev) =>
+            prev ? { ...prev, status: 'idle', assignedTestId: undefined, testTitle: undefined } : prev
+          );
+          syncActiveTest();
+        }
+      } else if (event.type === 'ADMIN_FORCE_RESET_TEST') {
+        const payload = event.payload;
+        const cid = payload?.consultancyId || consultancy?.id;
+        if (!payload?.consultancyId || !consultancy || payload.consultancyId === consultancy.id) {
+          if (cid) {
+            try {
+              localStorage.setItem(`ielts_stopped_test_${cid}`, String(payload?.stoppedAt || Date.now()));
+              localStorage.removeItem(`ielts_launched_test_${cid}`);
+            } catch {}
+          }
+          localStorage.removeItem('ielts_latest_launched_test');
+          setActiveLaunchedTest(null);
+          setCurrentStation((prev) =>
+            prev ? { ...prev, status: 'idle', assignedTestId: undefined, testTitle: undefined } : prev
+          );
           syncActiveTest();
         }
       } else if (event.type === 'STATION_COMMAND') {
-        const { stationId, stationName, command, consultancyId: cmdCid } = event.payload || {};
+        const { stationId, stationName, command, consultancyId: cmdCid, stoppedAt } = event.payload || {};
         const cleanPc = ConsultancyService.normalizeStationName(pcNumber);
         const isTargetStation =
           !stationId ||
@@ -276,6 +306,14 @@ export const StudentTerminalView: React.FC<StudentTerminalViewProps> = ({
 
         if (isTargetStation && isTargetBranch) {
           if (command === 'RESET_STATION' || command === 'END_TEST') {
+            const cid = cmdCid || consultancy?.id;
+            if (cid) {
+              try {
+                localStorage.setItem(`ielts_stopped_test_${cid}`, String(stoppedAt || Date.now()));
+                localStorage.removeItem(`ielts_launched_test_${cid}`);
+              } catch {}
+            }
+            localStorage.removeItem('ielts_latest_launched_test');
             setActiveLaunchedTest(null);
             setCurrentStation((prev) =>
               prev ? { ...prev, status: 'idle', assignedTestId: undefined, testTitle: undefined } : prev

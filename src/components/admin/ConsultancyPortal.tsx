@@ -153,26 +153,28 @@ export const ConsultancyPortal: React.FC<ConsultancyPortalProps> = ({
 
   // Reload local state from service
   const reloadAll = () => {
-    setConsultancy(ConsultancyService.getConsultancyById(consultancyId));
-    setStations(ConsultancyService.getStations(consultancyId));
-    setStudents(ConsultancyService.getStudents(consultancyId));
-    setAiReports(ConsultancyService.getReports(consultancyId));
-    setTestResults(ConsultancyService.getResults(consultancyId));
-    setAssignedTestIds(ConsultancyService.getAssignedTestIds(consultancyId));
-    setActiveLaunchedTest(ConsultancyService.getActiveLaunchedTest(consultancyId));
+    const targetCid = consultancy?.id || consultancyId;
+    setConsultancy(ConsultancyService.getConsultancyById(targetCid));
+    setStations(ConsultancyService.getStations(targetCid));
+    setStudents(ConsultancyService.getStudents(targetCid));
+    setAiReports(ConsultancyService.getReports(targetCid));
+    setTestResults(ConsultancyService.getResults(targetCid));
+    setAssignedTestIds(ConsultancyService.getAssignedTestIds(targetCid));
+    setActiveLaunchedTest(ConsultancyService.getActiveLaunchedTest(targetCid));
   };
 
   // Real-time telemetry subscription
   useEffect(() => {
     reloadAll();
     const unsubscribe = ConsultancyService.subscribe((event) => {
+      const targetCid = consultancy?.id || consultancyId;
       if (
         event.type === 'STATION_UPDATED' ||
         event.type === 'STATION_HEARTBEAT' ||
         event.type === 'STATION_ADDED' ||
         event.type === 'STATION_DELETED'
       ) {
-        setStations(ConsultancyService.getStations(consultancyId));
+        setStations(ConsultancyService.getStations(targetCid));
       } else if (
         event.type === 'REPORT_ADDED' ||
         event.type === 'RESULT_ADDED' ||
@@ -184,38 +186,54 @@ export const ConsultancyPortal: React.FC<ConsultancyPortalProps> = ({
         event.type === 'ALL_RESULTS_CLEARED' ||
         event.type === 'STUDENT_UPDATED'
       ) {
-        setAiReports(ConsultancyService.getReports(consultancyId));
-        setStudents(ConsultancyService.getStudents(consultancyId));
-        setTestResults(ConsultancyService.getResults(consultancyId));
+        setAiReports(ConsultancyService.getReports(targetCid));
+        setStudents(ConsultancyService.getStudents(targetCid));
+        setTestResults(ConsultancyService.getResults(targetCid));
       } else if (event.type === 'BRANCH_TEST_LAUNCHED') {
-        if (event.payload?.consultancyId === consultancyId) {
+        const matchesBranch =
+          !event.payload?.consultancyId ||
+          event.payload.consultancyId === targetCid ||
+          event.payload.consultancyId === consultancyId ||
+          (consultancy?.branchCode && event.payload.consultancyId === consultancy.branchCode);
+
+        if (matchesBranch) {
           if (event.payload.testId) {
-            setActiveLaunchedTest({
-              testId: event.payload.testId,
-              title: event.payload.title || event.payload.testId,
-              launchedAt: event.payload.launchedAt || new Date().toISOString(),
-              isFullMock: event.payload.isFullMock
-            });
+            const stoppedAt = ConsultancyService.getStoppedTimestamp(targetCid);
+            const launchedAt = event.payload.launchedAt ? new Date(event.payload.launchedAt).getTime() : 0;
+            if (stoppedAt && stoppedAt >= launchedAt) {
+              setActiveLaunchedTest(null);
+            } else {
+              setActiveLaunchedTest({
+                testId: event.payload.testId,
+                title: event.payload.title || event.payload.testId,
+                launchedAt: event.payload.launchedAt || new Date().toISOString(),
+                isFullMock: event.payload.isFullMock
+              });
+            }
           } else {
             setActiveLaunchedTest(null);
           }
         }
+      } else if (event.type === 'ADMIN_FORCE_RESET_TEST') {
+        setActiveLaunchedTest(null);
+        setStations(ConsultancyService.getStations(targetCid));
       }
     });
 
     const interval = setInterval(() => {
-      setStations(ConsultancyService.getStations(consultancyId));
-      setAiReports(ConsultancyService.getReports(consultancyId));
-      setStudents(ConsultancyService.getStudents(consultancyId));
-      setTestResults(ConsultancyService.getResults(consultancyId));
-      setActiveLaunchedTest(ConsultancyService.getActiveLaunchedTest(consultancyId));
+      const targetCid = consultancy?.id || consultancyId;
+      setStations(ConsultancyService.getStations(targetCid));
+      setAiReports(ConsultancyService.getReports(targetCid));
+      setStudents(ConsultancyService.getStudents(targetCid));
+      setTestResults(ConsultancyService.getResults(targetCid));
+      setActiveLaunchedTest(ConsultancyService.getActiveLaunchedTest(targetCid));
     }, 3000);
 
     return () => {
       unsubscribe();
       clearInterval(interval);
     };
-  }, [consultancyId]);
+  }, [consultancyId, consultancy?.id, consultancy?.branchCode]);
 
   if (!consultancy) {
     return (
@@ -391,12 +409,21 @@ export const ConsultancyPortal: React.FC<ConsultancyPortalProps> = ({
     reloadAll();
   };
 
+  const [sessionEndNotice, setSessionEndNotice] = useState<string | null>(null);
+
   const handleStopBranchTest = () => {
-    if (window.confirm('Are you sure you want to end this exam session? The test will immediately be removed from all student terminals and candidate portals.')) {
-      ConsultancyService.launchTestToBranch(consultancyId, null);
-      setActiveLaunchedTest(null);
-      reloadAll();
+    const targetCid = consultancy?.id || consultancyId;
+    ConsultancyService.launchTestToBranch(targetCid, null);
+    if (consultancy?.branchCode && consultancy.branchCode !== targetCid) {
+      ConsultancyService.launchTestToBranch(consultancy.branchCode, null);
     }
+    setActiveLaunchedTest(null);
+    setStations(ConsultancyService.getStations(targetCid));
+    reloadAll();
+    setSessionEndNotice('Exam session ended successfully. Test removed from all student terminals.');
+    setTimeout(() => {
+      setSessionEndNotice(null);
+    }, 4500);
   };
 
   const handleOpenWritingEvaluation = (result: TestResult) => {
@@ -661,6 +688,13 @@ export const ConsultancyPortal: React.FC<ConsultancyPortalProps> = ({
 
       {/* 3. Tab Contents */}
       <main className="flex-1 p-6 md:p-8 max-w-7xl w-full mx-auto space-y-6">
+        {sessionEndNotice && (
+          <div className="flex items-center gap-2.5 p-3.5 bg-emerald-50 border border-emerald-300 rounded-xl text-xs font-bold text-emerald-900 shadow-xs animate-in fade-in">
+            <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+            <span>{sessionEndNotice}</span>
+          </div>
+        )}
+
         {/* ================= BRANCH EXAM LAUNCH CONTROL (BROADCAST TO ALL STUDENT TERMINALS) ================= */}
         <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-xs">
           {activeLaunchedTest ? (
@@ -690,8 +724,10 @@ export const ConsultancyPortal: React.FC<ConsultancyPortalProps> = ({
 
               <div className="flex items-center gap-2 shrink-0">
                 <button
+                  type="button"
                   onClick={handleStopBranchTest}
-                  className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-xl text-xs font-bold transition shadow-xs cursor-pointer flex items-center gap-1.5"
+                  className="px-4 py-2 bg-red-600 hover:bg-red-700 active:bg-red-800 text-white rounded-xl text-xs font-bold transition shadow-xs hover:shadow cursor-pointer flex items-center gap-1.5 select-none"
+                  title="Immediately stop this exam session on all student workstations"
                 >
                   <X className="w-3.5 h-3.5" />
                   <span>End / Stop Session</span>

@@ -171,6 +171,13 @@ export const LandingPage: React.FC<LandingPageProps> = ({
       if (event.type === 'BRANCH_TEST_LAUNCHED') {
         const payload = event.payload;
         if (payload?.testId) {
+          const cid = payload.consultancyId || candidateSession?.consultancyId;
+          const stoppedAt = cid ? ConsultancyService.getStoppedTimestamp(cid) : 0;
+          const launchedAt = payload.launchedAt ? new Date(payload.launchedAt).getTime() : 0;
+          if (stoppedAt && stoppedAt >= launchedAt) {
+            setActiveLaunchedTest(null);
+            return;
+          }
           const launched = {
             testId: payload.testId,
             title: payload.title || payload.testId,
@@ -194,15 +201,45 @@ export const LandingPage: React.FC<LandingPageProps> = ({
             }
           }
         } else {
+          const cid = payload?.consultancyId || candidateSession?.consultancyId;
+          if (cid) {
+            try {
+              localStorage.setItem(`ielts_stopped_test_${cid}`, String(payload?.stoppedAt || Date.now()));
+              localStorage.removeItem(`ielts_launched_test_${cid}`);
+            } catch {}
+          }
+          localStorage.removeItem('ielts_latest_launched_test');
           setActiveLaunchedTest(null);
           syncTest();
         }
+      } else if (event.type === 'ADMIN_FORCE_RESET_TEST') {
+        const cid = event.payload?.consultancyId || candidateSession?.consultancyId;
+        if (cid) {
+          try {
+            localStorage.setItem(`ielts_stopped_test_${cid}`, String(event.payload?.stoppedAt || Date.now()));
+            localStorage.removeItem(`ielts_launched_test_${cid}`);
+          } catch {}
+        }
+        localStorage.removeItem('ielts_latest_launched_test');
+        setActiveLaunchedTest(null);
+        syncTest();
       } else if (
         event.type === 'STATION_COMMAND' ||
         event.type === 'STATION_UPDATED' ||
         event.type === 'STORAGE_SYNC' ||
         event.type === 'WINDOW_FOCUSED'
       ) {
+        if (event.type === 'STATION_COMMAND' && (event.payload?.command === 'RESET_STATION' || event.payload?.command === 'END_TEST')) {
+          const cid = event.payload?.consultancyId || candidateSession?.consultancyId;
+          if (cid) {
+            try {
+              localStorage.setItem(`ielts_stopped_test_${cid}`, String(event.payload?.stoppedAt || Date.now()));
+              localStorage.removeItem(`ielts_launched_test_${cid}`);
+            } catch {}
+          }
+          localStorage.removeItem('ielts_latest_launched_test');
+          setActiveLaunchedTest(null);
+        }
         syncTest();
       }
     });
