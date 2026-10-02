@@ -26,7 +26,9 @@ import {
   Eye,
   Library,
   Send,
-  PenTool
+  PenTool,
+  QrCode,
+  Printer
 } from 'lucide-react';
 import type {
   Consultancy,
@@ -77,6 +79,9 @@ export const ConsultancyPortal: React.FC<ConsultancyPortalProps> = ({
   const [resultModuleFilter, setResultModuleFilter] = useState<'all' | 'reading' | 'listening' | 'writing'>('all');
   const [resultBandFilter, setResultBandFilter] = useState<'all' | '7.5' | '6.5' | 'below'>('all');
   const [scorecardModalResult, setScorecardModalResult] = useState<TestResult | null>(null);
+  const [copiedStationName, setCopiedStationName] = useState<string | null>(null);
+  const [selectedStationForQr, setSelectedStationForQr] = useState<LabStation | null>(null);
+  const [showPrintDeskCardsModal, setShowPrintDeskCardsModal] = useState(false);
 
   // Modals
   const [showAssignModal, setShowAssignModal] = useState(false);
@@ -236,10 +241,31 @@ export const ConsultancyPortal: React.FC<ConsultancyPortalProps> = ({
   const idleStations = stations.filter((s) => s.status === 'idle');
 
   const copyLabPairingLink = () => {
-    const url = `${window.location.origin}/?mode=terminal&consultancy=${consultancy.id}`;
+    if (!consultancy) return;
+    const url = `${window.location.origin}/?mode=terminal&cid=${consultancy.id}`;
     navigator.clipboard.writeText(url);
     setCopiedLink(true);
     setTimeout(() => setCopiedLink(false), 2500);
+  };
+
+  const copyStationLink = (stationName: string) => {
+    if (!consultancy) return;
+    const url = `${window.location.origin}/?mode=terminal&station=${encodeURIComponent(stationName)}&cid=${consultancy.id}`;
+    navigator.clipboard.writeText(url);
+    setCopiedStationName(stationName);
+    setTimeout(() => setCopiedStationName(null), 2500);
+  };
+
+  const handleQuickAddBatch = (count: number) => {
+    if (!consultancy) return;
+    const remaining = consultancy.computerLimit - stations.length;
+    if (remaining <= 0) {
+      alert(`License station limit reached (${consultancy.computerLimit} PCs max). Contact support to upgrade your lab capacity.`);
+      return;
+    }
+    const toAdd = Math.min(count, remaining);
+    ConsultancyService.addStationsBatch(consultancy.id, toAdd);
+    reloadAll();
   };
 
   const handleOpenAssignModal = (station: LabStation | null) => {
@@ -1437,77 +1463,139 @@ export const ConsultancyPortal: React.FC<ConsultancyPortalProps> = ({
         {/* ================= TAB 2: CONNECT MULTIPLE COMPUTERS ================= */}
         {activeTab === 'terminals' && (
           <div className="space-y-6">
-            {/* Quick Connect Guide Banner */}
-            <div className="bg-white border border-slate-200 p-6 rounded-xl space-y-4 shadow-xs">
-              <div className="flex items-start justify-between">
+            {/* Quick Connect & Universal Setup Card */}
+            <div className="bg-white border border-slate-200 p-6 rounded-2xl space-y-5 shadow-xs">
+              <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div>
-                  <h3 className="font-bold text-base text-slate-900 flex items-center gap-2">
-                    <Laptop className="w-5 h-5 text-blue-600" />
-                    <span>How to Connect Multiple Computers for Students</span>
+                  <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-blue-50 text-blue-700 text-xs font-bold mb-1">
+                    <Laptop className="w-3.5 h-3.5" />
+                    <span>Quick Lab Setup</span>
+                  </div>
+                  <h3 className="font-extrabold text-lg text-slate-900 tracking-tight">
+                    Connect Student Computers to Your Center
                   </h3>
-                  <p className="text-xs text-slate-600 mt-1 max-w-2xl leading-relaxed">
-                    You can link all 10 to 50 computers in your consultancy lab. Once a computer connects, it pairs automatically with this dashboard.
+                  <p className="text-xs text-slate-600 mt-0.5 max-w-2xl leading-relaxed">
+                    Set up your physical lab in minutes. You can use the Universal Link on all computers, or copy direct links for specific stations (PC-01, PC-02...).
+                  </p>
+                </div>
+
+                <div className="flex flex-wrap items-center gap-2">
+                  <button
+                    onClick={() => setShowPrintDeskCardsModal(true)}
+                    className="flex items-center gap-1.5 bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold text-xs px-3.5 py-2 rounded-xl transition cursor-pointer shadow-xs border border-slate-300"
+                  >
+                    <Printer className="w-3.5 h-3.5 text-blue-600" />
+                    <span>Print Desk QR Cards</span>
+                  </button>
+                  <button
+                    onClick={() => handleQuickAddBatch(5)}
+                    className="flex items-center gap-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold text-xs px-3.5 py-2 rounded-xl transition cursor-pointer shadow-xs border border-indigo-200"
+                    title="Automatically create the next 5 PCs (e.g. PC-09 to PC-13)"
+                  >
+                    <Plus className="w-3.5 h-3.5" />
+                    <span>+ Quick Add 5 PCs</span>
+                  </button>
+                  <button
+                    onClick={() => setShowAddStationModal(true)}
+                    className="flex items-center gap-1.5 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs px-3.5 py-2 rounded-xl transition cursor-pointer shadow-xs"
+                  >
+                    <Plus className="w-4 h-4" />
+                    <span>Add Single PC</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Universal Lab Pairing URL Banner */}
+              <div className="bg-gradient-to-r from-blue-50/80 via-indigo-50/50 to-slate-50 border border-blue-200 p-4 rounded-xl flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3">
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2">
+                    <span className="text-[11px] font-bold text-blue-800 uppercase tracking-wider">
+                      Universal Lab Setup Link (Works on ALL computers)
+                    </span>
+                    <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                  </div>
+                  <div className="font-mono text-xs text-slate-800 font-semibold select-all break-all bg-white px-3 py-1.5 rounded-lg border border-blue-200 inline-block">
+                    {window.location.origin}/?mode=terminal&amp;cid={consultancy.id}
+                  </div>
+                  <p className="text-[11px] text-slate-600">
+                    💡 <strong>How it works:</strong> Open this single link on any student PC. It shows a 1-tap PC selector (PC-01, PC-02...) so the computer pairs immediately without typing passwords.
                   </p>
                 </div>
 
                 <button
-                  onClick={() => setShowAddStationModal(true)}
-                  className="flex items-center gap-1.5 bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs px-4 py-2 rounded-lg transition cursor-pointer shadow-xs"
+                  onClick={copyLabPairingLink}
+                  className={`shrink-0 px-4 py-2.5 rounded-xl font-bold text-xs transition cursor-pointer shadow-xs flex items-center justify-center gap-2 ${
+                    copiedLink
+                      ? 'bg-emerald-600 text-white'
+                      : 'bg-blue-600 hover:bg-blue-700 text-white'
+                  }`}
                 >
-                  <Plus className="w-4 h-4" />
-                  <span>Add New Station</span>
+                  {copiedLink ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
+                  <span>{copiedLink ? 'Copied Universal URL!' : 'Copy Universal Link'}</span>
                 </button>
               </div>
 
-              {/* Step by Step */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-2">
-                <div className="bg-slate-50 p-4 rounded-lg border border-slate-200 space-y-2 text-xs">
+              {/* 3 Simple Setup Methods */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3 pt-1 text-xs">
+                <div className="bg-slate-50 p-3.5 rounded-xl border border-slate-200 space-y-1.5">
                   <div className="w-6 h-6 rounded-full bg-blue-600 text-white font-bold flex items-center justify-center text-xs">
                     1
                   </div>
-                  <h4 className="font-bold text-slate-900">Open Terminal Link on Student PC</h4>
-                  <p className="text-slate-600 text-xs leading-relaxed">
-                    Open the browser on any computer in your lab and paste your custom pairing link.
+                  <h4 className="font-bold text-slate-900">Direct Station Links</h4>
+                  <p className="text-slate-600 text-[11px] leading-relaxed">
+                    Click <strong>"Copy Link"</strong> on any PC row below to get its dedicated URL (e.g. PC-01). Set it as the browser homepage or bookmark on that PC.
                   </p>
-                  <button
-                    onClick={copyLabPairingLink}
-                    className="text-blue-600 hover:underline text-xs font-semibold block pt-1 cursor-pointer"
-                  >
-                    Copy Lab Station Link
-                  </button>
                 </div>
 
-                <div className="bg-slate-50 p-4 rounded-lg border border-slate-200 space-y-2 text-xs">
-                  <div className="w-6 h-6 rounded-full bg-slate-900 text-white font-bold flex items-center justify-center text-xs">
+                <div className="bg-slate-50 p-3.5 rounded-xl border border-slate-200 space-y-1.5">
+                  <div className="w-6 h-6 rounded-full bg-indigo-600 text-white font-bold flex items-center justify-center text-xs">
                     2
                   </div>
-                  <h4 className="font-bold text-slate-900">Enter PC Number, Branch Code & Password</h4>
-                  <p className="text-slate-600 text-xs leading-relaxed">
-                    No student name needed! Students simply enter Branch Code: <strong className="text-blue-700 font-mono">{consultancy.branchCode || consultancy.accessCode}</strong>, PC Number, and Password: <strong className="text-blue-700 font-mono">{consultancy.examPassword || '1234'}</strong>.
+                  <h4 className="font-bold text-slate-900">Universal Link (1-Tap PC Select)</h4>
+                  <p className="text-slate-600 text-[11px] leading-relaxed">
+                    Open the Universal Link above. The screen shows all PC buttons. Tap which PC it is once, and it permanently connects.
                   </p>
                 </div>
 
-                <div className="bg-slate-50 p-4 rounded-lg border border-slate-200 space-y-2 text-xs">
+                <div className="bg-slate-50 p-3.5 rounded-xl border border-slate-200 space-y-1.5">
                   <div className="w-6 h-6 rounded-full bg-emerald-600 text-white font-bold flex items-center justify-center text-xs">
                     3
                   </div>
-                  <h4 className="font-bold text-slate-900">Instant Synchronized Telemetry</h4>
-                  <p className="text-slate-600 text-xs leading-relaxed">
-                    The PC locks into official examination kiosk mode and streams progress to this monitor live.
+                  <h4 className="font-bold text-slate-900">Desk QR Code Cards</h4>
+                  <p className="text-slate-600 text-[11px] leading-relaxed">
+                    Click <strong>"Print Desk QR Cards"</strong> to print station cards with QR codes and URLs to stick directly on student desks.
                   </p>
                 </div>
               </div>
             </div>
 
             {/* Stations Registry Table */}
-            <div className="bg-white border border-slate-200 rounded-xl overflow-hidden shadow-xs">
-              <div className="px-6 py-4 border-b border-slate-200 flex items-center justify-between">
-                <h3 className="font-bold text-sm text-slate-900">
-                  Configured Lab Terminals ({stations.length} / {consultancy.computerLimit} PCs)
-                </h3>
-                <span className="text-xs text-slate-500 font-medium">
-                  {consultancy.computerLimit - stations.length} license slots available
-                </span>
+            <div className="bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-xs">
+              <div className="px-6 py-4 border-b border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                <div>
+                  <h3 className="font-bold text-sm text-slate-900">
+                    Configured Lab Terminals ({stations.length} / {consultancy.computerLimit} PCs)
+                  </h3>
+                  <p className="text-xs text-slate-500">
+                    {consultancy.computerLimit - stations.length} license slots available
+                  </p>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => handleQuickAddBatch(5)}
+                    className="text-xs font-semibold text-blue-600 hover:underline cursor-pointer"
+                  >
+                    + Add 5 More PCs
+                  </button>
+                  <span className="text-slate-300">•</span>
+                  <button
+                    onClick={() => handleQuickAddBatch(10)}
+                    className="text-xs font-semibold text-blue-600 hover:underline cursor-pointer"
+                  >
+                    + Add 10 More PCs
+                  </button>
+                </div>
               </div>
 
               <div className="overflow-x-auto">
@@ -1517,61 +1605,100 @@ export const ConsultancyPortal: React.FC<ConsultancyPortalProps> = ({
                       <th className="px-6 py-3 font-semibold">Station Name</th>
                       <th className="px-6 py-3 font-semibold">Current Status</th>
                       <th className="px-6 py-3 font-semibold">Assigned Candidate</th>
+                      <th className="px-6 py-3 font-semibold">Direct Setup URL</th>
                       <th className="px-6 py-3 font-semibold">Last Heartbeat</th>
                       <th className="px-6 py-3 font-semibold text-right">Actions</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100">
-                    {stations.map((st) => (
-                      <tr key={st.id} className="hover:bg-slate-50 transition">
-                        <td className="px-6 py-3 font-bold text-slate-900 flex items-center gap-2">
-                          <Laptop className="w-4 h-4 text-blue-600" />
-                          <span>{st.name}</span>
-                        </td>
-                        <td className="px-6 py-3">
-                          <span
-                            className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase border ${
-                              st.status === 'in_progress'
-                                ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                                : st.status === 'paused'
-                                ? 'bg-amber-50 text-amber-700 border-amber-200'
-                                : 'bg-slate-100 text-slate-600 border-slate-200'
-                            }`}
-                          >
-                            {st.status.replace('_', ' ')}
-                          </span>
-                        </td>
-                        <td className="px-6 py-3 text-slate-700">
-                          {st.currentCandidate?.name || '—'}
-                        </td>
-                        <td className="px-6 py-3 font-mono text-slate-500 text-xs">
-                          {new Date(st.lastHeartbeat).toLocaleTimeString()}
-                        </td>
-                        <td className="px-6 py-3 text-right">
-                          <div className="flex items-center justify-end gap-2">
-                            <button
-                              onClick={() => onOpenTerminal(st.name)}
-                              className="p-1 hover:bg-slate-100 text-slate-500 hover:text-blue-600 rounded transition cursor-pointer"
-                              title="Test Launch this Station Terminal"
+                    {stations.map((st) => {
+                      const isCopied = copiedStationName === st.name;
+                      return (
+                        <tr key={st.id} className="hover:bg-slate-50 transition">
+                          <td className="px-6 py-3 font-bold text-slate-900 flex items-center gap-2">
+                            <div className="w-7 h-7 rounded-lg bg-blue-50 text-blue-700 flex items-center justify-center font-mono font-bold text-xs shrink-0">
+                              {st.name}
+                            </div>
+                            <span className="font-semibold text-slate-900">{st.name}</span>
+                          </td>
+                          <td className="px-6 py-3">
+                            <span
+                              className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase border inline-flex items-center gap-1 ${
+                                st.status === 'in_progress'
+                                  ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                                  : st.status === 'paused'
+                                  ? 'bg-amber-50 text-amber-700 border-amber-200'
+                                  : 'bg-slate-100 text-slate-600 border-slate-200'
+                              }`}
                             >
-                              <ExternalLink className="w-4 h-4" />
-                            </button>
+                              <span
+                                className={`w-1.5 h-1.5 rounded-full ${
+                                  st.status === 'in_progress'
+                                    ? 'bg-emerald-500 animate-pulse'
+                                    : st.status === 'paused'
+                                    ? 'bg-amber-500'
+                                    : 'bg-slate-400'
+                                }`}
+                              />
+                              <span>{st.status.replace('_', ' ')}</span>
+                            </span>
+                          </td>
+                          <td className="px-6 py-3 text-slate-700">
+                            {st.currentCandidate?.name || '—'}
+                          </td>
+                          <td className="px-6 py-3 font-mono text-[11px] text-slate-500">
                             <button
-                              onClick={() => {
-                                if (window.confirm(`Remove ${st.name} from lab?`)) {
-                                  ConsultancyService.deleteStation(consultancy.id, st.id);
-                                  reloadAll();
-                                }
-                              }}
-                              className="p-1 hover:bg-red-50 text-slate-400 hover:text-red-600 rounded transition cursor-pointer"
-                              title="Delete Station"
+                              onClick={() => copyStationLink(st.name)}
+                              className={`px-2.5 py-1 rounded-lg border font-mono text-xs transition cursor-pointer flex items-center gap-1.5 ${
+                                isCopied
+                                  ? 'bg-emerald-50 text-emerald-700 border-emerald-300'
+                                  : 'bg-slate-50 hover:bg-slate-100 text-slate-700 border-slate-200'
+                              }`}
+                              title="Copy 1-Click Link for this PC"
                             >
-                              <Trash2 className="w-4 h-4" />
+                              {isCopied ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
+                              <span>{isCopied ? 'Copied Link!' : `Copy Link for ${st.name}`}</span>
                             </button>
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
+                          </td>
+                          <td className="px-6 py-3 font-mono text-slate-500 text-xs">
+                            {st.lastHeartbeat ? new Date(st.lastHeartbeat).toLocaleTimeString() : '—'}
+                          </td>
+                          <td className="px-6 py-3 text-right">
+                            <div className="flex items-center justify-end gap-1.5">
+                              <button
+                                onClick={() => setSelectedStationForQr(st)}
+                                className="p-1.5 hover:bg-blue-50 text-slate-500 hover:text-blue-600 rounded-lg transition cursor-pointer border border-transparent hover:border-blue-200"
+                                title="View Station QR Code & Card"
+                              >
+                                <QrCode className="w-4 h-4" />
+                              </button>
+                              <button
+                                onClick={() => {
+                                  const url = `${window.location.origin}/?mode=terminal&station=${encodeURIComponent(st.name)}&cid=${consultancy.id}`;
+                                  window.open(url, '_blank');
+                                }}
+                                className="p-1.5 hover:bg-slate-100 text-slate-500 hover:text-blue-600 rounded-lg transition cursor-pointer border border-transparent hover:border-slate-200"
+                                title="Launch this PC Kiosk in New Tab"
+                              >
+                                <ExternalLink className="w-4 h-4" />
+                              </button>
+                              <button
+                                onClick={() => {
+                                  if (window.confirm(`Remove ${st.name} from lab?`)) {
+                                    ConsultancyService.deleteStation(consultancy.id, st.id);
+                                    reloadAll();
+                                  }
+                                }}
+                                className="p-1.5 hover:bg-red-50 text-slate-400 hover:text-red-600 rounded-lg transition cursor-pointer border border-transparent hover:border-red-200"
+                                title="Delete Station"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
                   </tbody>
                 </table>
               </div>
@@ -2145,6 +2272,157 @@ export const ConsultancyPortal: React.FC<ConsultancyPortalProps> = ({
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL: SINGLE STATION QR CODE & DIRECT LINK */}
+      {selectedStationForQr && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center z-50 p-4">
+          <div className="bg-white border border-slate-200 max-w-sm w-full rounded-2xl p-6 shadow-2xl space-y-4 animate-in fade-in">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-lg bg-blue-50 text-blue-700 font-bold font-mono flex items-center justify-center text-xs">
+                  {selectedStationForQr.name}
+                </div>
+                <div>
+                  <h3 className="font-bold text-sm text-slate-900">{selectedStationForQr.name} Setup Card</h3>
+                  <p className="text-[11px] text-slate-500">{consultancy?.name}</p>
+                </div>
+              </div>
+              <button
+                onClick={() => setSelectedStationForQr(null)}
+                className="text-slate-400 hover:text-slate-700 cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="text-center space-y-3">
+              <div className="w-48 h-48 mx-auto p-2 bg-white rounded-xl border border-slate-200 shadow-xs flex items-center justify-center">
+                <img
+                  src={`https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(
+                    `${window.location.origin}/?mode=terminal&station=${encodeURIComponent(
+                      selectedStationForQr.name
+                    )}&cid=${consultancy?.id}`
+                  )}`}
+                  alt={`QR for ${selectedStationForQr.name}`}
+                  className="w-full h-full object-contain"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <div className="font-mono text-[11px] text-slate-800 font-bold select-all bg-slate-50 p-2 rounded-lg border border-slate-200 break-all">
+                  {window.location.origin}/?mode=terminal&amp;station={selectedStationForQr.name}&amp;cid={consultancy?.id}
+                </div>
+                <p className="text-[11px] text-slate-500">
+                  Scan with camera or open URL on {selectedStationForQr.name} to connect instantly.
+                </p>
+              </div>
+
+              <div className="flex items-center gap-2 pt-2">
+                <button
+                  onClick={() => copyStationLink(selectedStationForQr.name)}
+                  className="flex-1 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl transition cursor-pointer flex items-center justify-center gap-1.5 shadow-xs"
+                >
+                  <Copy className="w-3.5 h-3.5" />
+                  <span>Copy Direct URL</span>
+                </button>
+                <button
+                  onClick={() => {
+                    const url = `${window.location.origin}/?mode=terminal&station=${encodeURIComponent(
+                      selectedStationForQr.name
+                    )}&cid=${consultancy?.id}`;
+                    window.open(url, '_blank');
+                  }}
+                  className="px-3 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-xl transition cursor-pointer border border-slate-300"
+                  title="Open this station in new tab"
+                >
+                  <ExternalLink className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL: PRINTABLE DESK SETUP CARDS */}
+      {showPrintDeskCardsModal && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center z-50 p-4 overflow-y-auto">
+          <div className="bg-white border border-slate-200 max-w-4xl w-full rounded-2xl p-6 shadow-2xl space-y-5 my-8">
+            <div className="flex items-center justify-between border-b border-slate-200 pb-3">
+              <div>
+                <h3 className="font-bold text-base text-slate-900 flex items-center gap-2">
+                  <Printer className="w-5 h-5 text-blue-600" />
+                  <span>Print Lab Station Desk Cards</span>
+                </h3>
+                <p className="text-xs text-slate-500">
+                  Print and place these cards on student computer desks in your testing lab.
+                </p>
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => window.print()}
+                  className="flex items-center gap-1.5 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl shadow-xs transition cursor-pointer"
+                >
+                  <Printer className="w-4 h-4" />
+                  <span>Print Cards</span>
+                </button>
+                <button
+                  onClick={() => setShowPrintDeskCardsModal(false)}
+                  className="p-1.5 text-slate-400 hover:text-slate-700 cursor-pointer"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+            </div>
+
+            {/* Printable Cards Grid */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 max-h-[70vh] overflow-y-auto p-1">
+              {stations.map((st) => {
+                const stationUrl = `${window.location.origin}/?mode=terminal&station=${encodeURIComponent(
+                  st.name
+                )}&cid=${consultancy?.id}`;
+                return (
+                  <div
+                    key={st.id}
+                    className="p-4 rounded-xl border-2 border-slate-300 bg-white space-y-2.5 text-center shadow-xs"
+                  >
+                    <div className="border-b border-slate-200 pb-1.5">
+                      <div className="text-[10px] font-black uppercase tracking-wider text-slate-500">
+                        IELTS CD-MOCK TEST STATION
+                      </div>
+                      <div className="font-extrabold text-xs text-blue-700 truncate">{consultancy?.name}</div>
+                    </div>
+
+                    <div className="inline-block px-4 py-0.5 rounded-lg bg-blue-50 border border-blue-200 text-blue-700 font-mono font-black text-xl">
+                      {st.name}
+                    </div>
+
+                    <div className="w-28 h-28 mx-auto bg-white p-1 border border-slate-200 rounded-lg flex items-center justify-center">
+                      <img
+                        src={`https://api.qrserver.com/v1/create-qr-code/?size=120x120&data=${encodeURIComponent(
+                          stationUrl
+                        )}`}
+                        alt={`QR ${st.name}`}
+                        className="w-full h-full object-contain"
+                      />
+                    </div>
+
+                    <div className="text-[10px] text-slate-600 space-y-0.5 text-left bg-slate-50 p-2 rounded-lg border border-slate-100">
+                      <div className="font-bold text-slate-800">Student Instructions:</div>
+                      <div>1. Scan QR code or type URL</div>
+                      <div>2. Enter your Name &amp; wait</div>
+                      <div>3. Invigilator launches exam</div>
+                    </div>
+
+                    <div className="font-mono text-[9px] text-slate-500 truncate bg-slate-100 p-1 rounded">
+                      {stationUrl}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
           </div>
         </div>
       )}

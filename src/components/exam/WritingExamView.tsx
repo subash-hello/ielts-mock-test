@@ -43,6 +43,7 @@ export const WritingExamView: React.FC<WritingExamViewProps> = ({
   const [isMobile, setIsMobile] = useState<boolean>(() =>
     typeof window !== 'undefined' ? window.innerWidth < 768 : false
   );
+  const [mobileViewTab, setMobileViewTab] = useState<'prompt' | 'editor'>('prompt');
 
   useEffect(() => {
     const handleResize = () => {
@@ -261,27 +262,24 @@ export const WritingExamView: React.FC<WritingExamViewProps> = ({
     </div>
   );
 
-  const mainLayoutStyle = isMobile
-    ? { flexDirection: 'column' as const }
-    : { flexDirection: 'row' as const };
-
   return (
-    <div className={`flex flex-col h-full ${contrastClasses} ${fontSizeClass} select-none`}>
+    <div className={`flex-1 min-h-0 flex flex-col overflow-hidden ${contrastClasses} ${fontSizeClass} select-none`}>
       {/* CD-IELTS Tabs Bar */}
-      <div className="flex items-center justify-between border-b border-slate-300 bg-[#f4f4f4] px-4 select-none">
-        <div className="flex items-center gap-2 pt-2">
+      <div className="shrink-0 flex items-center justify-between border-b border-slate-300 bg-[#f4f4f4] px-3 sm:px-4 select-none">
+        <div className="flex items-center gap-1.5 sm:gap-2 pt-1.5 sm:pt-2">
           <button
+            type="button"
             onClick={() => setActiveTab(1)}
-            className={`px-6 py-2.5 rounded-t-lg font-bold text-xs sm:text-sm flex items-center gap-2 transition cursor-pointer border-t border-x ${
+            className={`px-3 sm:px-6 py-2 rounded-t-lg font-bold text-xs sm:text-sm flex items-center gap-1.5 sm:gap-2 transition cursor-pointer border-t border-x ${
               activeTab === 1
                 ? 'bg-white text-slate-900 border-slate-300 shadow-xs -mb-[1px]'
                 : 'bg-slate-200/80 text-slate-600 hover:text-slate-900 hover:bg-slate-200 border-transparent'
             }`}
           >
-            <BookOpen className="w-4 h-4 text-indigo-600" />
+            <BookOpen className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-indigo-600 shrink-0" />
             <span>Task 1</span>
             <span
-              className={`text-[11px] font-mono px-2 py-0.5 rounded-md ${
+              className={`text-[10px] sm:text-[11px] font-mono px-1.5 sm:px-2 py-0.5 rounded-md ${
                 task1Words >= 150
                   ? 'bg-emerald-100 text-emerald-800 font-extrabold'
                   : 'bg-slate-100 text-slate-600'
@@ -292,17 +290,18 @@ export const WritingExamView: React.FC<WritingExamViewProps> = ({
           </button>
 
           <button
+            type="button"
             onClick={() => setActiveTab(2)}
-            className={`px-6 py-2.5 rounded-t-lg font-bold text-xs sm:text-sm flex items-center gap-2 transition cursor-pointer border-t border-x ${
+            className={`px-3 sm:px-6 py-2 rounded-t-lg font-bold text-xs sm:text-sm flex items-center gap-1.5 sm:gap-2 transition cursor-pointer border-t border-x ${
               activeTab === 2
                 ? 'bg-white text-slate-900 border-slate-300 shadow-xs -mb-[1px]'
                 : 'bg-slate-200/80 text-slate-600 hover:text-slate-900 hover:bg-slate-200 border-transparent'
             }`}
           >
-            <FileText className="w-4 h-4 text-indigo-600" />
-            <span>Task 2 (Essay)</span>
+            <FileText className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-indigo-600 shrink-0" />
+            <span>Task 2 <span className="hidden sm:inline">(Essay)</span></span>
             <span
-              className={`text-[11px] font-mono px-2 py-0.5 rounded-md ${
+              className={`text-[10px] sm:text-[11px] font-mono px-1.5 sm:px-2 py-0.5 rounded-md ${
                 task2Words >= 250
                   ? 'bg-emerald-100 text-emerald-800 font-extrabold'
                   : 'bg-slate-100 text-slate-600'
@@ -313,29 +312,86 @@ export const WritingExamView: React.FC<WritingExamViewProps> = ({
           </button>
         </div>
 
-        <div className="hidden sm:flex items-center gap-3 text-xs text-slate-500">
-          <span>Official CD-IELTS Writing Software Simulation</span>
+        <div className="flex items-center gap-2 py-1">
+          <span className="hidden xl:inline text-xs text-slate-500">Official CD-IELTS Writing Simulation</span>
+          <button
+            type="button"
+            onClick={handleOpenSubmitDialog}
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 active:bg-indigo-800 text-white rounded-lg text-xs font-bold shadow-xs transition cursor-pointer"
+            title="Finish and submit your IELTS writing paper"
+          >
+            <Send className="w-3.5 h-3.5 shrink-0" />
+            <span className="hidden sm:inline">Finish & Submit</span>
+            <span className="sm:hidden">Submit</span>
+          </button>
         </div>
       </div>
+
+      {/* Mobile Mode Switcher: Prompt vs Textarea (shown on viewports < 768px) */}
+      {isMobile && (
+        <div className="bg-slate-200/90 border-b border-slate-300 p-1 flex items-center justify-center gap-1 shrink-0 select-none">
+          <button
+            type="button"
+            onClick={() => setMobileViewTab('prompt')}
+            className={`flex-1 py-1.5 px-2 rounded-lg text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer ${
+              mobileViewTab === 'prompt'
+                ? 'bg-white text-slate-900 shadow-xs'
+                : 'text-slate-600 hover:text-slate-900'
+            }`}
+          >
+            <BookOpen className="w-3.5 h-3.5 text-indigo-600 shrink-0" />
+            <span className="truncate">Task {activeTab} Prompt &amp; Chart</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setMobileViewTab('editor')}
+            className={`flex-1 py-1.5 px-2 rounded-lg text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer ${
+              mobileViewTab === 'editor'
+                ? 'bg-white text-slate-900 shadow-xs'
+                : 'text-slate-600 hover:text-slate-900'
+            }`}
+          >
+            <PenTool className="w-3.5 h-3.5 text-indigo-600 shrink-0" />
+            <span className="truncate">
+              Response ({activeTab === 1 ? task1Words : task2Words}w)
+            </span>
+          </button>
+        </div>
+      )}
 
       {/* Main Split Content */}
       <div
         ref={containerRef}
-        className="flex-1 flex overflow-hidden relative"
-        style={mainLayoutStyle}
+        className="flex-1 min-h-0 flex overflow-hidden relative"
       >
         {/* Left Panel: Cambridge Instructions & Visual Diagram */}
         <div
-          className={`overflow-y-auto p-4 sm:p-6 md:p-8 ${paneClasses} select-text`}
-          style={isMobile ? { flex: 1 } : { width: `${leftWidthPercent}%` }}
+          className={`overflow-y-auto min-h-0 p-4 sm:p-6 md:p-8 ${paneClasses} select-text ${
+            isMobile && mobileViewTab === 'editor' ? 'hidden' : 'block'
+          }`}
+          style={isMobile ? { width: '100%', flex: 1 } : { width: `${leftWidthPercent}%` }}
         >
           {activeTab === 1 ? renderTask1Instructions() : renderTask2Instructions()}
+
+          {/* Quick jump to editor on mobile */}
+          {isMobile && (
+            <div className="pt-6 pb-2 border-t border-slate-200 mt-6 flex justify-end">
+              <button
+                type="button"
+                onClick={() => setMobileViewTab('editor')}
+                className="px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 active:bg-indigo-800 text-white rounded-xl text-xs font-bold flex items-center gap-2 shadow-sm transition cursor-pointer"
+              >
+                <PenTool className="w-3.5 h-3.5" />
+                <span>Write Task {activeTab} Response →</span>
+              </button>
+            </div>
+          )}
         </div>
 
-        {/* Resizer Handle */}
+        {/* Resizer Handle (Desktop only) */}
         {!isMobile && (
           <div
-            className="w-2 bg-slate-200 hover:bg-indigo-500 cursor-col-resize transition-colors flex flex-col justify-center items-center group relative z-10"
+            className="w-2 bg-slate-200 hover:bg-indigo-500 cursor-col-resize transition-colors flex flex-col justify-center items-center group relative z-10 shrink-0"
             onMouseDown={() => setIsDragging(true)}
             title="Drag to resize stimulus and writing panes"
           >
@@ -345,14 +401,16 @@ export const WritingExamView: React.FC<WritingExamViewProps> = ({
 
         {/* Right Panel: Official CD-IELTS Textarea */}
         <div
-          className={`flex flex-col ${paneClasses} border-t md:border-t-0 select-text`}
-          style={isMobile ? { flex: 1.5 } : { width: `${100 - leftWidthPercent}%` }}
+          className={`flex flex-col min-h-0 ${paneClasses} border-t md:border-t-0 select-text ${
+            isMobile && mobileViewTab === 'prompt' ? 'hidden' : 'flex'
+          }`}
+          style={isMobile ? { width: '100%', flex: 1 } : { width: `${100 - leftWidthPercent}%` }}
         >
-          <div className="flex-1 p-4 md:p-6 flex flex-col h-full bg-[#fdfdfd]">
+          <div className="flex-1 min-h-0 p-3 sm:p-5 md:p-6 flex flex-col bg-[#fdfdfd]">
             {/* Textarea Header Bar */}
-            <div className="flex items-center justify-between pb-2.5 mb-2 border-b border-slate-200">
-              <label className="font-extrabold text-xs sm:text-sm text-slate-800 flex items-center gap-2">
-                <PenTool className="w-4 h-4 text-indigo-600" />
+            <div className="flex items-center justify-between pb-2 mb-2 border-b border-slate-200 shrink-0">
+              <label className="font-extrabold text-xs sm:text-sm text-slate-800 flex items-center gap-1.5 sm:gap-2">
+                <PenTool className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-indigo-600" />
                 <span>
                   {activeTab === 1 ? 'Task 1 Response' : 'Task 2 Response (Essay)'}
                 </span>
@@ -361,21 +419,21 @@ export const WritingExamView: React.FC<WritingExamViewProps> = ({
               {/* Dynamic Live Word Counter */}
               <div className="flex items-center gap-2">
                 <div
-                  className={`flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-bold font-mono transition-colors ${
+                  className={`flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-3 py-1 rounded-lg text-xs font-bold font-mono transition-colors ${
                     (activeTab === 1 ? task1Words >= 150 : task2Words >= 250)
                       ? 'bg-emerald-100 text-emerald-800 border border-emerald-300'
                       : 'bg-red-50 text-red-700 border border-red-200'
                   }`}
                 >
                   {(activeTab === 1 ? task1Words >= 150 : task2Words >= 250) ? (
-                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
                   ) : (
-                    <AlertCircle className="w-3.5 h-3.5 text-red-500" />
+                    <AlertCircle className="w-3.5 h-3.5 text-red-500 shrink-0" />
                   )}
                   <span>
-                    Word count: {activeTab === 1 ? task1Words : task2Words}
+                    {activeTab === 1 ? task1Words : task2Words} words
                   </span>
-                  <span className="text-[10px] font-normal text-slate-500">
+                  <span className="text-[10px] font-normal text-slate-500 hidden sm:inline">
                     / {activeTab === 1 ? '150 min' : '250 min'}
                   </span>
                 </div>
@@ -388,7 +446,7 @@ export const WritingExamView: React.FC<WritingExamViewProps> = ({
                 value={task1Text}
                 onChange={(e) => setTask1Text(e.target.value)}
                 placeholder="Type your Task 1 response here... (Describe the main features, trends, stages, and make comparisons where relevant)"
-                className={`flex-1 w-full resize-none rounded-xl border border-slate-300 p-4 sm:p-5 text-sm sm:text-base leading-relaxed font-sans outline-none focus:border-indigo-600 focus:ring-1 focus:ring-indigo-600 shadow-inner transition ${
+                className={`flex-1 min-h-0 w-full resize-none rounded-xl border border-slate-300 p-3 sm:p-4 md:p-5 text-sm sm:text-base leading-relaxed font-sans outline-none focus:border-indigo-600 focus:ring-1 focus:ring-indigo-600 shadow-inner transition ${
                   settings.contrast === 'inverted' ? 'bg-slate-800 text-white border-slate-700' : 'bg-white text-slate-900'
                 }`}
                 spellCheck={false}
@@ -401,7 +459,7 @@ export const WritingExamView: React.FC<WritingExamViewProps> = ({
                 value={task2Text}
                 onChange={(e) => setTask2Text(e.target.value)}
                 placeholder="Type your Task 2 essay here... (Organise into well-structured paragraphs with clear thesis, arguments, and supporting evidence)"
-                className={`flex-1 w-full resize-none rounded-xl border border-slate-300 p-4 sm:p-5 text-sm sm:text-base leading-relaxed font-sans outline-none focus:border-indigo-600 focus:ring-1 focus:ring-indigo-600 shadow-inner transition ${
+                className={`flex-1 min-h-0 w-full resize-none rounded-xl border border-slate-300 p-3 sm:p-4 md:p-5 text-sm sm:text-base leading-relaxed font-sans outline-none focus:border-indigo-600 focus:ring-1 focus:ring-indigo-600 shadow-inner transition ${
                   settings.contrast === 'inverted' ? 'bg-slate-800 text-white border-slate-700' : 'bg-white text-slate-900'
                 }`}
                 spellCheck={false}
@@ -415,57 +473,60 @@ export const WritingExamView: React.FC<WritingExamViewProps> = ({
       </div>
 
       {/* Bottom Action / Submission Bar */}
-      <div className="border-t border-slate-300 bg-white px-4 sm:px-6 py-3 flex flex-col sm:flex-row items-center justify-between gap-3 shadow-md z-20">
-        <div className="flex items-center gap-4 text-xs font-semibold">
-          <div className="flex items-center gap-1.5">
+      <div className="shrink-0 border-t border-slate-300 bg-white px-3 sm:px-6 py-2 sm:py-2.5 flex items-center justify-between gap-2 shadow-md z-30">
+        <div className="flex items-center gap-2 sm:gap-4 text-xs font-semibold">
+          <div className="flex items-center gap-1 sm:gap-1.5">
             <span className="text-slate-500">Task 1:</span>
             <span
-              className={`font-mono font-bold px-2 py-0.5 rounded ${
+              className={`font-mono font-bold px-1.5 sm:px-2 py-0.5 rounded text-[11px] sm:text-xs ${
                 task1Words >= 150
                   ? 'bg-emerald-100 text-emerald-800'
                   : 'bg-red-50 text-red-600'
               }`}
             >
-              {task1Words} / 150 words
+              {task1Words}/150w
             </span>
           </div>
 
-          <div className="w-px h-4 bg-slate-300" />
+          <div className="w-px h-3.5 bg-slate-300" />
 
-          <div className="flex items-center gap-1.5">
+          <div className="flex items-center gap-1 sm:gap-1.5">
             <span className="text-slate-500">Task 2:</span>
             <span
-              className={`font-mono font-bold px-2 py-0.5 rounded ${
+              className={`font-mono font-bold px-1.5 sm:px-2 py-0.5 rounded text-[11px] sm:text-xs ${
                 task2Words >= 250
                   ? 'bg-emerald-100 text-emerald-800'
                   : 'bg-red-50 text-red-600'
               }`}
             >
-              {task2Words} / 250 words
+              {task2Words}/250w
             </span>
           </div>
 
-          <div className="w-px h-4 bg-slate-300 hidden md:block" />
+          <div className="w-px h-3.5 bg-slate-300 hidden md:block" />
 
-          <span className="text-slate-500 font-mono hidden md:inline">
-            Total Words: <strong>{task1Words + task2Words}</strong>
+          <span className="text-slate-500 font-mono hidden md:inline text-xs">
+            Total: <strong>{task1Words + task2Words}w</strong>
           </span>
         </div>
 
-        <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
+        <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
           <button
+            type="button"
             onClick={() => setActiveTab(activeTab === 1 ? 2 : 1)}
-            className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-800 rounded-xl text-xs font-bold border border-slate-300 transition cursor-pointer"
+            className="px-2.5 sm:px-4 py-1.5 sm:py-2 bg-slate-100 hover:bg-slate-200 active:bg-slate-300 text-slate-800 rounded-xl text-xs font-bold border border-slate-300 transition cursor-pointer whitespace-nowrap"
           >
-            {activeTab === 1 ? 'Go to Task 2 →' : '← Back to Task 1'}
+            {activeTab === 1 ? 'Task 2 →' : '← Task 1'}
           </button>
 
           <button
+            type="button"
             onClick={handleOpenSubmitDialog}
-            className="px-6 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs sm:text-sm font-extrabold shadow-md transition flex items-center gap-2 cursor-pointer hover:-translate-y-0.5"
+            className="px-3 sm:px-5 py-1.5 sm:py-2 bg-indigo-600 hover:bg-indigo-700 active:bg-indigo-800 text-white rounded-xl text-xs sm:text-sm font-extrabold shadow-md transition flex items-center gap-1.5 sm:gap-2 cursor-pointer hover:-translate-y-0.5 whitespace-nowrap"
           >
-            <Send className="w-4 h-4" />
-            <span>Submit Writing Paper</span>
+            <Send className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />
+            <span className="hidden sm:inline">Submit Writing Paper</span>
+            <span className="sm:hidden">Submit Paper</span>
           </button>
         </div>
       </div>
@@ -511,7 +572,7 @@ export const WritingExamView: React.FC<WritingExamViewProps> = ({
           onClick={() => setIsConfirmSubmitOpen(false)}
         >
           <div
-            className="bg-white rounded-2xl border border-slate-200 shadow-2xl max-w-md w-full p-6 space-y-5 cursor-default text-left"
+            className="bg-white rounded-2xl border border-slate-200 shadow-2xl max-w-md w-full p-5 sm:p-6 space-y-4 sm:space-y-5 cursor-default text-left max-h-[92vh] overflow-y-auto"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-start gap-3">

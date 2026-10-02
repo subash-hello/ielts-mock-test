@@ -626,6 +626,33 @@ suite('Suite 3: Consultancy Test Launch & Terminal Waiting Logic', () => {
     ConsultancyService.launchTestToBranch(kiecId, null);
     ConsultancyService.deleteStation(kiecId, station.id);
   });
+
+  test('Batch Station Creation & Flexible Workstation Verification', () => {
+    const batchCid = 'test-batch-consultancy';
+    localStorage.removeItem(`ielts_stations_${batchCid}`);
+
+    // Initial station
+    ConsultancyService.addStation(batchCid, 'PC-01');
+
+    // Batch add 3 more stations
+    const added = ConsultancyService.addStationsBatch(batchCid, 3);
+    assertEqual(added.length, 3, '3 stations created in batch');
+    assertEqual(added[0].name, 'PC-02');
+    assertEqual(added[1].name, 'PC-03');
+    assertEqual(added[2].name, 'PC-04');
+
+    const allStations = ConsultancyService.getStations(batchCid);
+    assertEqual(allStations.length, 4, 'Total 4 stations present');
+
+    // Test verifyTerminalLogin with consultancy ID "apex-global"
+    const loginRes = ConsultancyService.verifyTerminalLogin('apex-global', 'PC-02', '1234');
+    assert(loginRes.success, 'verifyTerminalLogin succeeded with consultancy ID');
+    assertEqual(loginRes.stationName, 'PC-02');
+    assertEqual(loginRes.consultancy?.id, 'apex-global');
+
+    // Cleanup
+    localStorage.removeItem(`ielts_stations_${batchCid}`);
+  });
 });
 
 // --- SUITE 4: WRITING SUBMISSION & EXAMINER EVALUATION WORKFLOW ---

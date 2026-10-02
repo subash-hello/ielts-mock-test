@@ -122,13 +122,37 @@ export const App: React.FC = () => {
       const params = new URLSearchParams(window.location.search);
       const mode = params.get('mode');
       const cid = params.get('consultancy') || params.get('cid');
-      const station = params.get('station') || params.get('st');
+      const station = params.get('station') || params.get('st') || params.get('pc');
+      const branch = params.get('branch') || params.get('access') || params.get('code');
 
-      if (cid) setSelectedConsultancyId(cid);
-      if (station) setTerminalStationName(station);
+      // Resolve target consultancy
+      let targetCid = cid;
+      if (!targetCid && branch) {
+        const found = ConsultancyService.getConsultancyByBranchCode(branch);
+        if (found) targetCid = found.id;
+      }
+      if (targetCid) {
+        setSelectedConsultancyId(targetCid);
+        const cObj = ConsultancyService.getConsultancyById(targetCid);
+        if (cObj) {
+          localStorage.setItem('ielts_terminal_branch', cObj.branchCode || cObj.accessCode);
+        }
+      }
+
+      // Resolve and auto-register station identifier
+      if (station) {
+        const cleanSt = station.trim().toUpperCase();
+        const formattedStation = cleanSt.startsWith('PC-')
+          ? cleanSt
+          : `PC-${cleanSt.replace(/^PC/i, '')}`;
+        setTerminalStationName(formattedStation);
+        localStorage.setItem('ielts_terminal_pc', formattedStation);
+        if (targetCid) {
+          ConsultancyService.addStation(targetCid, formattedStation);
+        }
+      }
 
       const loggedAdmin = ConsultancyService.getCurrentAdmin();
-      const loggedCandidate = ConsultancyService.getCurrentCandidateSession();
 
       if (mode === 'admin' || mode === 'super-admin') {
         if (loggedAdmin?.role === 'super_admin') {
@@ -149,13 +173,9 @@ export const App: React.FC = () => {
           setAuthMessage('Consultancy Director sign in required.');
           setActiveScreen('auth');
         }
-      } else if (mode === 'terminal' || mode === 'lab' || mode === 'kiosk') {
-        if (loggedCandidate) {
-          setActiveScreen('terminal');
-        } else {
-          setInitialAuthTab('candidate');
-          setActiveScreen('auth');
-        }
+      } else if (mode === 'terminal' || mode === 'lab' || mode === 'kiosk' || station) {
+        // Direct seamless access to the student terminal kiosk
+        setActiveScreen('terminal');
       }
     } catch (e) {
       console.error('URL parse error:', e);
@@ -669,7 +689,7 @@ export const App: React.FC = () => {
       consultancyId: session.consultancyId
     });
     setAuthMessage(null);
-    setActiveScreen('landing');
+    setActiveScreen('terminal');
   };
 
   // Admin login callback

@@ -1,10 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import {
   Monitor,
-  Key,
   ArrowRight,
   Building2,
-  Lock,
   User,
   BookOpen,
   Headphones,
@@ -14,7 +12,11 @@ import {
   PenTool,
   CheckCircle2,
   Volume2,
-  FileCheck
+  FileCheck,
+  Maximize,
+  Minimize,
+  Check,
+  SlidersHorizontal
 } from 'lucide-react';
 import type { Consultancy, LabStation } from '../../types/consultancy';
 import type { IELTSMockTest, FullMockTest } from '../../types/ielts';
@@ -76,21 +78,44 @@ export const StudentTerminalView: React.FC<StudentTerminalViewProps> = ({
     return localStorage.getItem('ielts_terminal_pc') || initialStationName || 'PC-01';
   });
 
-  const [password, setPassword] = useState<string>(
-    localStorage.getItem('ielts_terminal_pass') || '1234'
-  );
+  const allConsultancies = ConsultancyService.getConsultancies();
 
   const [loginError, setLoginError] = useState<string | null>(null);
-  const [consultancy, setConsultancy] = useState<Consultancy | undefined>(() =>
-    ConsultancyService.getConsultancyByBranchCode(branchCode)
-  );
+  const [consultancy, setConsultancy] = useState<Consultancy | undefined>(() => {
+    let found = ConsultancyService.getConsultancyByBranchCode(branchCode);
+    if (!found) found = ConsultancyService.getConsultancyById(branchCode.toLowerCase());
+    if (!found && initialConsultancyId) found = ConsultancyService.getConsultancyById(initialConsultancyId);
+    return found || allConsultancies[0];
+  });
+
+  const [selectedConsultancyId, setSelectedConsultancyId] = useState<string>(() => {
+    return consultancy?.id || initialConsultancyId || allConsultancies[0]?.id || 'apex-global';
+  });
+
   const [currentStation, setCurrentStation] = useState<LabStation | undefined>(undefined);
 
-  // Phase: If previously paired, start in connected waiting screen
+  // Phase: Start in connected screen if station already configured, or show friendly setup wizard
   const [phase, setPhase] = useState<'login' | 'connected'>(() => {
-    const saved = localStorage.getItem('ielts_terminal_branch');
-    return saved ? 'connected' : 'connected'; // Default directly to connected station kiosk for instant student check-in
+    const urlParams = new URLSearchParams(window.location.search);
+    const stationFromUrl = urlParams.get('station') || urlParams.get('st') || urlParams.get('pc');
+    const saved = localStorage.getItem('ielts_terminal_branch') && localStorage.getItem('ielts_terminal_pc');
+    return stationFromUrl || saved ? 'connected' : 'connected';
   });
+
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  useEffect(() => {
+    const handleFsChange = () => setIsFullscreen(!!document.fullscreenElement);
+    document.addEventListener('fullscreenchange', handleFsChange);
+    return () => document.removeEventListener('fullscreenchange', handleFsChange);
+  }, []);
+
+  const toggleFullscreen = () => {
+    if (!document.fullscreenElement) {
+      document.documentElement.requestFullscreen().catch(() => {});
+    } else {
+      document.exitFullscreen().catch(() => {});
+    }
+  };
 
   // Active test launched by branch admin
   const [activeLaunchedTest, setActiveLaunchedTest] = useState<{
@@ -322,25 +347,28 @@ export const StudentTerminalView: React.FC<StudentTerminalViewProps> = ({
     }
   };
 
-  const handleLoginSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleQuickConnectStation = (stationToConnect: string) => {
     setLoginError(null);
-
-    const verification = ConsultancyService.verifyTerminalLogin(branchCode, pcNumber, password);
-    if (!verification.success || !verification.consultancy || !verification.stationName) {
-      setLoginError(verification.error || 'Authentication failed. Please check your credentials.');
+    const targetC =
+      ConsultancyService.getConsultancyById(selectedConsultancyId) ||
+      consultancy ||
+      allConsultancies[0];
+    const cleanSt = stationToConnect.trim().toUpperCase();
+    if (!cleanSt) {
+      setLoginError('Please select or enter a PC number.');
       return;
     }
+    const formattedSt = cleanSt.startsWith('PC-') ? cleanSt : `PC-${cleanSt.replace(/^PC/i, '')}`;
 
-    // Save for workstation persistence
-    localStorage.setItem('ielts_terminal_branch', branchCode.trim().toUpperCase());
-    localStorage.setItem('ielts_terminal_pc', verification.stationName);
-    localStorage.setItem('ielts_terminal_pass', password.trim());
+    localStorage.setItem('ielts_terminal_branch', targetC.branchCode || targetC.accessCode);
+    localStorage.setItem('ielts_terminal_pc', formattedSt);
+    localStorage.setItem('ielts_terminal_pass', targetC.examPassword || '1234');
 
-    // Ensure station is added to consultancy lab
-    ConsultancyService.addStation(verification.consultancy.id, verification.stationName);
+    setBranchCode(targetC.branchCode || targetC.accessCode);
+    setPcNumber(formattedSt);
+    setConsultancy(targetC);
 
-    // Move to connected phase
+    ConsultancyService.addStation(targetC.id, formattedSt);
     setPhase('connected');
   };
 
@@ -384,10 +412,38 @@ export const StudentTerminalView: React.FC<StudentTerminalViewProps> = ({
         </div>
 
         <div className="flex items-center gap-2">
+          {/* Fullscreen Kiosk Mode Button */}
+          <button
+            onClick={toggleFullscreen}
+            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition cursor-pointer shadow-xs flex items-center gap-1.5 ${
+              isFullscreen
+                ? 'bg-purple-100 text-purple-800 border border-purple-300'
+                : 'bg-white hover:bg-slate-50 text-slate-700 border border-slate-300'
+            }`}
+            title="Toggle Fullscreen Exam Mode (F11)"
+          >
+            {isFullscreen ? <Minimize className="w-3.5 h-3.5" /> : <Maximize className="w-3.5 h-3.5" />}
+            <span className="hidden sm:inline">{isFullscreen ? 'Exit Fullscreen' : 'Fullscreen (F11)'}</span>
+          </button>
+
+          {/* Sound Test Button */}
+          <button
+            onClick={testAudio}
+            className={`px-3 py-1.5 rounded-lg text-xs font-bold border transition cursor-pointer shadow-xs flex items-center gap-1.5 ${
+              isSoundTesting
+                ? 'bg-amber-50 text-amber-800 border-amber-300 animate-pulse'
+                : 'bg-white hover:bg-slate-50 text-slate-700 border border-slate-300'
+            }`}
+            title="Check headphone sound"
+          >
+            <Volume2 className="w-3.5 h-3.5 text-blue-600" />
+            <span className="hidden sm:inline">{isSoundTesting ? 'Playing 440Hz...' : 'Sound Test'}</span>
+          </button>
+
           {onOpenLookup && (
             <button
               onClick={onOpenLookup}
-              className="px-3 py-1.5 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 text-indigo-700 rounded-lg text-xs font-bold transition cursor-pointer shadow-xs flex items-center gap-1.5"
+              className="hidden md:flex px-3 py-1.5 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 text-indigo-700 rounded-lg text-xs font-bold transition cursor-pointer shadow-xs items-center gap-1.5"
             >
               <FileCheck className="w-3.5 h-3.5" />
               <span>Check Results</span>
@@ -397,10 +453,11 @@ export const StudentTerminalView: React.FC<StudentTerminalViewProps> = ({
           {phase === 'connected' ? (
             <button
               onClick={() => setPhase('login')}
-              className="px-3 py-1.5 bg-white hover:bg-slate-50 border border-slate-300 rounded-lg text-xs font-semibold text-slate-700 transition cursor-pointer shadow-xs"
-              title="Station settings & pairing"
+              className="px-3 py-1.5 bg-white hover:bg-slate-50 border border-slate-300 rounded-lg text-xs font-semibold text-slate-700 transition cursor-pointer shadow-xs flex items-center gap-1.5"
+              title="Change computer station number"
             >
-              Station Config
+              <SlidersHorizontal className="w-3.5 h-3.5 text-blue-600" />
+              <span>Switch PC</span>
             </button>
           ) : null}
 
@@ -413,11 +470,11 @@ export const StudentTerminalView: React.FC<StudentTerminalViewProps> = ({
         </div>
       </header>
 
-      {/* PHASE 1: LOGIN / STATION PAIRING */}
+      {/* PHASE 1: WORKSTATION SETUP & PAIRING WIZARD */}
       {phase === 'login' && (
         <main className="flex-1 flex items-center justify-center p-3 sm:p-6">
-          <div className="bg-white border border-slate-200 max-w-md w-full p-5 sm:p-8 rounded-2xl shadow-sm space-y-5 sm:space-y-6">
-            <div className="text-center space-y-2">
+          <div className="bg-white border border-slate-200 max-w-xl w-full p-5 sm:p-8 rounded-3xl shadow-lg space-y-6">
+            <div className="text-center space-y-1.5">
               <div className="w-14 h-14 rounded-2xl overflow-hidden flex items-center justify-center border border-slate-200 bg-white p-1.5 shadow-sm mx-auto mb-1">
                 <img
                   src="/images/masterieltsai-icon.png"
@@ -425,126 +482,137 @@ export const StudentTerminalView: React.FC<StudentTerminalViewProps> = ({
                   className="w-full h-full object-contain"
                 />
               </div>
-              <div className="flex items-center justify-center gap-1.5 text-xs text-slate-500 mb-0.5">
+              <div className="flex items-center justify-center gap-1.5 text-xs text-slate-500">
                 <span className="font-extrabold text-slate-900 uppercase tracking-tight">MOCK TEST</span>
                 <span>from <a href="https://masterieltsai.com" target="_blank" rel="noreferrer" className="text-indigo-600 font-bold hover:underline">Master IELTS AI</a></span>
               </div>
-              <h2 className="text-xl font-extrabold text-slate-900">
-                Candidate Terminal Configuration
+              <h2 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
+                Connect This Computer to Lab
               </h2>
-              <p className="text-xs text-slate-500 leading-relaxed">
-                Connect this workstation to your consultancy examination invigilator desk.
+              <p className="text-xs text-slate-500 max-w-md mx-auto leading-relaxed">
+                Setup takes 5 seconds: Select your consultancy and tap which PC number this is. It will pair immediately with the teacher's radar.
               </p>
             </div>
 
-            <form onSubmit={handleLoginSubmit} className="space-y-4 text-xs">
-              {/* 1. Branch Code */}
-              <div>
-                <label className="text-slate-700 font-semibold block mb-1">
-                  Branch Code *
-                </label>
-                <div className="relative">
-                  <Building2 className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
-                  <input
-                    type="text"
-                    required
-                    value={branchCode}
-                    onChange={(e) => setBranchCode(e.target.value.toUpperCase())}
-                    placeholder="e.g. APEX-2026"
-                    className="w-full bg-white border border-slate-300 focus:border-blue-600 focus:ring-1 focus:ring-blue-600 font-mono font-bold text-slate-900 pl-10 pr-4 py-2.5 rounded-lg outline-none text-sm uppercase"
-                  />
-                </div>
-                <p className="text-[11px] text-slate-500 mt-1">
-                  {consultancy ? `Connected: ${consultancy.name}` : 'Enter code provided by your institute'}
-                </p>
+            {/* STEP 1: Select Consultancy */}
+            <div className="space-y-2">
+              <label className="text-xs font-bold uppercase tracking-wider text-slate-700 flex items-center gap-1.5">
+                <Building2 className="w-4 h-4 text-blue-600" />
+                <span>1. Select Consultancy / Testing Center</span>
+              </label>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                {allConsultancies.map((c) => {
+                  const isSelected = (consultancy?.id || selectedConsultancyId) === c.id;
+                  return (
+                    <button
+                      key={c.id}
+                      type="button"
+                      onClick={() => {
+                        setSelectedConsultancyId(c.id);
+                        setConsultancy(c);
+                        setBranchCode(c.branchCode || c.accessCode);
+                      }}
+                      className={`p-3 rounded-xl border text-left transition cursor-pointer flex items-center justify-between ${
+                        isSelected
+                          ? 'border-blue-600 bg-blue-50/70 ring-2 ring-blue-500/20'
+                          : 'border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-700'
+                      }`}
+                    >
+                      <div>
+                        <div className="font-bold text-xs text-slate-900">{c.name}</div>
+                        <div className="text-[10px] text-slate-500">{c.branch}</div>
+                      </div>
+                      {isSelected && <Check className="w-4 h-4 text-blue-600 shrink-0" />}
+                    </button>
+                  );
+                })}
               </div>
+            </div>
 
-              {/* Candidate Full Name */}
-              <div>
-                <label className="text-slate-700 font-semibold block mb-1">
-                  Candidate Full Name
+            {/* STEP 2: Pick Station Number */}
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <label className="text-xs font-bold uppercase tracking-wider text-slate-700 flex items-center gap-1.5">
+                  <Monitor className="w-4 h-4 text-blue-600" />
+                  <span>2. Tap This Computer's PC Number</span>
                 </label>
-                <div className="relative">
-                  <User className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
-                  <input
-                    type="text"
-                    value={candidateNameInput}
-                    onChange={(e) => setCandidateNameInput(e.target.value)}
-                    placeholder="e.g. Sujan Sharma"
-                    className="w-full bg-white border border-slate-300 focus:border-blue-600 focus:ring-1 focus:ring-blue-600 font-semibold text-slate-900 pl-10 pr-4 py-2.5 rounded-lg outline-none text-xs"
-                  />
-                </div>
-                <p className="text-[11px] text-slate-500 mt-1">
-                  Your name will appear on the consultancy invigilator radar and test scorecard
-                </p>
-              </div>
-
-              {/* 2. PC Number */}
-              <div>
-                <label className="text-slate-700 font-semibold block mb-1">
-                  PC Number *
-                </label>
-                <div className="relative">
-                  <Monitor className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
-                  <input
-                    type="text"
-                    required
-                    value={pcNumber}
-                    onChange={(e) => setPcNumber(e.target.value.toUpperCase())}
-                    placeholder="e.g. PC-01, PC-04"
-                    className="w-full bg-white border border-slate-300 focus:border-blue-600 focus:ring-1 focus:ring-blue-600 font-bold text-slate-900 pl-10 pr-4 py-2.5 rounded-lg outline-none text-sm uppercase"
-                  />
-                </div>
-                <p className="text-[11px] text-slate-500 mt-1">
-                  Check the label stickered on your computer desk
-                </p>
-              </div>
-
-              {/* 3. Password */}
-              <div>
-                <label className="text-slate-700 font-semibold block mb-1">
-                  Examination Password *
-                </label>
-                <div className="relative">
-                  <Key className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
-                  <input
-                    type="password"
-                    required
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    placeholder="Enter exam session password"
-                    className="w-full bg-white border border-slate-300 focus:border-blue-600 focus:ring-1 focus:ring-blue-600 text-slate-900 pl-10 pr-4 py-2.5 rounded-lg outline-none text-sm"
-                  />
-                </div>
-                <p className="text-[11px] text-slate-500 mt-1">
-                  Session password provided by invigilator (default: 1234)
-                </p>
-              </div>
-
-              {/* Error Banner */}
-              {loginError && (
-                <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-xs leading-relaxed">
-                  {loginError}
-                </div>
-              )}
-
-              {/* Policy notice */}
-              <div className="bg-slate-50 border border-slate-200 p-3 rounded-lg flex items-start gap-2 text-xs text-slate-600">
-                <Lock className="w-4 h-4 text-slate-400 shrink-0 mt-0.5" />
-                <span>
-                  Your computer connects live to the teacher invigilator monitor. Please remain seated once the test starts.
+                <span className="text-[11px] font-semibold text-blue-600">
+                  Selected: <strong className="font-mono text-sm">{pcNumber || 'PC-01'}</strong>
                 </span>
               </div>
 
-              {/* Submit Button */}
+              {/* Station Chips Grid */}
+              <div className="grid grid-cols-4 sm:grid-cols-6 gap-2 max-h-48 overflow-y-auto p-1 bg-slate-50 rounded-xl border border-slate-200">
+                {(ConsultancyService.getStations(selectedConsultancyId || consultancy?.id || 'apex-global').length > 0
+                  ? ConsultancyService.getStations(selectedConsultancyId || consultancy?.id || 'apex-global')
+                  : [
+                      { id: '1', name: 'PC-01', consultancyId: selectedConsultancyId, status: 'idle', lastHeartbeat: '' },
+                      { id: '2', name: 'PC-02', consultancyId: selectedConsultancyId, status: 'idle', lastHeartbeat: '' },
+                      { id: '3', name: 'PC-03', consultancyId: selectedConsultancyId, status: 'idle', lastHeartbeat: '' },
+                      { id: '4', name: 'PC-04', consultancyId: selectedConsultancyId, status: 'idle', lastHeartbeat: '' },
+                      { id: '5', name: 'PC-05', consultancyId: selectedConsultancyId, status: 'idle', lastHeartbeat: '' },
+                      { id: '6', name: 'PC-06', consultancyId: selectedConsultancyId, status: 'idle', lastHeartbeat: '' }
+                    ]
+                ).map((st) => {
+                  const isStSelected =
+                    ConsultancyService.normalizeStationName(pcNumber) ===
+                    ConsultancyService.normalizeStationName(st.name);
+                  return (
+                    <button
+                      key={st.id}
+                      type="button"
+                      onClick={() => setPcNumber(st.name)}
+                      className={`py-2 px-1.5 rounded-lg font-mono font-bold text-xs transition cursor-pointer border flex flex-col items-center justify-center gap-0.5 ${
+                        isStSelected
+                          ? 'bg-blue-600 text-white border-blue-600 shadow-sm scale-105'
+                          : 'bg-white hover:bg-blue-50 text-slate-800 border-slate-200 hover:border-blue-300'
+                      }`}
+                    >
+                      <span>{st.name}</span>
+                      <span
+                        className={`w-1.5 h-1.5 rounded-full ${
+                          st.status === 'in_progress' ? 'bg-amber-400' : 'bg-emerald-400'
+                        }`}
+                      />
+                    </button>
+                  );
+                })}
+              </div>
+
+              {/* Custom PC Name Input */}
+              <div className="pt-1 flex items-center gap-2">
+                <input
+                  type="text"
+                  value={pcNumber}
+                  onChange={(e) => setPcNumber(e.target.value.toUpperCase())}
+                  placeholder="Or type custom PC name (e.g. PC-12)"
+                  className="flex-1 bg-white border border-slate-300 focus:border-blue-600 text-slate-900 font-mono font-bold text-xs px-3 py-2 rounded-lg outline-none uppercase"
+                />
+              </div>
+            </div>
+
+            {/* Error Banner */}
+            {loginError && (
+              <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-xs">
+                {loginError}
+              </div>
+            )}
+
+            {/* Action Buttons */}
+            <div className="space-y-2 pt-2 border-t border-slate-100">
               <button
-                type="submit"
-                className="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold text-sm rounded-lg transition cursor-pointer shadow-xs flex items-center justify-center gap-2"
+                type="button"
+                onClick={() => handleQuickConnectStation(pcNumber)}
+                className="w-full py-3.5 bg-blue-600 hover:bg-blue-700 text-white font-bold text-sm rounded-xl transition cursor-pointer shadow-md hover:shadow-lg shadow-blue-600/25 flex items-center justify-center gap-2"
               >
-                <span>Connect Station</span>
+                <span>Save &amp; Connect as {pcNumber || 'PC-01'}</span>
                 <ArrowRight className="w-4 h-4" />
               </button>
-            </form>
+
+              <p className="text-[11px] text-center text-slate-500">
+                🔒 Once connected, this browser permanently remembers its station identity.
+              </p>
+            </div>
           </div>
         </main>
       )}
@@ -762,6 +830,15 @@ export const StudentTerminalView: React.FC<StudentTerminalViewProps> = ({
 
           {/* Terminal Support Tools */}
           <div className="mt-8 border-t border-slate-200 pt-5 flex flex-wrap items-center justify-center gap-3">
+            {!isFullscreen && (
+              <button
+                onClick={toggleFullscreen}
+                className="px-4 py-2.5 rounded-xl bg-purple-50 hover:bg-purple-100 border border-purple-200 text-purple-800 font-bold text-xs transition flex items-center gap-2 cursor-pointer shadow-xs"
+              >
+                <Maximize className="w-4 h-4 text-purple-600" />
+                <span>Enter Fullscreen Exam Mode (F11)</span>
+              </button>
+            )}
             <button
               onClick={testAudio}
               className="px-4 py-2.5 rounded-xl bg-white hover:bg-slate-50 border border-slate-300 text-slate-800 font-bold text-xs shadow-xs transition flex items-center gap-2 cursor-pointer"

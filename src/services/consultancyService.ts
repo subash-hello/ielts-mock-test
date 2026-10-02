@@ -627,16 +627,31 @@ export class ConsultancyService {
       return { success: false, error: 'Please enter the examination password.' };
     }
 
-    const consultancy = this.getConsultancyByBranchCode(cleanBranch);
+    let consultancy = this.getConsultancyByBranchCode(cleanBranch);
+    if (!consultancy) {
+      consultancy = this.getConsultancyById(branchCode.trim().toLowerCase());
+    }
+    if (!consultancy) {
+      const all = this.getConsultancies();
+      consultancy = all.find(
+        (c) =>
+          c.id.toUpperCase() === cleanBranch ||
+          (c.branchCode && c.branchCode.toUpperCase() === cleanBranch) ||
+          (c.accessCode && c.accessCode.toUpperCase() === cleanBranch) ||
+          c.name.toUpperCase().includes(cleanBranch)
+      );
+    }
+
     if (!consultancy) {
       return {
         success: false,
-        error: `Branch code "${cleanBranch}" not found. Please confirm with your invigilator.`
+        error: `Branch code or ID "${cleanBranch}" not found. Please confirm with your invigilator.`
       };
     }
 
     const expectedPassword = consultancy.examPassword || '1234';
     if (
+      cleanPass &&
       cleanPass !== expectedPassword &&
       cleanPass !== '1234' &&
       cleanPass !== consultancy.accessCode
@@ -1017,6 +1032,26 @@ export class ConsultancyService {
     localStorage.setItem(`ielts_stations_${consultancyId}`, JSON.stringify(list));
     this.broadcast('STATION_ADDED', newStation);
     return newStation;
+  }
+
+  public static addStationsBatch(consultancyId: string, count: number): LabStation[] {
+    const list = this.getStations(consultancyId);
+    let maxNum = 0;
+    list.forEach((st) => {
+      const match = st.name.match(/\d+/);
+      if (match) {
+        const n = parseInt(match[0], 10);
+        if (n > maxNum) maxNum = n;
+      }
+    });
+
+    const added: LabStation[] = [];
+    for (let i = 1; i <= count; i++) {
+      const num = maxNum + i;
+      const formattedName = `PC-${num < 10 ? '0' + num : num}`;
+      added.push(this.addStation(consultancyId, formattedName));
+    }
+    return added;
   }
 
   public static deleteStation(consultancyId: string, stationId: string): void {
