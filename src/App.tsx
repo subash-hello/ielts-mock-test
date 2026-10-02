@@ -73,9 +73,11 @@ export const App: React.FC = () => {
         const clean = urlStation.trim().toUpperCase();
         return clean.startsWith('PC-') ? clean : `PC-${clean.replace(/^PC/i, '')}`;
       }
+      const savedPc = localStorage.getItem('ielts_terminal_pc');
+      if (savedPc) return savedPc;
     }
     const saved = ConsultancyService.getCurrentCandidateSession();
-    return saved?.stationName || 'PC-01';
+    return saved?.stationName || (typeof window !== 'undefined' && localStorage.getItem('ielts_terminal_pc')) || 'PC-01';
   });
 
   const [activeCandidateInfo, setActiveCandidateInfo] = useState<{
@@ -726,12 +728,8 @@ export const App: React.FC = () => {
 
   // Open Candidate ID result verification modal
   const handleOpenLookup = (initialId?: string) => {
-    const defaultId =
-      initialId ||
-      activeCandidateInfo?.candidateId ||
-      candidateSession?.candidateId ||
-      activeResult?.candidateId ||
-      '';
+    // Only prefill when an explicit initial ID was requested (e.g. from submission receipt)
+    const defaultId = initialId || '';
     setLookupInitialCandidateId(defaultId);
     setIsLookupModalOpen(true);
   };
@@ -914,6 +912,10 @@ export const App: React.FC = () => {
             startTest(test, undefined, fullMock);
           }}
           onExitTerminal={() => {
+            try {
+              localStorage.removeItem('ielts_terminal_pass');
+              localStorage.removeItem('ielts_candidate_session');
+            } catch {}
             if (!candidateSession && !adminUser) {
               setActiveScreen('auth');
             } else {

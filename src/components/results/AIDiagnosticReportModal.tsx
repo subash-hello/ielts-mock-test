@@ -14,12 +14,17 @@ import { ConsultancyService } from '../../services/consultancyService';
 interface AIDiagnosticReportModalProps {
   reportData: {
     studentName: string;
+    candidateId?: string;
     bandScore: number;
     module: 'reading' | 'listening' | 'writing';
     testTitle: string;
+    testId?: string;
+    book?: number;
+    testNumber?: number;
     correctCount: number;
     totalQuestions: number;
     timeTakenSeconds: number;
+    completedAt?: string;
   };
   consultancyName: string;
   branchName?: string;
@@ -32,20 +37,34 @@ export const AIDiagnosticReportModal: React.FC<AIDiagnosticReportModalProps> = (
   branchName = 'Academic Department',
   onClose
 }) => {
+  // Extract book and testNumber if present in title e.g. "Cambridge 16 Test 1 (Reading)"
+  let extractedBook = reportData.book;
+  let extractedTestNumber = reportData.testNumber;
+  if (!extractedBook || !extractedTestNumber) {
+    const bookMatch = (reportData.testTitle || reportData.testId || '').match(/cam(?:bridge)?[- ]?(\d+)/i);
+    const testMatch = (reportData.testTitle || reportData.testId || '').match(/test[- ]?(\d+)/i);
+    if (bookMatch) extractedBook = parseInt(bookMatch[1], 10);
+    if (testMatch) extractedTestNumber = parseInt(testMatch[1], 10);
+  }
+
   const diagnostic = ConsultancyService.generateAIDiagnostic(
     {
-      testId: 'mock-report',
-      book: 19,
-      testNumber: 1,
+      testId: reportData.testId || 'report',
+      book: extractedBook || 16,
+      testNumber: extractedTestNumber || 1,
       module: reportData.module,
       totalQuestions: reportData.totalQuestions,
       correctCount: reportData.correctCount,
       bandScore: reportData.bandScore,
       timeTakenSeconds: reportData.timeTakenSeconds,
-      completedAt: new Date().toISOString(),
+      completedAt: reportData.completedAt || new Date().toISOString(),
+      candidateId: reportData.candidateId,
+      candidateName: reportData.studentName,
       answers: {}
     },
-    reportData.studentName
+    reportData.studentName,
+    reportData.candidateId,
+    reportData.testTitle
   );
 
   const handlePrint = () => {

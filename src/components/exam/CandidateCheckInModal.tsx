@@ -237,7 +237,7 @@ export const CandidateCheckInModal: React.FC<CandidateCheckInModalProps> = ({
             >
               {consultancies.map((c) => (
                 <option key={c.id} value={c.id}>
-                  {c.name} {c.branch ? `(${c.branch})` : ''} — Code: {c.branchCode || c.accessCode}
+                  {c.name} {c.branch ? `(${c.branch})` : ''}
                 </option>
               ))}
             </select>

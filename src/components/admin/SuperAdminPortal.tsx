@@ -12,7 +12,9 @@ import {
   Zap,
   Globe,
   Award,
-  LogOut
+  LogOut,
+  Eye,
+  EyeOff
 } from 'lucide-react';
 import type { Consultancy, ConsultancyStatus } from '../../types/consultancy';
 import { ConsultancyService } from '../../services/consultancyService';
@@ -63,6 +65,12 @@ export const SuperAdminPortal: React.FC<SuperAdminPortalProps> = ({
   });
 
   const [deletingConsultancy, setDeletingConsultancy] = useState<{ id: string; name: string } | null>(null);
+  const [visiblePasswords, setVisiblePasswords] = useState<Record<string, boolean>>({});
+
+  const togglePasswordVisibility = (id: string, type: 'admin' | 'exam') => {
+    const key = `${id}_${type}`;
+    setVisiblePasswords((prev) => ({ ...prev, [key]: !prev[key] }));
+  };
 
   const reloadData = () => {
     setConsultancies(ConsultancyService.getConsultancies());
@@ -339,24 +347,34 @@ export const SuperAdminPortal: React.FC<SuperAdminPortalProps> = ({
                     <span className="text-[10px] text-slate-500 block uppercase font-semibold">
                       Exam Password
                     </span>
-                    <span className="font-mono font-bold text-slate-800 text-sm">
-                      {c.examPassword || '1234'}
+                    <div className="flex items-center gap-1.5 mt-0.5">
+                      <span className="font-mono font-bold text-slate-800 text-sm">
+                        {visiblePasswords[`${c.id}_exam`] ? (c.examPassword || '1234') : '••••••'}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => togglePasswordVisibility(c.id, 'exam')}
+                        className="text-slate-400 hover:text-slate-700 cursor-pointer p-0.5 rounded transition"
+                        title={visiblePasswords[`${c.id}_exam`] ? 'Hide password' : 'Show password'}
+                      >
+                        {visiblePasswords[`${c.id}_exam`] ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                      </button>
+                    </div>
+                  </div>
+                  <div>
+                    <span className="text-[10px] text-slate-500 block uppercase font-semibold">
+                      PC License Limit
+                    </span>
+                    <span className="font-bold text-slate-800 text-sm">
+                      {c.computerLimit} PCs max
                     </span>
                   </div>
                   <div>
                     <span className="text-[10px] text-slate-500 block uppercase font-semibold">
-                      PC Limit
+                      Credits Allocated
                     </span>
                     <span className="font-bold text-slate-800 text-sm">
-                      {c.computerLimit} PCs
-                    </span>
-                  </div>
-                  <div>
-                    <span className="text-[10px] text-slate-500 block uppercase font-semibold">
-                      Credits
-                    </span>
-                    <span className="font-bold text-slate-800 text-sm">
-                      {c.creditsUsed}/{c.testCredits}
+                      {c.creditsUsed} / {c.testCredits} used
                     </span>
                   </div>
                 </div>
@@ -364,7 +382,20 @@ export const SuperAdminPortal: React.FC<SuperAdminPortalProps> = ({
                 {/* Contact info */}
                 <div className="text-xs text-slate-600 flex flex-wrap items-center gap-x-4 gap-y-1">
                   <span>✉ {c.adminEmail}</span>
-                  <span>🔑 Admin Pass: <strong className="font-mono text-slate-800">{c.adminPassword || c.examPassword || '1234'}</strong></span>
+                  <span className="inline-flex items-center gap-1.5">
+                    <span>🔑 Admin Pass:</span>
+                    <strong className="font-mono text-slate-800">
+                      {visiblePasswords[`${c.id}_admin`] ? (c.adminPassword || c.examPassword || '1234') : '••••••••'}
+                    </strong>
+                    <button
+                      type="button"
+                      onClick={() => togglePasswordVisibility(c.id, 'admin')}
+                      className="text-slate-400 hover:text-slate-700 cursor-pointer p-0.5 rounded transition"
+                      title={visiblePasswords[`${c.id}_admin`] ? 'Hide password' : 'Show password'}
+                    >
+                      {visiblePasswords[`${c.id}_admin`] ? <EyeOff className="w-3 h-3" /> : <Eye className="w-3 h-3" />}
+                    </button>
+                  </span>
                   <span>📞 {c.phone}</span>
                 </div>
               </div>

@@ -55,6 +55,13 @@ export const UnifiedAuthView: React.FC<UnifiedAuthViewProps> = ({
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
+  React.useEffect(() => {
+    try {
+      localStorage.removeItem('ielts_terminal_pass');
+    } catch {}
+    setExamPassword('');
+  }, []);
+
   // Handle Candidate Form Submit
   const handleCandidateSubmit = (e: React.FormEvent) => {
     e.preventDefault();

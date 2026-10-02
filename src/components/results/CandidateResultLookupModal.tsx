@@ -42,16 +42,23 @@ export const CandidateResultLookupModal: React.FC<CandidateResultLookupModalProp
   const consultancies = ConsultancyService.getConsultancies();
 
   useEffect(() => {
-    if (initialCandidateId) {
-      setCandidateIdInput(initialCandidateId);
+    if (isOpen) {
+      if (initialCandidateId) {
+        setCandidateIdInput(initialCandidateId);
+        performLookup(initialCandidateId, consultancyId);
+      } else {
+        setCandidateIdInput('');
+        setSearched(false);
+        setNotFound(false);
+        setPublishedResults([]);
+        setPendingResults([]);
+      }
+    } else {
+      setSearched(false);
+      setNotFound(false);
+      setIsSearching(false);
     }
-  }, [initialCandidateId]);
-
-  useEffect(() => {
-    if (isOpen && initialCandidateId) {
-      performLookup(initialCandidateId, consultancyId);
-    }
-  }, [isOpen]);
+  }, [isOpen, initialCandidateId, consultancyId]);
 
   const performLookup = (candId: string, cid?: string) => {
     const clean = candId.trim().replace(/^#/, '');
@@ -148,7 +155,11 @@ export const CandidateResultLookupModal: React.FC<CandidateResultLookupModalProp
                   required
                   placeholder="Enter your name (e.g. Sujan Sharma) or Candidate ID"
                   value={candidateIdInput}
-                  onChange={(e) => setCandidateIdInput(e.target.value)}
+                  onChange={(e) => {
+                    setCandidateIdInput(e.target.value);
+                    if (notFound) setNotFound(false);
+                    if (searched) setSearched(false);
+                  }}
                   className="w-full pl-9 pr-4 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm font-semibold text-slate-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition"
                   autoFocus
                 />

@@ -29,7 +29,8 @@ import {
   PenTool,
   QrCode,
   Printer,
-  AlertTriangle
+  AlertTriangle,
+  Edit2
 } from 'lucide-react';
 import type {
   Consultancy,
@@ -113,13 +114,36 @@ export const ConsultancyPortal: React.FC<ConsultancyPortalProps> = ({
   const [aiReportModalData, setAiReportModalData] = useState<{
     visible: boolean;
     studentName: string;
+    candidateId?: string;
     bandScore: number;
     module: 'reading' | 'listening' | 'writing';
     testTitle: string;
+    testId?: string;
+    book?: number;
+    testNumber?: number;
     correctCount: number;
     totalQuestions: number;
     timeTakenSeconds: number;
+    completedAt?: string;
   } | null>(null);
+
+  // Candidate Management (Edit & per-student assignment)
+  const [editingStudent, setEditingStudent] = useState<ConsultancyStudent | null>(null);
+  const [assigningCandidate, setAssigningCandidate] = useState<ConsultancyStudent | null>(null);
+  const [candidateAssignForm, setCandidateAssignForm] = useState<{
+    testId: string;
+    stationId: string;
+  }>({
+    testId: 'cambridge-16-test-1-reading',
+    stationId: ''
+  });
+
+  const formatTimeSpent = (seconds: number) => {
+    const s = Math.max(0, Math.floor(seconds || 0));
+    const m = Math.floor(s / 60);
+    const rem = s % 60;
+    return m > 0 ? (rem > 0 ? `${m}m ${rem}s` : `${m}m`) : `${rem}s`;
+  };
 
   // Test Library state
   const [assignedTestIds, setAssignedTestIds] = useState<string[]>(() =>
@@ -414,6 +438,14 @@ export const ConsultancyPortal: React.FC<ConsultancyPortalProps> = ({
         if (writingModalResult && writingModalResult.testId === res.testId && writingModalResult.candidateId === res.candidateId) {
           setWritingModalResult(null);
         }
+        // If candidate has no other remaining results, remove orphan candidate record (BUG-05)
+        if (res.candidateId) {
+          const remainingResults = ConsultancyService.getResults(consultancyId);
+          const hasRemaining = remainingResults.some((r) => r.candidateId === res.candidateId);
+          if (!hasRemaining) {
+            ConsultancyService.deleteStudent(consultancyId, res.candidateId);
+          }
+        }
         reloadAll();
       }
     });
@@ -453,18 +485,26 @@ export const ConsultancyPortal: React.FC<ConsultancyPortalProps> = ({
   const [sessionEndNotice, setSessionEndNotice] = useState<string | null>(null);
 
   const handleStopBranchTest = () => {
-    const targetCid = consultancy?.id || consultancyId;
-    ConsultancyService.launchTestToBranch(targetCid, null);
-    if (consultancy?.branchCode && consultancy.branchCode !== targetCid) {
-      ConsultancyService.launchTestToBranch(consultancy.branchCode, null);
-    }
-    setActiveLaunchedTest(null);
-    setStations(ConsultancyService.getStations(targetCid));
-    reloadAll();
-    setSessionEndNotice('Exam session ended successfully. Test removed from all student terminals.');
-    setTimeout(() => {
-      setSessionEndNotice(null);
-    }, 4500);
+    setConfirmModal({
+      title: 'End Active Exam Session',
+      message: 'Are you sure you want to stop and end the active exam session? This will immediately disconnect active tests across all student workstations.',
+      confirmLabel: 'End Session',
+      isDestructive: true,
+      onConfirm: () => {
+        const targetCid = consultancy?.id || consultancyId;
+        ConsultancyService.launchTestToBranch(targetCid, null);
+        if (consultancy?.branchCode && consultancy.branchCode !== targetCid) {
+          ConsultancyService.launchTestToBranch(consultancy.branchCode, null);
+        }
+        setActiveLaunchedTest(null);
+        setStations(ConsultancyService.getStations(targetCid));
+        reloadAll();
+        setSessionEndNotice('Exam session ended successfully. Test removed from all student terminals.');
+        setTimeout(() => {
+          setSessionEndNotice(null);
+        }, 4500);
+      }
+    });
   };
 
   const handleOpenWritingEvaluation = (result: TestResult) => {
@@ -1066,8 +1106,6 @@ export const ConsultancyPortal: React.FC<ConsultancyPortalProps> = ({
                         .map((res, idx) => {
                           const isReading = res.module === 'reading';
                           const isWriting = res.module === 'writing';
-                          const timeMins = Math.floor(res.timeTakenSeconds / 60);
-                          const timeSecs = res.timeTakenSeconds % 60;
                           const accuracyPercent = res.totalQuestions
                             ? Math.round((res.correctCount / res.totalQuestions) * 100)
                             : 0;
@@ -1162,7 +1200,7 @@ export const ConsultancyPortal: React.FC<ConsultancyPortalProps> = ({
                               <td className="px-6 py-4 text-center font-mono text-slate-600 text-xs">
                                 <div className="flex items-center justify-center gap-1">
                                   <Clock className="w-3 h-3 text-slate-400" />
-                                  <span>{timeMins}m {timeSecs}s</span>
+                                  <span>{formatTimeSpent(res.timeTakenSeconds)}</span>
                                 </div>
                               </td>
 
@@ -1235,12 +1273,17 @@ export const ConsultancyPortal: React.FC<ConsultancyPortalProps> = ({
                                       setAiReportModalData({
                                         visible: true,
                                         studentName: res.candidateName || 'Candidate',
+                                        candidateId: res.candidateId,
                                         bandScore: res.bandScore,
                                         module: res.module,
-                                        testTitle: `Cambridge ${res.book} Test ${res.testNumber} (${res.module === 'reading' ? 'Reading' : res.module === 'writing' ? 'Writing' : 'Listening'})`,
+                                        testTitle: res.testTitle || (res.book && res.testNumber ? `Cambridge ${res.book} Test ${res.testNumber} (${res.module === 'reading' ? 'Reading' : res.module === 'writing' ? 'Writing' : 'Listening'})` : 'IELTS Mock Examination'),
+                                        testId: res.testId,
+                                        book: res.book,
+                                        testNumber: res.testNumber,
                                         correctCount: res.correctCount,
                                         totalQuestions: res.totalQuestions || 40,
-                                        timeTakenSeconds: res.timeTakenSeconds
+                                        timeTakenSeconds: res.timeTakenSeconds,
+                                        completedAt: res.completedAt
                                       })
                                     }
                                     className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-semibold shadow-xs transition cursor-pointer"
@@ -1553,12 +1596,17 @@ export const ConsultancyPortal: React.FC<ConsultancyPortalProps> = ({
                             setAiReportModalData({
                               visible: true,
                               studentName: res.candidateName || 'Candidate',
+                              candidateId: res.candidateId,
                               bandScore: res.bandScore,
                               module: res.module,
-                              testTitle: `Cambridge ${res.book} Test ${res.testNumber}`,
+                              testTitle: res.testTitle || (res.book && res.testNumber ? `Cambridge ${res.book} Test ${res.testNumber} (${res.module === 'reading' ? 'Reading' : res.module === 'writing' ? 'Writing' : 'Listening'})` : 'IELTS Mock Examination'),
+                              testId: res.testId,
+                              book: res.book,
+                              testNumber: res.testNumber,
                               correctCount: res.correctCount,
                               totalQuestions: res.totalQuestions || 40,
-                              timeTakenSeconds: res.timeTakenSeconds
+                              timeTakenSeconds: res.timeTakenSeconds,
+                              completedAt: res.completedAt
                             })
                           }
                           className="text-[11px] font-semibold text-blue-600 hover:underline cursor-pointer"
@@ -1859,6 +1907,7 @@ export const ConsultancyPortal: React.FC<ConsultancyPortalProps> = ({
                       <th className="px-6 py-3 font-semibold">Candidate ID</th>
                       <th className="px-6 py-3 font-semibold">Full Name</th>
                       <th className="px-6 py-3 font-semibold">Target Band</th>
+                      <th className="px-6 py-3 font-semibold">Assigned Exam</th>
                       <th className="px-6 py-3 font-semibold">Mocks Done</th>
                       <th className="px-6 py-3 font-semibold">Highest Band</th>
                       <th className="px-6 py-3 font-semibold">Avg Band</th>
@@ -1880,10 +1929,21 @@ export const ConsultancyPortal: React.FC<ConsultancyPortalProps> = ({
                           </td>
                           <td className="px-6 py-3 font-semibold text-slate-900">
                             <div>{std.fullName}</div>
-                            <div className="text-[11px] text-slate-500 font-normal">{std.email}</div>
+                            <div className="text-[11px] text-slate-500 font-normal">
+                              {std.email ? std.email : std.phone ? std.phone : 'No contact info'}
+                            </div>
                           </td>
                           <td className="px-6 py-3 font-bold text-blue-600">
-                            Band {std.targetBand.toFixed(1)}
+                            {std.targetBand ? `Band ${std.targetBand.toFixed(1)}` : '—'}
+                          </td>
+                          <td className="px-6 py-3">
+                            {std.assignedTestTitle ? (
+                              <span className="inline-flex items-center gap-1 font-semibold text-[11px] text-indigo-700 bg-indigo-50 border border-indigo-200 px-2 py-0.5 rounded-md">
+                                {std.assignedTestTitle}
+                              </span>
+                            ) : (
+                              <span className="text-slate-400 text-xs italic">None</span>
+                            )}
                           </td>
                           <td className="px-6 py-3 text-slate-700">
                             {std.testsCompletedCount} tests
@@ -1895,20 +1955,46 @@ export const ConsultancyPortal: React.FC<ConsultancyPortalProps> = ({
                             {std.averageBand ? `Band ${std.averageBand.toFixed(1)}` : '—'}
                           </td>
                           <td className="px-6 py-3 text-right">
-                            <button
-                              onClick={() => {
-                                handleOpenAssignModal(idleStations[0] || null);
-                                setAssignForm((prev) => ({
-                                  ...prev,
-                                  studentName: std.fullName,
-                                  candidateId: std.candidateNumber,
-                                  targetBand: std.targetBand
-                                }));
-                              }}
-                              className="px-2.5 py-1 bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 rounded font-semibold text-xs transition cursor-pointer"
-                            >
-                              Assign Test
-                            </button>
+                            <div className="flex items-center justify-end gap-1.5">
+                              <button
+                                onClick={() => {
+                                  setAssigningCandidate(std);
+                                  setCandidateAssignForm({
+                                    testId: std.assignedTestId || tests[0]?.id || 'cambridge-16-test-1-reading',
+                                    stationId: ''
+                                  });
+                                }}
+                                className="px-2.5 py-1 bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 rounded font-semibold text-xs transition cursor-pointer"
+                                title="Assign a specific mock test to this candidate"
+                              >
+                                Assign Test
+                              </button>
+                              <button
+                                onClick={() => setEditingStudent(std)}
+                                className="p-1.5 hover:bg-slate-100 text-slate-500 hover:text-slate-800 rounded-lg transition cursor-pointer border border-transparent hover:border-slate-200"
+                                title="Edit Candidate Details"
+                              >
+                                <Edit2 className="w-3.5 h-3.5" />
+                              </button>
+                              <button
+                                onClick={() => {
+                                  setConfirmModal({
+                                    title: 'Delete Candidate Record',
+                                    message: `Are you sure you want to delete "${std.fullName}" (#${std.candidateNumber})? This will remove this candidate from your consultancy registry.`,
+                                    confirmLabel: 'Delete Candidate',
+                                    isDestructive: true,
+                                    onConfirm: () => {
+                                      ConsultancyService.deleteStudent(consultancy.id, std.id);
+                                      reloadAll();
+                                    }
+                                  });
+                                }}
+                                className="p-1.5 hover:bg-red-50 text-slate-400 hover:text-red-600 rounded-lg transition cursor-pointer border border-transparent hover:border-red-200"
+                                title="Delete Candidate Record"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </button>
+                            </div>
                           </td>
                         </tr>
                       ))}
@@ -2727,7 +2813,7 @@ export const ConsultancyPortal: React.FC<ConsultancyPortalProps> = ({
                 <div className="bg-slate-50 p-3 rounded-xl border border-slate-200">
                   <span className="text-slate-500 block text-[11px]">Time Spent</span>
                   <span className="text-xl font-black text-blue-600">
-                    {Math.floor(scorecardModalResult.timeTakenSeconds / 60)}m
+                    {formatTimeSpent(scorecardModalResult.timeTakenSeconds)}
                   </span>
                 </div>
               </div>
@@ -3060,6 +3146,240 @@ export const ConsultancyPortal: React.FC<ConsultancyPortalProps> = ({
                 </button>
               </div>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Assign Test to Candidate Modal */}
+      {assigningCandidate && (
+        <div
+          className="fixed inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center z-50 p-4 animate-in fade-in"
+          onClick={() => setAssigningCandidate(null)}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="bg-white border border-slate-200 max-w-lg w-full rounded-2xl shadow-2xl overflow-hidden cursor-default"
+          >
+            <div className="p-5 border-b border-slate-200 bg-slate-50 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-blue-50 border border-blue-200 flex items-center justify-center text-blue-600 shadow-xs">
+                  <Play className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="font-bold text-slate-900 text-base">Assign Test to Candidate</h3>
+                  <p className="text-xs text-slate-500">
+                    Candidate: <strong className="text-slate-900">{assigningCandidate.fullName}</strong> (#{assigningCandidate.candidateNumber})
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => setAssigningCandidate(null)}
+                className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-200 transition cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                const chosenTest = tests.find((t) => t.id === candidateAssignForm.testId) || allFullMockTests.find((t) => t.id === candidateAssignForm.testId) || tests[0];
+                if (!chosenTest) return;
+
+                const updatedStudent: ConsultancyStudent = {
+                  ...assigningCandidate,
+                  assignedTestId: chosenTest.id,
+                  assignedTestTitle: chosenTest.title
+                };
+                ConsultancyService.saveStudent(updatedStudent);
+
+                if (candidateAssignForm.stationId) {
+                  ConsultancyService.assignTestToStation(
+                    consultancy.id,
+                    candidateAssignForm.stationId,
+                    chosenTest.id,
+                    chosenTest.title,
+                    (chosenTest as any).module || 'reading',
+                    {
+                      candidateId: assigningCandidate.candidateNumber,
+                      name: assigningCandidate.fullName,
+                      targetBand: assigningCandidate.targetBand
+                    }
+                  );
+                }
+
+                setAssigningCandidate(null);
+                reloadAll();
+              }}
+              className="p-6 space-y-4 text-xs"
+            >
+              <div>
+                <label className="block font-semibold text-slate-700 mb-1.5">
+                  Select Mock Exam
+                </label>
+                <select
+                  value={candidateAssignForm.testId}
+                  onChange={(e) => setCandidateAssignForm((prev) => ({ ...prev, testId: e.target.value }))}
+                  className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3.5 py-2.5 text-xs text-slate-900 font-medium outline-none focus:border-blue-600 focus:bg-white"
+                >
+                  <optgroup label="Single Module Tests">
+                    {tests.map((t) => (
+                      <option key={t.id} value={t.id}>
+                        {t.title} ({t.module.toUpperCase()})
+                      </option>
+                    ))}
+                  </optgroup>
+                  <optgroup label="Full Mock Exams (Reading + Listening)">
+                    {allFullMockTests.map((fm) => (
+                      <option key={fm.id} value={fm.id}>
+                        {fm.title} (Full Mock)
+                      </option>
+                    ))}
+                  </optgroup>
+                </select>
+              </div>
+
+              <div>
+                <label className="block font-semibold text-slate-700 mb-1.5">
+                  Dispatch to Station (Optional)
+                </label>
+                <select
+                  value={candidateAssignForm.stationId}
+                  onChange={(e) => setCandidateAssignForm((prev) => ({ ...prev, stationId: e.target.value }))}
+                  className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3.5 py-2.5 text-xs text-slate-900 font-medium outline-none focus:border-blue-600 focus:bg-white"
+                >
+                  <option value="">Do not assign to a station now (Candidate Registry only)</option>
+                  {stations.map((st) => (
+                    <option key={st.id} value={st.id}>
+                      {st.name} ({st.status === 'in_progress' ? 'Exam in progress' : st.status === 'assigned' ? 'Assigned' : 'Idle'})
+                    </option>
+                  ))}
+                </select>
+                <p className="text-[11px] text-slate-500 mt-1">
+                  Selecting a station will immediately dispatch this exam with the candidate details to that workstation.
+                </p>
+              </div>
+
+              <div className="flex items-center gap-3 pt-3 border-t border-slate-100">
+                <button
+                  type="button"
+                  onClick={() => setAssigningCandidate(null)}
+                  className="flex-1 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl transition cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="flex-1 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl transition cursor-pointer shadow-sm shadow-blue-600/20"
+                >
+                  Assign Test
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Candidate Details Modal */}
+      {editingStudent && (
+        <div
+          className="fixed inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center z-50 p-4 animate-in fade-in"
+          onClick={() => setEditingStudent(null)}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="bg-white border border-slate-200 max-w-md w-full rounded-2xl shadow-2xl overflow-hidden cursor-default"
+          >
+            <div className="p-5 border-b border-slate-200 bg-slate-50 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-slate-100 border border-slate-200 flex items-center justify-center text-slate-700 shadow-xs">
+                  <Edit2 className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="font-bold text-slate-900 text-base">Edit Candidate Record</h3>
+                  <p className="text-xs font-mono text-slate-500">#{editingStudent.candidateNumber}</p>
+                </div>
+              </div>
+              <button
+                onClick={() => setEditingStudent(null)}
+                className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-200 transition cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                ConsultancyService.saveStudent(editingStudent);
+                setEditingStudent(null);
+                reloadAll();
+              }}
+              className="p-6 space-y-4 text-xs"
+            >
+              <div>
+                <label className="block font-semibold text-slate-700 mb-1">Full Official Name</label>
+                <input
+                  type="text"
+                  required
+                  value={editingStudent.fullName}
+                  onChange={(e) => setEditingStudent({ ...editingStudent, fullName: e.target.value })}
+                  className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3.5 py-2.5 text-xs text-slate-900 font-medium outline-none focus:border-blue-600 focus:bg-white"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block font-semibold text-slate-700 mb-1">Email Address</label>
+                  <input
+                    type="email"
+                    value={editingStudent.email || ''}
+                    onChange={(e) => setEditingStudent({ ...editingStudent, email: e.target.value })}
+                    placeholder="candidate@example.com"
+                    className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3.5 py-2.5 text-xs text-slate-900 font-medium outline-none focus:border-blue-600 focus:bg-white"
+                  />
+                </div>
+                <div>
+                  <label className="block font-semibold text-slate-700 mb-1">Phone Number</label>
+                  <input
+                    type="tel"
+                    value={editingStudent.phone || ''}
+                    onChange={(e) => setEditingStudent({ ...editingStudent, phone: e.target.value })}
+                    placeholder="e.g. 9812345678"
+                    className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3.5 py-2.5 text-xs text-slate-900 font-medium outline-none focus:border-blue-600 focus:bg-white"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block font-semibold text-slate-700 mb-1">Target IELTS Band</label>
+                <select
+                  value={editingStudent.targetBand || 7.0}
+                  onChange={(e) => setEditingStudent({ ...editingStudent, targetBand: Number(e.target.value) })}
+                  className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3.5 py-2.5 text-xs text-slate-900 font-medium outline-none focus:border-blue-600 focus:bg-white"
+                >
+                  {[5.0, 5.5, 6.0, 6.5, 7.0, 7.5, 8.0, 8.5, 9.0].map((b) => (
+                    <option key={b} value={b}>Band {b.toFixed(1)}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="flex items-center gap-3 pt-3 border-t border-slate-100">
+                <button
+                  type="button"
+                  onClick={() => setEditingStudent(null)}
+                  className="flex-1 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl transition cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="flex-1 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl transition cursor-pointer shadow-sm shadow-blue-600/20"
+                >
+                  Save Changes
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}

@@ -16,7 +16,8 @@ import {
   Maximize,
   Minimize,
   Check,
-  SlidersHorizontal
+  SlidersHorizontal,
+  AlertCircle
 } from 'lucide-react';
 import type { Consultancy, LabStation } from '../../types/consultancy';
 import type { IELTSMockTest, FullMockTest } from '../../types/ielts';
@@ -54,8 +55,21 @@ export const StudentTerminalView: React.FC<StudentTerminalViewProps> = ({
     return localStorage.getItem('ielts_candidate_name') || '';
   });
 
+  // Check if consultancy or branch code was deleted/deactivated (BUG-11)
+  const isDeleted = (() => {
+    if (typeof window === 'undefined') return false;
+    const urlParams = new URLSearchParams(window.location.search);
+    const explicitCid = urlParams.get('cid') || urlParams.get('consultancy');
+    const branchFromUrl = urlParams.get('branch') || urlParams.get('access') || urlParams.get('code');
+    if (explicitCid && ConsultancyService.isConsultancyDeleted(explicitCid)) return true;
+    if (branchFromUrl && ConsultancyService.isConsultancyDeleted(branchFromUrl)) return true;
+    return false;
+  })();
+
   // Resolve consultancy strictly prioritizing URL parameters (cid, branch, cname) or initialConsultancyId
   const [consultancy, setConsultancy] = useState<Consultancy | undefined>(() => {
+    if (isDeleted) return undefined;
+
     const urlParams = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : new URLSearchParams();
     const explicitCid = urlParams.get('cid') || urlParams.get('consultancy');
     const branchFromUrl = urlParams.get('branch') || urlParams.get('access') || urlParams.get('code');
@@ -131,6 +145,7 @@ export const StudentTerminalView: React.FC<StudentTerminalViewProps> = ({
     return consultancy?.branchCode || consultancy?.accessCode || 'APEX-2026';
   });
 
+  // BUG-03: Remember selected PC station from localStorage across universal link reloads
   const [pcNumber, setPcNumber] = useState<string>(() => {
     const urlParams = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : new URLSearchParams();
     const fromUrl = urlParams.get('station') || urlParams.get('st') || urlParams.get('pc');
@@ -140,8 +155,10 @@ export const StudentTerminalView: React.FC<StudentTerminalViewProps> = ({
       localStorage.setItem('ielts_terminal_pc', formatted);
       return formatted;
     }
+    const saved = typeof window !== 'undefined' ? localStorage.getItem('ielts_terminal_pc') : null;
+    if (saved) return saved;
     if (initialStationName) return initialStationName;
-    return (typeof window !== 'undefined' && localStorage.getItem('ielts_terminal_pc')) || 'PC-01';
+    return 'PC-01';
   });
 
   const allConsultancies = ConsultancyService.getConsultancies();
@@ -524,6 +541,31 @@ export const StudentTerminalView: React.FC<StudentTerminalViewProps> = ({
       buildFullMockTests(tests.length > 0 ? tests : allMockTests).find((f) => f.id === activeLaunchedTest.testId) ||
       null
     : null;
+  if (isDeleted) {
+    return (
+      <div className="min-h-screen bg-slate-50 text-slate-900 flex items-center justify-center p-4 font-sans">
+        <div className="bg-white border border-slate-200 max-w-md w-full p-6 sm:p-8 rounded-3xl shadow-xl text-center space-y-4 animate-in fade-in">
+          <div className="w-14 h-14 rounded-2xl bg-amber-50 text-amber-600 border border-amber-200 flex items-center justify-center mx-auto">
+            <AlertCircle className="w-7 h-7" />
+          </div>
+          <div className="space-y-1.5">
+            <h2 className="text-xl font-bold text-slate-900">Branch Not Found or Deactivated</h2>
+            <p className="text-xs text-slate-600 leading-relaxed">
+              The educational consultancy or computer lab linked to this workstation URL is no longer active.
+            </p>
+          </div>
+          <div className="pt-2">
+            <button
+              onClick={onExitTerminal}
+              className="w-full py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl transition cursor-pointer shadow-xs"
+            >
+              Return to Main Hub
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 flex flex-col font-sans select-none">
@@ -702,7 +744,10 @@ export const StudentTerminalView: React.FC<StudentTerminalViewProps> = ({
                     <button
                       key={st.id}
                       type="button"
-                      onClick={() => setPcNumber(st.name)}
+                      onClick={() => {
+                        setPcNumber(st.name);
+                        localStorage.setItem('ielts_terminal_pc', st.name);
+                      }}
                       className={`py-2 px-1.5 rounded-lg font-mono font-bold text-xs transition cursor-pointer border flex flex-col items-center justify-center gap-0.5 ${
                         isStSelected
                           ? 'bg-blue-600 text-white border-blue-600 shadow-sm scale-105'
@@ -725,7 +770,11 @@ export const StudentTerminalView: React.FC<StudentTerminalViewProps> = ({
                 <input
                   type="text"
                   value={pcNumber}
-                  onChange={(e) => setPcNumber(e.target.value.toUpperCase())}
+                  onChange={(e) => {
+                    const clean = e.target.value.toUpperCase();
+                    setPcNumber(clean);
+                    if (clean) localStorage.setItem('ielts_terminal_pc', clean);
+                  }}
                   placeholder="Or type custom PC name (e.g. PC-12)"
                   className="flex-1 bg-white border border-slate-300 focus:border-blue-600 text-slate-900 font-mono font-bold text-xs px-3 py-2 rounded-lg outline-none uppercase"
                 />

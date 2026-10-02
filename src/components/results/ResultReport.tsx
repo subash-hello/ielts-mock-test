@@ -884,12 +884,17 @@ export const ResultReport: React.FC<ResultReportProps> = ({
         <AIDiagnosticReportModal
           reportData={{
             studentName: activeResult.candidateName || result.candidateName || 'Candidate',
+            candidateId: activeResult.candidateId || result.candidateId,
             bandScore: activeResult.bandScore,
             module: activeResult.module,
             testTitle: activeTest.title,
+            testId: activeTest.id,
+            book: activeResult.book || activeTest.book,
+            testNumber: activeResult.testNumber || activeTest.testNumber,
             correctCount: activeResult.correctCount,
             totalQuestions: activeResult.totalQuestions,
-            timeTakenSeconds: activeResult.timeTakenSeconds
+            timeTakenSeconds: activeResult.timeTakenSeconds,
+            completedAt: activeResult.completedAt || result.completedAt
           }}
           consultancyName={result.consultancyName || 'IELTS Partner Consultancy'}
           branchName="Academic Department"

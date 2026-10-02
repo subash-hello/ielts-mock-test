@@ -1605,6 +1605,14 @@ export class ConsultancyService {
       list.unshift(student);
     }
     localStorage.setItem(`ielts_students_${student.consultancyId}`, JSON.stringify(list));
+    this.broadcast('STUDENT_UPDATED', { consultancyId: student.consultancyId });
+  }
+
+  public static deleteStudent(consultancyId: string, studentId: string): void {
+    const list = this.getStudents(consultancyId);
+    const updated = list.filter((s) => s.id !== studentId && s.candidateNumber !== studentId);
+    localStorage.setItem(`ielts_students_${consultancyId}`, JSON.stringify(updated));
+    this.broadcast('STUDENT_UPDATED', { consultancyId, studentId });
   }
 
   public static recordStudentTestResult(
@@ -1628,6 +1636,9 @@ export class ConsultancyService {
           student.testsCompletedCount).toFixed(1)
       );
       student.latestResultId = result.testId;
+      if (result.targetBand && (!student.targetBand || student.targetBand === 0)) {
+        student.targetBand = result.targetBand;
+      }
       this.saveStudent(student);
     } else {
       const newStd: ConsultancyStudent = {
@@ -1635,9 +1646,9 @@ export class ConsultancyService {
         consultancyId,
         candidateNumber: candidateNumber || '00' + Math.floor(1000 + Math.random() * 9000),
         fullName: cleanName,
-        email: `${cleanName.toLowerCase().replace(/\s+/g, '')}@student.com`,
-        phone: '98' + Math.floor(10000000 + Math.random() * 90000000),
-        targetBand: result.targetBand || 7.5,
+        email: '',
+        phone: '',
+        targetBand: result.targetBand || 0,
         enrolledDate: new Date().toISOString().split('T')[0],
         testsCompletedCount: 1,
         highestBand: result.bandScore,
@@ -2003,7 +2014,12 @@ export class ConsultancyService {
   }
 
   // --- AI DIAGNOSTIC ENGINE ---
-  public static generateAIDiagnostic(result: TestResult, studentName: string = 'Candidate'): AIDiagnosticReport {
+  public static generateAIDiagnostic(
+    result: TestResult,
+    studentName: string = 'Candidate',
+    customCandidateId?: string,
+    customTestTitle?: string
+  ): AIDiagnosticReport {
     const band = result.bandScore;
     const target = 7.5;
     const bandGap = Number((target - band).toFixed(1));
@@ -2074,10 +2090,18 @@ export class ConsultancyService {
       advice.push('Apply the two-pass reading methodology: 90 seconds structural skim, followed by localized question scanning.');
     }
 
+    const resolvedCandidateId = customCandidateId || result.candidateId || ('00' + Math.floor(1000 + Math.random() * 9000));
+    const resolvedTitle =
+      customTestTitle ||
+      (result as any).testTitle ||
+      (result.book && result.testNumber
+        ? `Cambridge ${result.book} Test ${result.testNumber} (${result.module === 'reading' ? 'Reading' : result.module === 'writing' ? 'Writing' : 'Listening'})`
+        : 'IELTS Mock Examination');
+
     return {
       studentName,
-      candidateId: '00' + Math.floor(1000 + Math.random() * 9000),
-      testTitle: `Cambridge ${result.book} Test ${result.testNumber} (${result.module === 'reading' ? 'Reading' : result.module === 'writing' ? 'Writing' : 'Listening'})`,
+      candidateId: resolvedCandidateId,
+      testTitle: resolvedTitle,
       module: result.module,
       date: new Date(result.completedAt).toLocaleDateString('en-US', {
         month: 'short',

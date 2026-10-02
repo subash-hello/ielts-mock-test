@@ -78,6 +78,8 @@ export interface ConsultancyStudent {
   highestBand: number;
   averageBand: number;
   latestResultId?: string;
+  assignedTestId?: string;
+  assignedTestTitle?: string;
 }
 
 export interface AIDiagnosticReport {
