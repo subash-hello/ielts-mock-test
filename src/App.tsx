@@ -300,28 +300,50 @@ export const App: React.FC = () => {
 
   // Lab invigilator remote command listener
   useEffect(() => {
-    if (activeScreen !== 'exam' || !activeCandidateInfo?.stationName) return;
+    if (activeScreen !== 'exam') return;
 
     const unsubscribe = ConsultancyService.subscribe((event) => {
-      if (event.type === 'STATION_COMMAND') {
-        const { stationId, command } = event.payload || {};
-        if (stationId === activeCandidateInfo.stationName) {
+      const cStation = activeCandidateInfo?.stationName || candidateSession?.stationName;
+      const cId = activeCandidateInfo?.consultancyId || candidateSession?.consultancyId;
+
+      if (event.type === 'BRANCH_TEST_LAUNCHED') {
+        const payload = event.payload;
+        if (!payload?.testId) {
+          // If branch test was ended by admin for this candidate's consultancy
+          if (!payload?.consultancyId || payload.consultancyId === cId) {
+            alert('The examination session has been concluded by the consultancy administrator.');
+            setActiveScreen(cStation ? 'terminal' : 'landing');
+          }
+        }
+      } else if (event.type === 'STATION_COMMAND') {
+        const { stationId, stationName, command, consultancyId: cmdCid } = event.payload || {};
+        const cleanStation = cStation ? ConsultancyService.normalizeStationName(cStation) : '';
+
+        const isTargetStation =
+          cleanStation &&
+          (!stationId ||
+            ConsultancyService.normalizeStationName(stationId) === cleanStation ||
+            (stationName && ConsultancyService.normalizeStationName(stationName) === cleanStation));
+
+        const isTargetBranch = !cmdCid || !cId || cmdCid === cId;
+
+        if (isTargetStation || (command === 'END_TEST' && isTargetBranch)) {
           if (command === 'PAUSE_EXAM') {
             setIsExamPausedByTeacher(true);
           } else if (command === 'RESUME_EXAM') {
             setIsExamPausedByTeacher(false);
           } else if (command === 'FORCE_SUBMIT') {
             finishExam();
-          } else if (command === 'RESET_STATION') {
-            alert('Your examination station was reset by the consultancy invigilator.');
-            setActiveScreen('terminal');
+          } else if (command === 'RESET_STATION' || command === 'END_TEST') {
+            alert('Your examination session was concluded by the consultancy invigilator.');
+            setActiveScreen(cStation ? 'terminal' : 'landing');
           }
         }
       }
     });
 
     return () => unsubscribe();
-  }, [activeScreen, activeCandidateInfo]);
+  }, [activeScreen, activeCandidateInfo, candidateSession]);
 
   // Active exam live telemetry heartbeat to Consultancy Lab Monitor
   useEffect(() => {

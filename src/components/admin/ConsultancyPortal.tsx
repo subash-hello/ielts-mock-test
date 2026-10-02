@@ -392,9 +392,11 @@ export const ConsultancyPortal: React.FC<ConsultancyPortalProps> = ({
   };
 
   const handleStopBranchTest = () => {
-    ConsultancyService.launchTestToBranch(consultancyId, null);
-    setActiveLaunchedTest(null);
-    reloadAll();
+    if (window.confirm('Are you sure you want to end this exam session? The test will immediately be removed from all student terminals and candidate portals.')) {
+      ConsultancyService.launchTestToBranch(consultancyId, null);
+      setActiveLaunchedTest(null);
+      reloadAll();
+    }
   };
 
   const handleOpenWritingEvaluation = (result: TestResult) => {
@@ -1365,18 +1367,35 @@ export const ConsultancyPortal: React.FC<ConsultancyPortalProps> = ({
 
                           {!isSubmitted && (
                             <button
-                              onClick={() => ConsultancyService.forceSubmitStation(consultancy.id, st.id)}
+                              onClick={() => {
+                                if (st.status === 'assigned') {
+                                  if (window.confirm(`Cancel test assignment for ${st.name}? The test will be removed from this terminal.`)) {
+                                    ConsultancyService.resetStation(consultancy.id, st.id);
+                                    reloadAll();
+                                  }
+                                } else {
+                                  if (window.confirm(`End and submit test for ${st.name}?`)) {
+                                    ConsultancyService.forceSubmitStation(consultancy.id, st.id);
+                                    reloadAll();
+                                  }
+                                }
+                              }}
                               className="px-2.5 py-1 bg-red-50 hover:bg-red-100 text-red-700 border border-red-200 rounded font-medium transition cursor-pointer"
-                              title="Force submit test"
+                              title={st.status === 'assigned' ? 'Cancel test assignment' : 'Force submit and end test'}
                             >
-                              End Test
+                              {st.status === 'assigned' ? 'Cancel Test' : 'End Test'}
                             </button>
                           )}
 
                           <button
-                            onClick={() => ConsultancyService.resetStation(consultancy.id, st.id)}
+                            onClick={() => {
+                              if (window.confirm(`Reset ${st.name} to Idle? This clears any active or assigned exam.`)) {
+                                ConsultancyService.resetStation(consultancy.id, st.id);
+                                reloadAll();
+                              }
+                            }}
                             className="p-1 hover:bg-slate-100 text-slate-400 hover:text-slate-700 rounded transition cursor-pointer"
-                            title="Reset station to Idle"
+                            title="Reset station to Idle (removes assigned test)"
                           >
                             <RotateCcw className="w-3.5 h-3.5" />
                           </button>

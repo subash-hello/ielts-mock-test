@@ -216,6 +216,10 @@ export const StudentTerminalView: React.FC<StudentTerminalViewProps> = ({
         resolved = stationTest || branchActive;
       }
 
+      if (!stationTest && !branchActive) {
+        resolved = null;
+      }
+
       setActiveLaunchedTest(resolved);
 
       if (resolved?.candidate?.name && !candidateNameInput.trim()) {
@@ -252,10 +256,34 @@ export const StudentTerminalView: React.FC<StudentTerminalViewProps> = ({
             }
           }
         } else {
+          // Admin ENDED the test!
+          if (!payload?.consultancyId || !consultancy || payload.consultancyId === consultancy.id) {
+            setActiveLaunchedTest(null);
+            setCurrentStation((prev) =>
+              prev ? { ...prev, status: 'idle', assignedTestId: undefined, testTitle: undefined } : prev
+            );
+          }
+          syncActiveTest();
+        }
+      } else if (event.type === 'STATION_COMMAND') {
+        const { stationId, stationName, command, consultancyId: cmdCid } = event.payload || {};
+        const cleanPc = ConsultancyService.normalizeStationName(pcNumber);
+        const isTargetStation =
+          !stationId ||
+          ConsultancyService.normalizeStationName(stationId) === cleanPc ||
+          (stationName && ConsultancyService.normalizeStationName(stationName) === cleanPc);
+        const isTargetBranch = !cmdCid || !consultancy || cmdCid === consultancy.id;
+
+        if (isTargetStation && isTargetBranch) {
+          if (command === 'RESET_STATION' || command === 'END_TEST') {
+            setActiveLaunchedTest(null);
+            setCurrentStation((prev) =>
+              prev ? { ...prev, status: 'idle', assignedTestId: undefined, testTitle: undefined } : prev
+            );
+          }
           syncActiveTest();
         }
       } else if (
-        event.type === 'STATION_COMMAND' ||
         event.type === 'STATION_UPDATED' ||
         event.type === 'STORAGE_SYNC' ||
         event.type === 'WINDOW_FOCUSED'

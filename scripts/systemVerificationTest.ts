@@ -466,9 +466,31 @@ suite('Suite 3: Consultancy Test Launch & Terminal Waiting Logic', () => {
   });
 
   test('Consultancy admin ends or clears the test broadcast', () => {
+    // Launch a test to branch and ensure station has it
+    ConsultancyService.launchTestToBranch(branchId, 'cambridge-16-test-1-reading', 'Cambridge 16 Test 1', false);
+    ConsultancyService.addStation(branchId, 'PC-01');
+    assert(ConsultancyService.getActiveLaunchedTest(branchId) !== null, 'Test is active before end');
+
+    // Admin ends the test
     ConsultancyService.launchTestToBranch(branchId, null);
     const active = ConsultancyService.getActiveLaunchedTest(branchId);
-    assertEqual(active, null, 'Active test cleared');
+    assertEqual(active, null, 'Active branch test cleared to null');
+
+    // Station must NOT see any assigned test
+    const stationAssigned = ConsultancyService.getStationAssignedTest(branchId, 'PC-01');
+    assertEqual(stationAssigned, null, 'Station assigned test cleared to null');
+
+    // Stations list must show idle status with no assignedTestId
+    const stations = ConsultancyService.getStations(branchId);
+    const st01 = stations.find((s) => s.name === 'PC-01');
+    assertEqual(st01?.status, 'idle', 'PC-01 station status returned to idle');
+    assertEqual(st01?.assignedTestId, undefined, 'PC-01 assignedTestId cleared');
+
+    // Even if another consultancy has an active test, branchId must strictly stay null
+    ConsultancyService.launchTestToBranch('kangaroo', 'cambridge-18-test-1-reading', 'Kangaroo Reading', false);
+    assertEqual(ConsultancyService.getActiveLaunchedTest(branchId), null, 'branchId is still null despite kangaroo test');
+    assertEqual(ConsultancyService.getStationAssignedTest(branchId, 'PC-01'), null, 'branchId station is still null despite kangaroo test');
+    ConsultancyService.launchTestToBranch('kangaroo', null);
   });
 
   test('Candidate station session management and instant test launch without catalog browsing', () => {

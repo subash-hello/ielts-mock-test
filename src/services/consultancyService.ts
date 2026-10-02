@@ -1143,6 +1143,9 @@ export class ConsultancyService {
           candidate: matched?.currentCandidate
         };
       }
+
+      // If consultancyId was provided and neither station nor branch has an active test:
+      return null;
     }
 
     // Otherwise scan all registered consultancies
@@ -1189,18 +1192,6 @@ export class ConsultancyService {
       }
     }
 
-    // Global fallback if station not matched to a specific lab
-    const globalActive = this.getActiveLaunchedTest(consultancyId);
-    if (globalActive) {
-      return {
-        consultancyId: globalActive.consultancyId || consultancyId || 'apex-global',
-        testId: globalActive.testId,
-        title: globalActive.title,
-        launchedAt: globalActive.launchedAt,
-        isFullMock: globalActive.isFullMock
-      };
-    }
-
     return null;
   }
 
@@ -1212,67 +1203,44 @@ export class ConsultancyService {
     launchedAt: string;
     isFullMock?: boolean;
   } | null {
-    let specific: any = null;
     if (consultancyId) {
       const raw = localStorage.getItem(`ielts_launched_test_${consultancyId}`);
       if (raw) {
         try {
-          specific = JSON.parse(raw);
+          const parsed = JSON.parse(raw);
+          if (parsed && parsed.testId) return parsed;
         } catch {}
       }
       // Also try normalized ID / branch code / name lookup
-      if (!specific) {
-        const c = this.getConsultancyById(consultancyId) || this.getConsultancyByBranchCode(consultancyId);
-        if (c && c.id !== consultancyId) {
-          const cRaw = localStorage.getItem(`ielts_launched_test_${c.id}`);
-          if (cRaw) {
-            try {
-              specific = JSON.parse(cRaw);
-            } catch {}
-          }
+      const c = this.getConsultancyById(consultancyId) || this.getConsultancyByBranchCode(consultancyId);
+      if (c && c.id !== consultancyId) {
+        const cRaw = localStorage.getItem(`ielts_launched_test_${c.id}`);
+        if (cRaw) {
+          try {
+            const parsed = JSON.parse(cRaw);
+            if (parsed && parsed.testId) return parsed;
+          } catch {}
         }
       }
+      // CRITICAL: When consultancyId is specified, never fall back to another consultancy's test!
+      return null;
     }
 
-    // Check latest global launched test
-    let latest: any = null;
+    // Check latest global launched test (only when consultancyId was not specified)
     const globalRaw = localStorage.getItem('ielts_latest_launched_test');
     if (globalRaw) {
       try {
-        latest = JSON.parse(globalRaw);
-      } catch {}
-    }
-
-    // Compare timestamps to return the truly newest active test session
-    if (specific && latest) {
-      const specTime = new Date(specific.launchedAt || 0).getTime();
-      const latTime = new Date(latest.launchedAt || 0).getTime();
-      return latTime >= specTime ? latest : specific;
-    }
-    if (specific) return specific;
-    if (latest) return latest;
-
-    // Scan any active launched test in storage to find the newest session
-    try {
-      if (typeof window !== 'undefined' && window.localStorage) {
-        let newest: any = null;
-        for (let i = 0; i < localStorage.length; i++) {
-          const key = localStorage.key(i);
-          if (key && key.startsWith('ielts_launched_test_')) {
-            const val = localStorage.getItem(key);
-            if (val) {
-              const parsed = JSON.parse(val);
-              if (parsed && parsed.testId) {
-                if (!newest || new Date(parsed.launchedAt || 0).getTime() > new Date(newest.launchedAt || 0).getTime()) {
-                  newest = parsed;
-                }
-              }
-            }
+        const parsed = JSON.parse(globalRaw);
+        if (parsed && parsed.testId) {
+          if (parsed.consultancyId) {
+            const checkSpecific = localStorage.getItem(`ielts_launched_test_${parsed.consultancyId}`);
+            if (checkSpecific) return parsed;
+          } else {
+            return parsed;
           }
         }
-        if (newest) return newest;
-      }
-    } catch {}
+      } catch {}
+    }
 
     return null;
   }
@@ -1285,11 +1253,16 @@ export class ConsultancyService {
   ): void {
     if (!testId) {
       localStorage.removeItem(`ielts_launched_test_${consultancyId}`);
+      const c = this.getConsultancyById(consultancyId) || this.getConsultancyByBranchCode(consultancyId);
+      if (c && c.id !== consultancyId) {
+        localStorage.removeItem(`ielts_launched_test_${c.id}`);
+      }
+
       try {
         const latestRaw = localStorage.getItem('ielts_latest_launched_test');
         if (latestRaw) {
           const parsed = JSON.parse(latestRaw);
-          if (parsed?.consultancyId === consultancyId) {
+          if (!parsed?.consultancyId || parsed?.consultancyId === consultancyId || (c && parsed?.consultancyId === c.id)) {
             localStorage.removeItem('ielts_latest_launched_test');
           }
         }
@@ -1298,24 +1271,36 @@ export class ConsultancyService {
       }
 
       // Also reset stations that were assigned to the stopped session
-      try {
-        const stations = this.getStations(consultancyId);
-        let changed = false;
-        for (const st of stations) {
-          if (st.status === 'assigned') {
-            st.status = 'idle';
-            delete st.assignedTestId;
-            delete st.testTitle;
-            delete st.module;
-            changed = true;
+      const targetCids = [consultancyId];
+      if (c && c.id !== consultancyId) targetCids.push(c.id);
+
+      for (const cid of targetCids) {
+        try {
+          const stations = this.getStations(cid);
+          let changed = false;
+          for (const st of stations) {
+            if (st.assignedTestId || st.status === 'assigned' || st.status === 'in_progress' || st.status === 'paused') {
+              st.status = 'idle';
+              delete st.assignedTestId;
+              delete st.testTitle;
+              delete st.module;
+              delete st.isFullMock;
+              delete st.currentQuestion;
+              delete st.totalQuestions;
+              delete st.answeredCount;
+              delete st.remainingSeconds;
+              st.lastHeartbeat = new Date().toISOString();
+              changed = true;
+            }
           }
-        }
-        if (changed) {
-          localStorage.setItem(`ielts_stations_${consultancyId}`, JSON.stringify(stations));
-        }
-      } catch {}
+          if (changed) {
+            localStorage.setItem(`ielts_stations_${cid}`, JSON.stringify(stations));
+          }
+        } catch {}
+      }
 
       this.broadcast('BRANCH_TEST_LAUNCHED', { consultancyId, testId: null });
+      this.broadcast('STATION_COMMAND', { consultancyId, command: 'END_TEST' });
       return;
     }
 
@@ -1373,17 +1358,34 @@ export class ConsultancyService {
   }
 
   public static resetStation(consultancyId: string, stationId: string): void {
-    this.updateStationHeartbeat(consultancyId, stationId, {
-      status: 'idle',
-      assignedTestId: undefined,
-      testTitle: undefined,
-      currentCandidate: undefined,
-      currentQuestion: undefined,
-      totalQuestions: undefined,
-      answeredCount: undefined,
-      remainingSeconds: undefined
-    });
-    this.broadcast('STATION_COMMAND', { stationId, command: 'RESET_STATION' });
+    const list = this.getStations(consultancyId);
+    const norm = this.normalizeStationName(stationId);
+    const existingIdx = list.findIndex(
+      (s) => s.id === stationId || this.normalizeStationName(s.name) === norm
+    );
+    if (existingIdx >= 0) {
+      const targetName = list[existingIdx].name;
+      list[existingIdx] = {
+        ...list[existingIdx],
+        status: 'idle',
+        lastHeartbeat: new Date().toISOString()
+      };
+      delete list[existingIdx].assignedTestId;
+      delete list[existingIdx].testTitle;
+      delete list[existingIdx].module;
+      delete list[existingIdx].isFullMock;
+      delete list[existingIdx].currentCandidate;
+      delete list[existingIdx].currentQuestion;
+      delete list[existingIdx].totalQuestions;
+      delete list[existingIdx].answeredCount;
+      delete list[existingIdx].remainingSeconds;
+
+      localStorage.setItem(`ielts_stations_${consultancyId}`, JSON.stringify(list));
+      this.broadcast('STATION_HEARTBEAT', list[existingIdx]);
+      this.broadcast('STATION_UPDATED', list[existingIdx]);
+      this.broadcast('STATION_COMMAND', { stationId, stationName: targetName, consultancyId, command: 'RESET_STATION' });
+      this.broadcast('STATION_COMMAND', { stationId, stationName: targetName, consultancyId, command: 'END_TEST' });
+    }
   }
 
   // --- CANDIDATE STUDENTS DIRECTORY ---
