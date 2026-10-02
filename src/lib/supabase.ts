@@ -52,8 +52,8 @@ export async function fetchMockTestsFromSupabase(): Promise<IELTSMockTest[] | nu
         sections: row.sections
       }));
     }
-  } catch (err) {
-    console.warn('Table fetch error:', err);
+  } catch {
+    // Graceful fallback to static bundled Cambridge tests
   }
 
   return null;
