@@ -580,36 +580,66 @@ export const cambridge16Test1Reading: IELTSMockTest = {
             {
               questionNumber: 35,
               prompt: "Greater levels of automation will not result in lower employment.",
+              options: [
+                "A Stella Pachidi",
+                "B Hamish Low",
+                "C Ewan McGaughey"
+              ],
               correctAnswer: "B",
               explanation: "Paragraph F mentions Professor Hamish Low's argument that automation will not cause aggregate job losses."
             },
             {
               questionNumber: 36,
               prompt: "There are several reasons why AI is appealing to businesses.",
+              options: [
+                "A Stella Pachidi",
+                "B Hamish Low",
+                "C Ewan McGaughey"
+              ],
               correctAnswer: "A",
               explanation: "Paragraph B details Dr Stella Pachidi's analysis of why corporations are eager to adopt algorithmic analysis."
             },
             {
               questionNumber: 37,
               prompt: "The idea that technology causes unemployment is fundamentally flawed.",
+              options: [
+                "A Stella Pachidi",
+                "B Hamish Low",
+                "C Ewan McGaughey"
+              ],
               correctAnswer: "C",
               explanation: "Paragraph G presents Dr Ewan McGaughey's view that technology causing joblessness is a fundamental misconception."
             },
             {
               questionNumber: 38,
               prompt: "Staff may feel less motivated to innovate when using automated systems.",
+              options: [
+                "A Stella Pachidi",
+                "B Hamish Low",
+                "C Ewan McGaughey"
+              ],
               correctAnswer: "A",
               explanation: "Paragraph E details Dr Pachidi's finding that reliance on AI suppresses human intuitive innovation."
             },
             {
               questionNumber: 39,
               prompt: "People's career trajectories will become more varied and flexible.",
+              options: [
+                "A Stella Pachidi",
+                "B Hamish Low",
+                "C Ewan McGaughey"
+              ],
               correctAnswer: "B",
               explanation: "Paragraph F notes Professor Low's view that working lives will become multistage and more flexible."
             },
             {
               questionNumber: 40,
               prompt: "Government policy and capital allocation play a decisive role in job security.",
+              options: [
+                "A Stella Pachidi",
+                "B Hamish Low",
+                "C Ewan McGaughey"
+              ],
               correctAnswer: "C",
               explanation: "Paragraph G states Dr McGaughey's thesis that legal regulations and capital allocation determine employment levels."
             }

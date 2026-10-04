@@ -895,11 +895,17 @@ export const ReadingExamView: React.FC<ReadingExamViewProps> = ({
   // Helper to parse option text cleanly without duplicate letters or non-breaking spaces
   const parseOptionItem = (opt: string, fallbackIdx: number = 0) => {
     const clean = opt.replace(/\u00a0/g, ' ').trim();
+    if (/^[A-Za-z]$/.test(clean)) {
+      const letter = clean.toUpperCase();
+      return { letter, text: `Option ${letter}` };
+    }
     const match = clean.match(/^([A-Za-z])[.):\s-]+(.*)$/);
     if (match) {
+      const letter = match[1].toUpperCase();
+      const text = match[2].trim();
       return {
-        letter: match[1].toUpperCase(),
-        text: match[2].trim(),
+        letter,
+        text: text || `Option ${letter}`,
       };
     }
     return {
@@ -907,6 +913,54 @@ export const ReadingExamView: React.FC<ReadingExamViewProps> = ({
       text: clean,
     };
   };
+
+  // Helper to extract shared matching options (features, people, etc.)
+  const getGroupMatchingOptions = (group: IELTSQuestionGroup): string[] => {
+    if (group.options && group.options.length > 0) {
+      return group.options;
+    }
+    const qWithOpts = group.questions.find((q) => q.options && q.options.length > 0);
+    if (qWithOpts && qWithOpts.options && qWithOpts.options.length > 0) {
+      return qWithOpts.options;
+    }
+    return [];
+  };
+
+  // Helper to get matching box title
+  const getMatchingBoxTitle = (group: IELTSQuestionGroup): string => {
+    if (group.summaryTitle) return group.summaryTitle;
+    const inst = (group.instructions || '').toLowerCase();
+    const title = (group.title || '').toLowerCase();
+    if (inst.includes('people') || inst.includes('person') || title.includes('people')) return 'List of People';
+    if (inst.includes('expert') || title.includes('expert')) return 'List of Experts';
+    if (inst.includes('researcher') || title.includes('researcher') || inst.includes('scientist')) return 'List of Researchers';
+    if (inst.includes('concept')) return 'List of Concepts';
+    if (inst.includes('finding')) return 'List of Findings';
+    if (inst.includes('statement') || inst.includes('description')) return 'List of Descriptions';
+    if (inst.includes('feature') || title.includes('feature')) return 'List of Features';
+    return 'List of Options';
+  };
+
+  // Helper to infer paragraph letters for matching_information without word options
+  const getParagraphOptions = (group: IELTSQuestionGroup): string[] => {
+    if (group.paragraphOptions && group.paragraphOptions.length > 0) {
+      return group.paragraphOptions;
+    }
+    const match = group.instructions.match(/([A-Z])[\s–-]+([A-Z])/);
+    if (match) {
+      const startCode = match[1].charCodeAt(0);
+      const endCode = match[2].charCodeAt(0);
+      if (startCode >= 65 && endCode <= 90 && endCode >= startCode && endCode - startCode < 15) {
+        const letters: string[] = [];
+        for (let c = startCode; c <= endCode; c++) {
+          letters.push(String.fromCharCode(c));
+        }
+        return letters;
+      }
+    }
+    return ['A', 'B', 'C', 'D', 'E', 'F', 'G'];
+  };
+
 
   // Render unified multi-select questions (e.g. Choose TWO letters, A-E)
   const renderMultiChoiceQuestions = (group: IELTSQuestionGroup) => {
@@ -1596,6 +1650,89 @@ export const ReadingExamView: React.FC<ReadingExamViewProps> = ({
                   ) : (
                     /* 4. MULTIPLE CHOICE, TRUE/FALSE/NOT GIVEN, MATCHING */
                     <div className="space-y-5">
+                      {/* MATCHING FEATURES / OPTIONS REFERENCE BOX */}
+                      {(() => {
+                        const isMatchingGroup =
+                          group.type === 'matching_features' ||
+                          group.type === 'matching_sentence_endings' ||
+                          group.type === 'matching_information';
+                        if (!isMatchingGroup) return null;
+
+                        const matchingOpts = getGroupMatchingOptions(group);
+                        if (matchingOpts.length === 0) return null;
+
+                        const boxTitle = getMatchingBoxTitle(group);
+
+                        return (
+                          <div className="bg-[#fafafa] border border-slate-300 rounded-xl p-4 text-xs space-y-3 mb-4 shadow-2xs">
+                            <div className="flex items-center justify-between pb-2 border-b border-slate-200">
+                              <h4 className="font-bold uppercase tracking-wider text-slate-900 text-xs">
+                                {boxTitle}
+                              </h4>
+                              <span className="text-[11px] text-slate-500 font-normal">
+                                Click an option to assign to active question or choose from dropdown below
+                              </span>
+                            </div>
+
+                            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2">
+                              {matchingOpts.map((opt, idx) => {
+                                const { letter, text } = parseOptionItem(opt, idx);
+                                const isSelectedForCurrent =
+                                  (answers[currentQuestion] as string)?.trim().toUpperCase() === letter;
+                                const usedByQ = group.questions.find(
+                                  (q) => (answers[q.questionNumber] as string)?.trim().toUpperCase() === letter
+                                )?.questionNumber;
+
+                                return (
+                                  <div
+                                    key={letter}
+                                    onClick={() => {
+                                      const inRange =
+                                        currentQuestion >= group.questions[0]?.questionNumber &&
+                                        currentQuestion <= group.questions[group.questions.length - 1]?.questionNumber;
+                                      const targetQ = inRange ? currentQuestion : group.questions[0]?.questionNumber;
+                                      if (targetQ) {
+                                        onSelectQuestion(targetQ);
+                                        onAnswerChange(targetQ, letter);
+                                      }
+                                    }}
+                                    className={`p-2.5 rounded-lg border transition cursor-pointer flex items-center gap-2.5 select-none ${
+                                      isSelectedForCurrent
+                                        ? 'bg-slate-900 text-white border-slate-900 shadow-2xs'
+                                        : usedByQ
+                                        ? 'bg-slate-100 border-slate-300 text-slate-700 hover:border-slate-400'
+                                        : 'bg-white hover:bg-slate-50 border-slate-200 hover:border-slate-400 text-slate-900'
+                                    }`}
+                                  >
+                                    <span
+                                      className={`w-6 h-6 rounded-md font-mono font-bold text-xs flex items-center justify-center shrink-0 ${
+                                        isSelectedForCurrent
+                                          ? 'bg-white/20 text-white'
+                                          : 'bg-slate-900 text-white'
+                                      }`}
+                                    >
+                                      {letter}
+                                    </span>
+                                    <span className="text-xs font-medium leading-snug flex-1">
+                                      {text}
+                                    </span>
+                                    {usedByQ && (
+                                      <span
+                                        className={`text-[10px] font-sans font-bold px-1.5 py-0.5 rounded shrink-0 ${
+                                          isSelectedForCurrent ? 'bg-white/20 text-white' : 'bg-slate-200 text-slate-700'
+                                        }`}
+                                      >
+                                        Q{usedByQ}
+                                      </span>
+                                    )}
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        );
+                      })()}
+
                       {group.questions.map((q) => {
                         const qNum = q.questionNumber;
                         const isSelected = qNum === currentQuestion;
@@ -1692,60 +1829,150 @@ export const ReadingExamView: React.FC<ReadingExamViewProps> = ({
                               </div>
                             )}
 
-                            {/* MATCHING INFORMATION (Dropdown + Quick Buttons) */}
-                            {(group.type === 'matching_information' || group.type === 'matching_features') && (
-                              <div className="mt-2 ml-7 space-y-2.5">
-                                <div className="flex flex-wrap items-center gap-2.5">
-                                  {/* Dropdown Selector */}
-                                  <select
-                                    value={val}
-                                    onChange={(e) => onAnswerChange(qNum, e.target.value)}
-                                    className="px-3 py-1.5 border border-slate-400 rounded-lg bg-white text-xs font-semibold text-slate-800 focus:outline-none focus:border-red-600 cursor-pointer shadow-2xs"
-                                  >
-                                    <option value="">[ Select Option ▼ ]</option>
-                                    {(group.paragraphOptions || ['A', 'B', 'C', 'D', 'E', 'F', 'G']).map((pLetter) => (
-                                      <option key={pLetter} value={pLetter}>
-                                        Option {pLetter}
-                                      </option>
-                                    ))}
-                                  </select>
+                            {/* MATCHING INFORMATION / MATCHING FEATURES / MATCHING SENTENCE ENDINGS */}
+                            {(group.type === 'matching_information' || group.type === 'matching_features' || group.type === 'matching_sentence_endings') && (() => {
+                              const matchingOpts = getGroupMatchingOptions(group);
+                              const qOpts = (q.options && q.options.length > 0) ? q.options : matchingOpts;
+                              const hasOptions = qOpts.length > 0;
 
-                                  <span className="text-slate-400 text-xs hidden sm:inline">or click:</span>
+                              if (hasOptions) {
+                                const parsed = qOpts.map((opt, idx) => parseOptionItem(opt, idx));
+                                const selectedOpt = parsed.find((o) => o.letter.toUpperCase() === val.trim().toUpperCase());
 
-                                  {/* Quick letter buttons */}
-                                  <div className="flex flex-wrap items-center gap-1.5">
-                                    {(group.paragraphOptions || ['A', 'B', 'C', 'D', 'E', 'F', 'G']).map((pLetter) => {
-                                      const isChecked = val === pLetter;
-                                      return (
+                                return (
+                                  <div className="mt-2 ml-7 space-y-2.5">
+                                    <div className="flex flex-wrap items-center gap-2.5">
+                                      {/* Dropdown Selector */}
+                                      <select
+                                        value={val.toUpperCase()}
+                                        onChange={(e) => onAnswerChange(qNum, e.target.value)}
+                                        className="w-full sm:w-auto min-w-[260px] max-w-md px-3 py-2 border border-slate-400 rounded-lg bg-white text-xs font-semibold text-slate-800 focus:outline-none focus:border-red-600 cursor-pointer shadow-2xs"
+                                      >
+                                        <option value="">[ Select Option ▼ ]</option>
+                                        {parsed.map((opt) => (
+                                          <option key={opt.letter} value={opt.letter}>
+                                            {opt.letter} – {opt.text}
+                                          </option>
+                                        ))}
+                                      </select>
+
+                                      <span className="text-slate-400 text-xs hidden sm:inline">or click:</span>
+
+                                      {/* Quick letter buttons */}
+                                      <div className="flex flex-wrap items-center gap-1.5">
+                                        {parsed.map((opt) => {
+                                          const isChecked = val.trim().toUpperCase() === opt.letter;
+                                          return (
+                                            <button
+                                              key={opt.letter}
+                                              type="button"
+                                              onClick={() => onAnswerChange(qNum, opt.letter)}
+                                              title={`${opt.letter}: ${opt.text}`}
+                                              className={`min-w-8 h-8 px-2 rounded-lg font-bold text-xs border transition flex items-center justify-center cursor-pointer ${
+                                                isChecked
+                                                  ? 'bg-slate-900 border-slate-900 text-white shadow-xs'
+                                                  : 'bg-white border-slate-300 text-slate-700 hover:bg-slate-100 hover:border-slate-400'
+                                              }`}
+                                            >
+                                              {opt.letter}
+                                            </button>
+                                          );
+                                        })}
+                                      </div>
+
+                                      {val && (
                                         <button
-                                          key={pLetter}
                                           type="button"
-                                          onClick={() => onAnswerChange(qNum, pLetter)}
-                                          className={`w-8 h-8 rounded-lg font-bold text-xs border transition flex items-center justify-center cursor-pointer ${
-                                            isChecked
-                                              ? 'bg-slate-900 border-slate-900 text-white shadow-xs'
-                                              : 'bg-white border-slate-300 text-slate-700 hover:bg-slate-100'
-                                          }`}
+                                          onClick={() => onAnswerChange(qNum, '')}
+                                          className="p-1 text-slate-400 hover:text-red-600 cursor-pointer text-xs"
+                                          title="Clear answer"
                                         >
-                                          {pLetter}
+                                          <X className="w-4 h-4" />
                                         </button>
-                                      );
-                                    })}
+                                      )}
+                                    </div>
+
+                                    {selectedOpt ? (
+                                      <div className="inline-flex items-center gap-1.5 text-xs bg-slate-100 text-slate-800 font-medium px-2.5 py-1 rounded border border-slate-300">
+                                        <span className="font-bold text-slate-900">Selected:</span>
+                                        <span className="font-bold text-red-600">{selectedOpt.letter}</span>
+                                        <span>–</span>
+                                        <span>{selectedOpt.text}</span>
+                                      </div>
+                                    ) : val ? (
+                                      <div className="inline-flex items-center gap-1.5 text-xs bg-slate-100 text-slate-800 font-medium px-2.5 py-1 rounded border border-slate-300">
+                                        <span className="font-bold text-slate-900">Selected:</span>
+                                        <span className="font-bold text-red-600">{val.toUpperCase()}</span>
+                                      </div>
+                                    ) : null}
+                                  </div>
+                                );
+                              }
+
+                              // Fallback for paragraph matching (when no options list is given)
+                              const paragraphLetters = getParagraphOptions(group);
+
+                              return (
+                                <div className="mt-2 ml-7 space-y-2.5">
+                                  <div className="flex flex-wrap items-center gap-2.5">
+                                    {/* Dropdown Selector */}
+                                    <select
+                                      value={val.toUpperCase()}
+                                      onChange={(e) => onAnswerChange(qNum, e.target.value)}
+                                      className="px-3 py-1.5 border border-slate-400 rounded-lg bg-white text-xs font-semibold text-slate-800 focus:outline-none focus:border-red-600 cursor-pointer shadow-2xs"
+                                    >
+                                      <option value="">[ Select Paragraph ▼ ]</option>
+                                      {paragraphLetters.map((pLetter) => (
+                                        <option key={pLetter} value={pLetter}>
+                                          Paragraph {pLetter}
+                                        </option>
+                                      ))}
+                                    </select>
+
+                                    <span className="text-slate-400 text-xs hidden sm:inline">or click:</span>
+
+                                    {/* Quick letter buttons */}
+                                    <div className="flex flex-wrap items-center gap-1.5">
+                                      {paragraphLetters.map((pLetter) => {
+                                        const isChecked = val.trim().toUpperCase() === pLetter;
+                                        return (
+                                          <button
+                                            key={pLetter}
+                                            type="button"
+                                            onClick={() => onAnswerChange(qNum, pLetter)}
+                                            className={`w-8 h-8 rounded-lg font-bold text-xs border transition flex items-center justify-center cursor-pointer ${
+                                              isChecked
+                                                ? 'bg-slate-900 border-slate-900 text-white shadow-xs'
+                                                : 'bg-white border-slate-300 text-slate-700 hover:bg-slate-100 hover:border-slate-400'
+                                            }`}
+                                          >
+                                            {pLetter}
+                                          </button>
+                                        );
+                                      })}
+                                    </div>
+
+                                    {val && (
+                                      <button
+                                        type="button"
+                                        onClick={() => onAnswerChange(qNum, '')}
+                                        className="p-1 text-slate-400 hover:text-red-600 cursor-pointer text-xs"
+                                        title="Clear answer"
+                                      >
+                                        <X className="w-4 h-4" />
+                                      </button>
+                                    )}
                                   </div>
 
                                   {val && (
-                                    <button
-                                      type="button"
-                                      onClick={() => onAnswerChange(qNum, '')}
-                                      className="p-1 text-slate-400 hover:text-slate-600 cursor-pointer text-xs"
-                                      title="Clear answer"
-                                    >
-                                      <X className="w-4 h-4" />
-                                    </button>
+                                    <div className="inline-flex items-center gap-1.5 text-xs bg-slate-100 text-slate-800 font-medium px-2.5 py-1 rounded border border-slate-300">
+                                      <span className="font-bold text-slate-900">Selected:</span>
+                                      <span>Paragraph {val.toUpperCase()}</span>
+                                    </div>
                                   )}
                                 </div>
-                              </div>
-                            )}
+                              );
+                            })()}
 
                             {/* MATCHING HEADINGS (Enhanced Dropdown with Selected Heading indicator) */}
                             {group.type === 'matching_headings' && (() => {

@@ -1061,13 +1061,26 @@ export const ListeningExamView: React.FC<ListeningExamViewProps> = ({
         : [];
 
     const getOptionLetter = (opt: string, fallbackIdx: number): string => {
-      const match = opt.match(/^([A-I])[\.\s]/);
-      return match ? match[1] : String.fromCharCode(65 + fallbackIdx);
+      const clean = opt.replace(/\u00a0/g, ' ').trim();
+      if (/^[A-Za-z]$/.test(clean)) return clean.toUpperCase();
+      const match = clean.match(/^([A-Za-z])[.):\s-]+(.*)$/);
+      return match ? match[1].toUpperCase() : String.fromCharCode(65 + fallbackIdx);
     };
 
     const getOptionText = (opt: string): string => {
-      return opt.replace(/^[A-I][\.\s]+/, '').trim();
+      const clean = opt.replace(/\u00a0/g, ' ').trim();
+      if (/^[A-Za-z]$/.test(clean)) return `Option ${clean.toUpperCase()}`;
+      const match = clean.match(/^([A-Za-z])[.):\s-]+(.*)$/);
+      return match ? match[2].trim() : clean;
     };
+
+    const boxTitle =
+      group.summaryTitle ||
+      (group.instructions.toLowerCase().includes('people')
+        ? 'List of People'
+        : group.instructions.toLowerCase().includes('expert')
+        ? 'List of Experts'
+        : 'Options Box');
 
     return (
       <div className="space-y-5">
@@ -1075,7 +1088,7 @@ export const ListeningExamView: React.FC<ListeningExamViewProps> = ({
         {sharedOptions.length > 0 && (
           <div className="bg-slate-50 border border-slate-300 rounded-xl p-4 space-y-2.5">
             <div className="font-bold text-xs uppercase tracking-wider text-slate-800 pb-1 border-b border-slate-200 flex items-center justify-between">
-              <span>Options Box</span>
+              <span>{boxTitle}</span>
               <span className="text-[11px] text-slate-500 font-normal">Choose from the list below</span>
             </div>
 
@@ -1083,15 +1096,40 @@ export const ListeningExamView: React.FC<ListeningExamViewProps> = ({
               {sharedOptions.map((opt, idx) => {
                 const letter = getOptionLetter(opt, idx);
                 const text = getOptionText(opt);
+                const isSelectedForCurrent =
+                  (answers[currentQuestion] as string)?.trim().toUpperCase() === letter;
+
                 return (
                   <div
                     key={idx}
-                    className="flex items-start gap-2 p-2 bg-white border border-slate-200 rounded-lg shadow-2xs"
+                    onClick={() => {
+                      const inRange =
+                        currentQuestion >= group.questions[0]?.questionNumber &&
+                        currentQuestion <= group.questions[group.questions.length - 1]?.questionNumber;
+                      const targetQ = inRange ? currentQuestion : group.questions[0]?.questionNumber;
+                      if (targetQ) {
+                        onSelectQuestion(targetQ);
+                        onAnswerChange(targetQ, letter);
+                      }
+                    }}
+                    className={`flex items-start gap-2 p-2 rounded-lg border transition cursor-pointer select-none ${
+                      isSelectedForCurrent
+                        ? 'bg-slate-900 text-white border-slate-900 shadow-2xs'
+                        : 'bg-white hover:bg-slate-100 border border-slate-200'
+                    }`}
                   >
-                    <span className="w-5 h-5 rounded font-mono font-black text-xs bg-slate-900 text-white flex items-center justify-center shrink-0">
+                    <span
+                      className={`w-5 h-5 rounded font-mono font-black text-xs flex items-center justify-center shrink-0 ${
+                        isSelectedForCurrent ? 'bg-white/20 text-white' : 'bg-slate-900 text-white'
+                      }`}
+                    >
                       {letter}
                     </span>
-                    <span className="text-slate-700 font-medium leading-tight">
+                    <span
+                      className={`font-medium leading-tight text-xs ${
+                        isSelectedForCurrent ? 'text-white' : 'text-slate-700'
+                      }`}
+                    >
                       {text}
                     </span>
                   </div>
