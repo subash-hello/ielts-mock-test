@@ -1057,6 +1057,145 @@ suite('Suite 7: Branch Normalization, Lab Workstation Sync & Station Reconciliat
   });
 });
 
+// --- SUITE 8: RESULT EDITING & WORKSTATION REAL SUBMISSION UPGRADES ---
+suite('Suite 8: Result Editing, Multi-Test Diversity & Placeholder Upgrades', () => {
+  const cid = 'kiec-lalitpur';
+
+  test('updateTestResult modifies candidate testId, module, band score, and recalculates book/number', () => {
+    // 1. Initial result: Sandhya had Cambridge 16 Test 1 Reading 7.5
+    const results = ConsultancyService.getResults(cid);
+    const initial = results.find((r) => r.candidateId === '008709')!;
+    assert(!!initial, 'Found initial result for candidate 008709');
+
+    // 2. Admin edits result: Sandhya actually took Cambridge 16 Test 2 Listening and scored 8.0 with 35 correct
+    const updated = ConsultancyService.updateTestResult(
+      cid,
+      initial.testId,
+      initial.candidateId || '',
+      initial.completedAt || '',
+      {
+        testId: 'cambridge-16-test-2-listening',
+        module: 'listening',
+        bandScore: 8.0,
+        correctCount: 35
+      }
+    );
+    assert(updated === true, 'updateTestResult returned true');
+
+    // 3. Verify in results list
+    const updatedResults = ConsultancyService.getResults(cid);
+    const verified = updatedResults.find((r) => r.candidateId === '008709')!;
+    assertEqual(verified.testId, 'cambridge-16-test-2-listening', 'testId was updated to test 2 listening');
+    assertEqual(verified.book, 16, 'book auto-calculated as 16');
+    assertEqual(verified.testNumber, 2, 'testNumber auto-calculated as 2');
+    assertEqual(verified.module, 'listening', 'module updated to listening');
+    assertEqual(verified.bandScore, 8.0, 'bandScore updated to 8.0');
+    assertEqual(verified.correctCount, 35, 'correctCount updated to 35');
+  });
+
+  test('Placeholder result automatically upgrades when student workstation pushes real submission', () => {
+    // 1. Create a placeholder result for a candidate (e.g. Bhuwan Khatri #005297)
+    ConsultancyService.updateStationHeartbeat(cid, 'PC-03', {
+      status: 'idle',
+      currentCandidate: {
+        candidateId: '005297',
+        name: 'Bhuwan Khatri',
+        targetBand: 6.5
+      }
+    });
+    const placeholder = ConsultancyService.recordStationSubmissionResult(cid, 'PC-03', {
+      testId: 'cambridge-16-test-1-reading',
+      bandScore: 7.0
+    });
+    assert(!!placeholder, 'Placeholder recorded');
+
+    // Verify it exists in list with empty answers and band 7.0
+    let currentResults = ConsultancyService.getResults(cid);
+    let bhuwan = currentResults.find((r) => r.candidateId === '005297')!;
+    assertEqual(bhuwan.bandScore, 7.0);
+    assertEqual(Object.keys(bhuwan.answers).length, 0);
+
+    // 2. Real workstation submission arrives with actual answers from student PC
+    const realSubmission: any = {
+      testId: 'cambridge-16-test-3-reading',
+      book: 16,
+      testNumber: 3,
+      module: 'reading',
+      totalQuestions: 40,
+      correctCount: 28,
+      bandScore: 6.5,
+      timeTakenSeconds: 3120,
+      completedAt: new Date(Date.now() + 5000).toISOString(),
+      candidateName: 'Bhuwan Khatri',
+      candidateId: '005297',
+      stationName: 'PC-03',
+      consultancyId: cid,
+      answers: { 1: 'TRUE', 2: 'FALSE', 3: 'NOT GIVEN' },
+      isPublished: false
+    };
+
+    ConsultancyService.saveTestResult(cid, realSubmission);
+
+    // 3. Verify placeholder was upgraded and not duplicated
+    currentResults = ConsultancyService.getResults(cid);
+    const bhuwanResults = currentResults.filter((r) => r.candidateId === '005297');
+    assertEqual(bhuwanResults.length, 1, 'Only strictly one upgraded result exists for Bhuwan');
+    assertEqual(bhuwanResults[0].testId, 'cambridge-16-test-3-reading', 'Upgraded to real test');
+    assertEqual(bhuwanResults[0].bandScore, 6.5, 'Upgraded to real band score');
+    assertEqual(bhuwanResults[0].correctCount, 28, 'Upgraded to real correct count');
+    assertEqual(Object.keys(bhuwanResults[0].answers).length, 3, 'Preserved real student answers');
+  });
+
+  test('Distinct students taking diverse tests maintain their own scores and tests', () => {
+    // Shyam took Listening 7.5
+    ConsultancyService.saveTestResult(cid, {
+      testId: 'cambridge-16-test-1-listening',
+      book: 16,
+      testNumber: 1,
+      module: 'listening',
+      totalQuestions: 40,
+      correctCount: 32,
+      bandScore: 7.5,
+      timeTakenSeconds: 1950,
+      completedAt: new Date().toISOString(),
+      candidateName: 'Shyam',
+      candidateId: '004547',
+      stationName: 'PC-01',
+      consultancyId: cid,
+      answers: { 1: 'office', 2: 'morning' }
+    });
+
+    // Alex Dongol took Cambridge 19 Test 1 Reading 8.0
+    ConsultancyService.saveTestResult(cid, {
+      testId: 'cambridge-19-test-1-reading',
+      book: 19,
+      testNumber: 1,
+      module: 'reading',
+      totalQuestions: 40,
+      correctCount: 35,
+      bandScore: 8.0,
+      timeTakenSeconds: 3200,
+      completedAt: new Date().toISOString(),
+      candidateName: 'Alex Dongol',
+      candidateId: '005338',
+      stationName: 'PC-10',
+      consultancyId: cid,
+      answers: { 1: 'TRUE', 2: 'FALSE' }
+    });
+
+    const res = ConsultancyService.getResults(cid);
+    const shyam = res.find((r) => r.candidateId === '004547');
+    const alex = res.find((r) => r.candidateId === '005338');
+
+    assert(!!shyam, 'Shyam found');
+    assert(!!alex, 'Alex found');
+    assertEqual(shyam?.testId, 'cambridge-16-test-1-listening', 'Shyam has distinct Listening test');
+    assertEqual(shyam?.bandScore, 7.5, 'Shyam has 7.5');
+    assertEqual(alex?.testId, 'cambridge-19-test-1-reading', 'Alex has distinct Cambridge 19 test');
+    assertEqual(alex?.bandScore, 8.0, 'Alex has 8.0');
+  });
+});
+
 // --- FINAL VERIFICATION SUMMARY ---
 console.log('\n========================================');
 console.log('SYSTEM VERIFICATION SUMMARY');

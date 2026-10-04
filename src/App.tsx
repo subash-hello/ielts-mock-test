@@ -224,6 +224,26 @@ export const App: React.FC = () => {
     }
   }, [pastResults]);
 
+  // Auto-sync workstation results to cloud telemetry on page load and listen for admin station sync requests
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      ConsultancyService.pushLocalResultsToCloud(selectedConsultancyId);
+    }, 1200);
+
+    const unsub = ConsultancyService.subscribe((event: { type: string; payload: any }) => {
+      if (event.type === 'REQUEST_STATION_RESULTS') {
+        const reqCid = event.payload?.consultancyId;
+        const canonical = ConsultancyService.getCanonicalConsultancyId(reqCid || selectedConsultancyId);
+        ConsultancyService.pushLocalResultsToCloud(canonical);
+      }
+    });
+
+    return () => {
+      clearTimeout(timer);
+      unsub();
+    };
+  }, [selectedConsultancyId]);
+
   // Load mock tests dynamically from Supabase if valid and complete
   useEffect(() => {
     fetchMockTestsFromSupabase().then((data) => {
@@ -667,6 +687,9 @@ export const App: React.FC = () => {
           status: 'submitted',
           remainingSeconds: 0,
           answeredCount: Object.keys(curAnswers).length,
+          assignedTestId: activeTest.id,
+          testTitle: activeTest.title,
+          module: activeTest.module,
           currentCandidate: {
             candidateId: candId,
             name: studentName,

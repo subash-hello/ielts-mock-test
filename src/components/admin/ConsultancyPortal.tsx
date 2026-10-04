@@ -180,6 +180,69 @@ export const ConsultancyPortal: React.FC<ConsultancyPortalProps> = ({
     adminFeedback: ''
   });
 
+  // Edit candidate test result modal state
+  const [editResultModalResult, setEditResultModalResult] = useState<TestResult | null>(null);
+  const [editResultForm, setEditResultForm] = useState<{
+    candidateName: string;
+    candidateId: string;
+    testId: string;
+    module: 'reading' | 'listening' | 'writing';
+    bandScore: number;
+    correctCount: number;
+    timeTakenMinutes: number;
+  }>({
+    candidateName: '',
+    candidateId: '',
+    testId: 'cambridge-16-test-1-reading',
+    module: 'reading',
+    bandScore: 7.0,
+    correctCount: 31,
+    timeTakenMinutes: 59
+  });
+
+  const handleOpenEditResultModal = (res: TestResult) => {
+    setEditResultModalResult(res);
+    setEditResultForm({
+      candidateName: res.candidateName || '',
+      candidateId: res.candidateId || '',
+      testId: res.testId || 'cambridge-16-test-1-reading',
+      module: res.module || 'reading',
+      bandScore: res.bandScore || 7.0,
+      correctCount: res.correctCount || (res.module === 'writing' ? 0 : 30),
+      timeTakenMinutes: Math.round((res.timeTakenSeconds || 3600) / 60)
+    });
+  };
+
+  const handleSaveEditResult = () => {
+    if (!editResultModalResult) return;
+    const targetCid = consultancy?.id || consultancyId;
+
+    const match = editResultForm.testId.match(/cambridge-(\d+)-test-(\d+)/);
+    const book = match ? parseInt(match[1], 10) : editResultModalResult.book;
+    const testNum = match ? parseInt(match[2], 10) : editResultModalResult.testNumber;
+
+    ConsultancyService.updateTestResult(
+      targetCid,
+      editResultModalResult.testId,
+      editResultModalResult.candidateId || '',
+      editResultModalResult.completedAt || '',
+      {
+        candidateName: editResultForm.candidateName.trim(),
+        candidateId: editResultForm.candidateId.trim(),
+        testId: editResultForm.testId,
+        book,
+        testNumber: testNum,
+        module: editResultForm.module,
+        bandScore: Number(editResultForm.bandScore),
+        correctCount: Number(editResultForm.correctCount),
+        timeTakenSeconds: editResultForm.timeTakenMinutes * 60
+      }
+    );
+
+    setEditResultModalResult(null);
+    reloadAll();
+  };
+
   // Reusable confirmation modal state for robust non-blocking user prompts
   const [confirmModal, setConfirmModal] = useState<{
     title: string;
@@ -1203,13 +1266,16 @@ export const ConsultancyPortal: React.FC<ConsultancyPortalProps> = ({
                           <button
                             onClick={() => {
                               const targetCid = consultancy?.id || consultancyId;
-                              ConsultancyService.recordStationSubmissionResult(targetCid, st.name);
+                              const res = ConsultancyService.recordStationSubmissionResult(targetCid, st.name);
                               reloadAll();
+                              if (res) {
+                                handleOpenEditResultModal(res);
+                              }
                             }}
                             className="px-2.5 py-1.5 bg-white hover:bg-indigo-50 border border-slate-300 hover:border-indigo-300 text-slate-700 hover:text-indigo-700 text-[11px] font-bold rounded-lg transition cursor-pointer shrink-0 shadow-2xs"
-                            title="Register and import result for this candidate"
+                            title="Register and customize result for this candidate"
                           >
-                            Import Result
+                            Import & Edit
                           </button>
                         </div>
                       ))}
@@ -1462,6 +1528,15 @@ export const ConsultancyPortal: React.FC<ConsultancyPortalProps> = ({
                                   </button>
 
                                   <button
+                                    onClick={() => handleOpenEditResultModal(res)}
+                                    className="inline-flex items-center gap-1 px-2.5 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 rounded-lg text-xs font-semibold transition cursor-pointer"
+                                    title="Edit test taken, marks, or band score"
+                                  >
+                                    <Edit2 className="w-3.5 h-3.5" />
+                                    <span>Edit</span>
+                                  </button>
+
+                                  <button
                                     onClick={() => setScorecardModalResult(res)}
                                     className="inline-flex items-center gap-1 px-2.5 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-300 rounded-lg text-xs font-medium transition cursor-pointer"
                                     title="View answers breakdown"
@@ -1630,14 +1705,17 @@ export const ConsultancyPortal: React.FC<ConsultancyPortalProps> = ({
                             <button
                               onClick={() => {
                                 const targetCid = consultancy?.id || consultancyId;
-                                ConsultancyService.recordStationSubmissionResult(targetCid, st.name);
+                                const res = ConsultancyService.recordStationSubmissionResult(targetCid, st.name);
                                 reloadAll();
                                 setActiveTab('results');
+                                if (res) {
+                                  handleOpenEditResultModal(res);
+                                }
                               }}
                               className="flex-1 py-1.5 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 text-indigo-700 rounded-lg font-semibold text-xs transition cursor-pointer text-center"
-                              title="Import candidate submission record into results center"
+                              title="Import candidate submission record and customize marks"
                             >
-                              Import Result
+                              Import & Edit
                             </button>
                             <button
                               onClick={() => handleOpenAssignModal(st)}
@@ -3126,6 +3204,19 @@ export const ConsultancyPortal: React.FC<ConsultancyPortalProps> = ({
                 Transmitted: {new Date(scorecardModalResult.completedAt).toLocaleString()}
               </span>
               <div className="flex items-center gap-2">
+                <button
+                  onClick={() => {
+                    const target = scorecardModalResult;
+                    setScorecardModalResult(null);
+                    handleOpenEditResultModal(target);
+                  }}
+                  className="px-3.5 py-2 bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 rounded-lg font-semibold text-xs cursor-pointer transition flex items-center gap-1.5"
+                  title="Edit test taken, marks, or band score"
+                >
+                  <Edit2 className="w-3.5 h-3.5" />
+                  <span>Edit Marks</span>
+                </button>
+
                 {(scorecardModalResult.module === 'writing' || scorecardModalResult.writingSubmission) && (
                   <button
                     onClick={() => {
@@ -3577,6 +3668,197 @@ export const ConsultancyPortal: React.FC<ConsultancyPortalProps> = ({
                   className="flex-1 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl transition cursor-pointer shadow-sm shadow-blue-600/20"
                 >
                   Save Changes
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Candidate Test Result & Marks Modal */}
+      {editResultModalResult && (
+        <div
+          className="fixed inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center z-50 p-4 animate-in fade-in"
+          onClick={() => setEditResultModalResult(null)}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="bg-white border border-slate-200 max-w-lg w-full rounded-2xl shadow-2xl overflow-hidden cursor-default"
+          >
+            <div className="p-5 border-b border-slate-200 bg-slate-50 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-blue-50 border border-blue-200 flex items-center justify-center text-blue-700 shadow-xs">
+                  <Edit2 className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="font-bold text-slate-900 text-base">Edit Candidate Test & Marks</h3>
+                  <p className="text-xs font-mono text-slate-500">
+                    #{editResultModalResult.candidateId || '000000'} • {editResultModalResult.candidateName}
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => setEditResultModalResult(null)}
+                className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-200 transition cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                handleSaveEditResult();
+              }}
+              className="p-6 space-y-4 text-xs"
+            >
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block font-semibold text-slate-700 mb-1">Candidate Full Name</label>
+                  <input
+                    type="text"
+                    required
+                    value={editResultForm.candidateName}
+                    onChange={(e) => setEditResultForm({ ...editResultForm, candidateName: e.target.value })}
+                    className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3.5 py-2.5 text-xs text-slate-900 font-medium outline-none focus:border-blue-600 focus:bg-white"
+                  />
+                </div>
+                <div>
+                  <label className="block font-semibold text-slate-700 mb-1">Candidate ID</label>
+                  <input
+                    type="text"
+                    required
+                    value={editResultForm.candidateId}
+                    onChange={(e) => setEditResultForm({ ...editResultForm, candidateId: e.target.value })}
+                    className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3.5 py-2.5 text-xs text-slate-900 font-mono outline-none focus:border-blue-600 focus:bg-white"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block font-semibold text-slate-700 mb-1">Exam / Test Taken</label>
+                <select
+                  value={editResultForm.testId}
+                  onChange={(e) => {
+                    const chosenId = e.target.value;
+                    const mod = chosenId.includes('writing')
+                      ? 'writing'
+                      : chosenId.includes('listening')
+                      ? 'listening'
+                      : 'reading';
+                    setEditResultForm({ ...editResultForm, testId: chosenId, module: mod });
+                  }}
+                  className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3.5 py-2.5 text-xs text-slate-900 font-medium outline-none focus:border-blue-600 focus:bg-white"
+                >
+                  <optgroup label="Cambridge 16">
+                    <option value="cambridge-16-test-1-reading">Cambridge 16 Test 1 — Academic Reading</option>
+                    <option value="cambridge-16-test-1-listening">Cambridge 16 Test 1 — Academic Listening</option>
+                    <option value="cambridge-16-test-1-writing">Cambridge 16 Test 1 — Academic Writing</option>
+                    <option value="cambridge-16-test-2-reading">Cambridge 16 Test 2 — Academic Reading</option>
+                    <option value="cambridge-16-test-2-listening">Cambridge 16 Test 2 — Academic Listening</option>
+                    <option value="cambridge-16-test-2-writing">Cambridge 16 Test 2 — Academic Writing</option>
+                    <option value="cambridge-16-test-3-reading">Cambridge 16 Test 3 — Academic Reading</option>
+                    <option value="cambridge-16-test-3-listening">Cambridge 16 Test 3 — Academic Listening</option>
+                    <option value="cambridge-16-test-3-writing">Cambridge 16 Test 3 — Academic Writing</option>
+                    <option value="cambridge-16-test-4-reading">Cambridge 16 Test 4 — Academic Reading</option>
+                    <option value="cambridge-16-test-4-listening">Cambridge 16 Test 4 — Academic Listening</option>
+                    <option value="cambridge-16-test-4-writing">Cambridge 16 Test 4 — Academic Writing</option>
+                  </optgroup>
+                  <optgroup label="Cambridge 18">
+                    <option value="cambridge-18-test-1-reading">Cambridge 18 Test 1 — Academic Reading</option>
+                    <option value="cambridge-18-test-1-listening">Cambridge 18 Test 1 — Academic Listening</option>
+                    <option value="cambridge-18-test-2-reading">Cambridge 18 Test 2 — Academic Reading</option>
+                    <option value="cambridge-18-test-2-listening">Cambridge 18 Test 2 — Academic Listening</option>
+                  </optgroup>
+                  <optgroup label="Cambridge 19">
+                    <option value="cambridge-19-test-1-reading">Cambridge 19 Test 1 — Academic Reading</option>
+                    <option value="cambridge-19-test-1-listening">Cambridge 19 Test 1 — Academic Listening</option>
+                    <option value="cambridge-19-test-2-reading">Cambridge 19 Test 2 — Academic Reading</option>
+                    <option value="cambridge-19-test-2-listening">Cambridge 19 Test 2 — Academic Listening</option>
+                  </optgroup>
+                  <optgroup label="Cambridge 20 & 21">
+                    <option value="cambridge-20-test-1-reading">Cambridge 20 Test 1 — Academic Reading</option>
+                    <option value="cambridge-20-test-1-listening">Cambridge 20 Test 1 — Academic Listening</option>
+                    <option value="cambridge-21-test-1-reading">Cambridge 21 Test 1 — Academic Reading</option>
+                    <option value="cambridge-21-test-1-listening">Cambridge 21 Test 1 — Academic Listening</option>
+                  </optgroup>
+                </select>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block font-semibold text-slate-700 mb-1">Module</label>
+                  <select
+                    value={editResultForm.module}
+                    onChange={(e) => setEditResultForm({ ...editResultForm, module: e.target.value as any })}
+                    className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3.5 py-2.5 text-xs text-slate-900 font-medium outline-none focus:border-blue-600 focus:bg-white"
+                  >
+                    <option value="reading">Academic Reading</option>
+                    <option value="listening">Academic Listening</option>
+                    <option value="writing">Academic Writing</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block font-semibold text-slate-700 mb-1">Band Score Awarded</label>
+                  <select
+                    value={editResultForm.bandScore}
+                    onChange={(e) => {
+                      const newBand = Number(e.target.value);
+                      const computedCorrect = editResultForm.module === 'writing' ? 0 : Math.round((newBand / 9) * 40);
+                      setEditResultForm({ ...editResultForm, bandScore: newBand, correctCount: computedCorrect });
+                    }}
+                    className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3.5 py-2.5 text-xs text-slate-900 font-bold outline-none focus:border-blue-600 focus:bg-white"
+                  >
+                    {[4.0, 4.5, 5.0, 5.5, 6.0, 6.5, 7.0, 7.5, 8.0, 8.5, 9.0].map((b) => (
+                      <option key={b} value={b}>Band {b.toFixed(1)}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block font-semibold text-slate-700 mb-1">
+                    Correct Answers {editResultForm.module === 'writing' ? '(N/A for Writing)' : '(out of 40)'}
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    max="40"
+                    disabled={editResultForm.module === 'writing'}
+                    value={editResultForm.correctCount}
+                    onChange={(e) => setEditResultForm({ ...editResultForm, correctCount: Math.min(40, Math.max(0, parseInt(e.target.value) || 0)) })}
+                    className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3.5 py-2.5 text-xs text-slate-900 font-bold outline-none focus:border-blue-600 focus:bg-white disabled:opacity-50"
+                  />
+                </div>
+
+                <div>
+                  <label className="block font-semibold text-slate-700 mb-1">Time Taken (Minutes)</label>
+                  <input
+                    type="number"
+                    min="1"
+                    max="180"
+                    value={editResultForm.timeTakenMinutes}
+                    onChange={(e) => setEditResultForm({ ...editResultForm, timeTakenMinutes: parseInt(e.target.value) || 30 })}
+                    className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3.5 py-2.5 text-xs text-slate-900 font-medium outline-none focus:border-blue-600 focus:bg-white"
+                  />
+                </div>
+              </div>
+
+              <div className="flex items-center gap-3 pt-3 border-t border-slate-100">
+                <button
+                  type="button"
+                  onClick={() => setEditResultModalResult(null)}
+                  className="flex-1 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl transition cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="flex-1 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl transition cursor-pointer shadow-sm shadow-blue-600/20"
+                >
+                  Save & Apply Changes
                 </button>
               </div>
             </form>

@@ -392,7 +392,23 @@ export class ConsultancyService {
           if (idx >= 0) {
             list[idx] = cleanRes;
           } else {
-            list.unshift(cleanRes);
+            // Check if this candidate has an existing placeholder result from station recovery that should be upgraded
+            const hasRealAnswers = cleanRes.answers && Object.keys(cleanRes.answers).length > 0;
+            const isWriting = cleanRes.module === 'writing' || !!cleanRes.writingSubmission;
+            const placeholderIdx = list.findIndex(
+              (r) =>
+                (r.candidateId === cleanRes.candidateId ||
+                  (r.candidateName && cleanRes.candidateName && r.candidateName.trim().toLowerCase() === cleanRes.candidateName.trim().toLowerCase())) &&
+                r.testId === 'cambridge-16-test-1-reading' &&
+                r.bandScore === 7.0 &&
+                Object.keys(r.answers || {}).length === 0 &&
+                (hasRealAnswers || isWriting || cleanRes.testId !== 'cambridge-16-test-1-reading' || cleanRes.bandScore !== 7.0)
+            );
+            if (placeholderIdx >= 0) {
+              list[placeholderIdx] = cleanRes;
+            } else {
+              list.unshift(cleanRes);
+            }
           }
           const serialized = JSON.stringify(list);
           for (const key of aliases) {
@@ -2086,7 +2102,23 @@ export class ConsultancyService {
     if (existingIdx >= 0) {
       list[existingIdx] = cleanRes;
     } else {
-      list.unshift(cleanRes);
+      // Check if this candidate has an existing placeholder result from station recovery that should be upgraded
+      const hasRealAnswers = cleanRes.answers && Object.keys(cleanRes.answers).length > 0;
+      const isWriting = cleanRes.module === 'writing' || !!cleanRes.writingSubmission;
+      const placeholderIdx = list.findIndex(
+        (r) =>
+          (r.candidateId === cleanRes.candidateId ||
+            (r.candidateName && cleanRes.candidateName && r.candidateName.trim().toLowerCase() === cleanRes.candidateName.trim().toLowerCase())) &&
+          r.testId === 'cambridge-16-test-1-reading' &&
+          r.bandScore === 7.0 &&
+          Object.keys(r.answers || {}).length === 0 &&
+          (hasRealAnswers || isWriting || cleanRes.testId !== 'cambridge-16-test-1-reading' || cleanRes.bandScore !== 7.0)
+      );
+      if (placeholderIdx >= 0) {
+        list[placeholderIdx] = cleanRes;
+      } else {
+        list.unshift(cleanRes);
+      }
     }
     const serialized = JSON.stringify(list);
     for (const key of aliases) {
@@ -2110,6 +2142,99 @@ export class ConsultancyService {
     } catch {}
 
     this.broadcast('RESULT_ADDED', { consultancyId: canonical, result: cleanRes });
+  }
+
+  // --- EDIT / ADJUST CANDIDATE TEST RESULT (CONSULTANCY ADMIN) ---
+  public static updateTestResult(
+    consultancyId: string,
+    targetTestId: string,
+    targetCandidateId: string,
+    targetCompletedAt: string,
+    updates: Partial<TestResult>
+  ): boolean {
+    const canonical = this.getCanonicalConsultancyId(consultancyId);
+    const aliases = this.getConsultancyAliases(consultancyId);
+    const list = this.getResults(canonical);
+
+    const idx = list.findIndex(
+      (r) =>
+        (r.testId === targetTestId && r.candidateId === targetCandidateId && r.completedAt === targetCompletedAt) ||
+        (r.candidateId === targetCandidateId && (!targetCompletedAt || r.completedAt === targetCompletedAt))
+    );
+
+    if (idx < 0) return false;
+
+    const old = list[idx];
+    const updated: TestResult = {
+      ...old,
+      ...updates,
+      consultancyId: canonical
+    };
+
+    // If testId changed, recalculate book and testNumber
+    if (updates.testId && updates.testId !== old.testId) {
+      const match = updates.testId.match(/cambridge-(\d+)-test-(\d+)/);
+      if (match) {
+        updated.book = parseInt(match[1], 10);
+        updated.testNumber = parseInt(match[2], 10);
+      }
+      if (!updates.module) {
+        updated.module = updates.testId.includes('writing')
+          ? 'writing'
+          : updates.testId.includes('listening')
+          ? 'listening'
+          : 'reading';
+      }
+    }
+
+    list[idx] = updated;
+    const serialized = JSON.stringify(list);
+    for (const key of aliases) {
+      localStorage.setItem(`ielts_results_${key}`, serialized);
+    }
+
+    // Update candidate student stats in roster
+    try {
+      const students = this.getStudents(canonical);
+      this.upsertStudentForResult(
+        students,
+        canonical,
+        updated.candidateId || targetCandidateId,
+        updated,
+        updated.candidateName
+      );
+      const stdSerialized = JSON.stringify(students);
+      for (const key of aliases) {
+        localStorage.setItem(`ielts_students_${key}`, stdSerialized);
+      }
+    } catch {}
+
+    // Update AI report archive if present
+    try {
+      const reports = this.getReports(canonical);
+      const rIdx = reports.findIndex(
+        (rep) => rep.candidateId === targetCandidateId && (!targetCompletedAt || rep.completedAt === targetCompletedAt)
+      );
+      if (rIdx >= 0) {
+        reports[rIdx] = {
+          ...reports[rIdx],
+          studentName: updated.candidateName || reports[rIdx].studentName,
+          testId: updated.testId,
+          testTitle: `Cambridge ${updated.book || 16} Test ${updated.testNumber || 1} (${updated.module})`,
+          module: updated.module,
+          bandScore: updated.bandScore,
+          correctCount: updated.correctCount,
+          totalQuestions: updated.totalQuestions
+        };
+        const repSerialized = JSON.stringify(reports);
+        for (const key of aliases) {
+          localStorage.setItem(`ielts_reports_${key}`, repSerialized);
+        }
+      }
+    } catch {}
+
+    this.broadcast('RESULT_UPDATED', { consultancyId: canonical, result: updated });
+    return true;
   }
 
   // --- PUBLISH / RELEASE TEST RESULTS (CONSULTANCY ADMIN) ---
@@ -2278,10 +2403,7 @@ export class ConsultancyService {
             arr.forEach((r: TestResult) => {
               const uid = `${r.testId}-${r.candidateId || ''}-${r.completedAt || ''}`;
               if (!resultMap.has(uid)) {
-                const rCanonical = r.consultancyId ? this.getCanonicalConsultancyId(r.consultancyId) : canonical;
-                if (!consultancyId || rCanonical === canonical) {
-                  resultMap.set(uid, { ...r, consultancyId: canonical });
-                }
+                resultMap.set(uid, { ...r, consultancyId: canonical });
               }
             });
           }
@@ -2350,6 +2472,17 @@ export class ConsultancyService {
         );
 
         if (!student) {
+          const candResults = this.getResults(canonical).filter(
+            (r) => r.candidateId === candId || (r.candidateName && r.candidateName.toLowerCase() === name.toLowerCase())
+          );
+          const testsCompletedCount = candResults.length;
+          const highestBand = testsCompletedCount > 0
+            ? Math.max(...candResults.map((r) => r.bandScore || 0))
+            : (st.currentCandidate.targetBand || 0);
+          const averageBand = testsCompletedCount > 0
+            ? Math.round((candResults.reduce((a, b) => a + (b.bandScore || 0), 0) / testsCompletedCount) * 10) / 10
+            : (st.currentCandidate.targetBand || 0);
+
           student = {
             id: 'std-' + Date.now().toString(36) + '-' + Math.random().toString(36).substring(2, 5),
             consultancyId: canonical,
@@ -2359,10 +2492,10 @@ export class ConsultancyService {
             phone: '',
             targetBand: st.currentCandidate.targetBand || 0,
             enrolledDate: new Date().toISOString().split('T')[0],
-            testsCompletedCount: 1,
-            highestBand: 7.0,
-            averageBand: 7.0,
-            latestResultId: st.assignedTestId
+            testsCompletedCount,
+            highestBand,
+            averageBand,
+            latestResultId: st.assignedTestId || candResults[0]?.testId
           };
           students.unshift(student);
           reconciled.push({ name, candidateId: candId, stationName: st.name });
@@ -2403,7 +2536,7 @@ export class ConsultancyService {
     const cand = station.currentCandidate;
     const testId = options?.testId || station.assignedTestId || 'cambridge-16-test-1-reading';
     const mod = options?.module || station.module || (testId.includes('writing') ? 'writing' : testId.includes('listening') ? 'listening' : 'reading');
-    const band = options?.bandScore || 7.0;
+    const band = options?.bandScore !== undefined ? options.bandScore : (cand.targetBand && cand.targetBand >= 4.0 ? cand.targetBand : 7.0);
 
     const bookMatch = testId.match(/cambridge-(\d+)-test-(\d+)/);
     const book = bookMatch ? parseInt(bookMatch[1], 10) : 16;
