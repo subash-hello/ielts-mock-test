@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import {
   Monitor,
   ArrowRight,
-  Building2,
   User,
   BookOpen,
   Headphones,
@@ -15,7 +14,6 @@ import {
   FileCheck,
   Maximize,
   Minimize,
-  Check,
   SlidersHorizontal,
   AlertCircle
 } from 'lucide-react';
@@ -73,7 +71,6 @@ export const StudentTerminalView: React.FC<StudentTerminalViewProps> = ({
     const urlParams = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : new URLSearchParams();
     const explicitCid = urlParams.get('cid') || urlParams.get('consultancy');
     const branchFromUrl = urlParams.get('branch') || urlParams.get('access') || urlParams.get('code');
-    const cnameFromUrl = urlParams.get('cname') || urlParams.get('name');
 
     // 1. Try finding by explicit CID in URL
     if (explicitCid) {
@@ -95,48 +92,20 @@ export const StudentTerminalView: React.FC<StudentTerminalViewProps> = ({
       }
     }
 
-    // 3. Auto-hydrate on student computer if cid/branch/cname was provided via link
-    if (explicitCid || branchFromUrl || cnameFromUrl) {
-      const autoBranch = (branchFromUrl || 'LAB01').trim().toUpperCase();
-      const autoId = explicitCid || (cnameFromUrl ? cnameFromUrl.toLowerCase().replace(/[^a-z0-9]/g, '-') : autoBranch.toLowerCase().replace(/[^a-z0-9]/g, '-'));
-      const autoC: Consultancy = {
-        id: autoId,
-        name: cnameFromUrl || (branchFromUrl ? `Consultancy (${branchFromUrl})` : 'Consultancy Testing Lab'),
-        branch: 'Lab Station',
-        adminEmail: '',
-        phone: '',
-        accessCode: autoBranch,
-        branchCode: autoBranch,
-        examPassword: '1234',
-        adminPassword: '1234',
-        status: 'active',
-        computerLimit: 50,
-        testCredits: 500,
-        creditsUsed: 0,
-        createdAt: new Date().toISOString(),
-        validUntil: new Date(Date.now() + 365 * 24 * 3600 * 1000).toISOString(),
-        assignedTestIds: []
-      };
-      // Save locally on student workstation without broadcasting to admin dashboard
-      ConsultancyService.saveConsultancy(autoC, false);
-      localStorage.setItem('ielts_terminal_branch', autoC.branchCode);
-      return autoC;
-    }
-
-    // 4. Try initialConsultancyId prop
+    // 3. Try initialConsultancyId prop
     if (initialConsultancyId) {
       const found = ConsultancyService.getConsultancyById(initialConsultancyId);
       if (found) return found;
     }
 
-    // 5. Fall back to saved local branch
+    // 4. Fall back to saved local branch
     const saved = typeof window !== 'undefined' ? localStorage.getItem('ielts_terminal_branch') : null;
     if (saved) {
       const found = ConsultancyService.getConsultancyByBranchCode(saved);
       if (found) return found;
     }
 
-    // 6. Fallback to active consultancies
+    // 5. Fallback to active consultancies
     const all = ConsultancyService.getConsultancies();
     return all[0];
   });
@@ -145,16 +114,21 @@ export const StudentTerminalView: React.FC<StudentTerminalViewProps> = ({
     return consultancy?.branchCode || consultancy?.accessCode || 'APEX-2026';
   });
 
-  // BUG-03: Remember selected PC station from localStorage across universal link reloads
+  // Isolate selected PC station per-tab with sessionStorage, fallback to localStorage
   const [pcNumber, setPcNumber] = useState<string>(() => {
     const urlParams = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : new URLSearchParams();
     const fromUrl = urlParams.get('station') || urlParams.get('st') || urlParams.get('pc');
     if (fromUrl) {
       const clean = fromUrl.trim().toUpperCase();
       const formatted = clean.startsWith('PC-') ? clean : `PC-${clean.replace(/^PC/i, '')}`;
-      localStorage.setItem('ielts_terminal_pc', formatted);
+      if (typeof window !== 'undefined') {
+        sessionStorage.setItem('ielts_terminal_pc', formatted);
+        localStorage.setItem('ielts_terminal_pc', formatted);
+      }
       return formatted;
     }
+    const sessionSaved = typeof window !== 'undefined' ? sessionStorage.getItem('ielts_terminal_pc') : null;
+    if (sessionSaved) return sessionSaved;
     const saved = typeof window !== 'undefined' ? localStorage.getItem('ielts_terminal_pc') : null;
     if (saved) return saved;
     if (initialStationName) return initialStationName;
@@ -440,6 +414,11 @@ export const StudentTerminalView: React.FC<StudentTerminalViewProps> = ({
     const cleanPc = pcNumber.trim().toUpperCase();
     const formattedPc = cleanPc.startsWith('PC-') ? cleanPc : `PC-${cleanPc.replace(/^PC/i, '')}`;
 
+    if (typeof window !== 'undefined') {
+      sessionStorage.setItem('ielts_terminal_pc', formattedPc);
+      localStorage.setItem('ielts_terminal_pc', formattedPc);
+    }
+
     const enteredName = candidateNameInput.trim();
     if (!enteredName) {
       alert('Please enter your full name before starting the exam.');
@@ -450,7 +429,7 @@ export const StudentTerminalView: React.FC<StudentTerminalViewProps> = ({
     const candidateId =
       currentStation?.currentCandidate?.candidateId ||
       '00' + Math.floor(1000 + Math.random() * 9000);
-    const targetBand = currentStation?.currentCandidate?.targetBand || 7.5;
+    const targetBand = currentStation?.currentCandidate?.targetBand || 0;
 
     const candidateData = {
       name: enteredName,
@@ -518,9 +497,12 @@ export const StudentTerminalView: React.FC<StudentTerminalViewProps> = ({
     }
     const formattedSt = cleanSt.startsWith('PC-') ? cleanSt : `PC-${cleanSt.replace(/^PC/i, '')}`;
 
-    localStorage.setItem('ielts_terminal_branch', targetC.branchCode || targetC.accessCode);
-    localStorage.setItem('ielts_terminal_pc', formattedSt);
-    localStorage.setItem('ielts_terminal_pass', targetC.examPassword || '1234');
+    if (typeof window !== 'undefined') {
+      sessionStorage.setItem('ielts_terminal_pc', formattedSt);
+      localStorage.setItem('ielts_terminal_pc', formattedSt);
+      localStorage.setItem('ielts_terminal_branch', targetC.branchCode || targetC.accessCode);
+      localStorage.removeItem('ielts_terminal_pass');
+    }
 
     setBranchCode(targetC.branchCode || targetC.accessCode);
     setPcNumber(formattedSt);
@@ -589,7 +571,7 @@ export const StudentTerminalView: React.FC<StudentTerminalViewProps> = ({
               </span>
             </div>
             <p className="text-[11px] sm:text-xs text-slate-500">
-              {consultancy ? `${consultancy.name} • ${consultancy.branch}` : 'Educational Consultancy Lab'}
+              Official IELTS Test Centre
             </p>
           </div>
         </div>
@@ -673,51 +655,16 @@ export const StudentTerminalView: React.FC<StudentTerminalViewProps> = ({
                 Connect This Computer to Lab
               </h2>
               <p className="text-xs text-slate-500 max-w-md mx-auto leading-relaxed">
-                Setup takes 5 seconds: Select your consultancy and tap which PC number this is. It will pair immediately with the teacher's radar.
+                Setup takes 5 seconds: Tap which PC number this is. It will pair immediately with the invigilator station.
               </p>
             </div>
 
-            {/* STEP 1: Select Consultancy */}
-            <div className="space-y-2">
-              <label className="text-xs font-bold uppercase tracking-wider text-slate-700 flex items-center gap-1.5">
-                <Building2 className="w-4 h-4 text-blue-600" />
-                <span>1. Select Consultancy / Testing Center</span>
-              </label>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                {allConsultancies.map((c) => {
-                  const isSelected = (consultancy?.id || selectedConsultancyId) === c.id;
-                  return (
-                    <button
-                      key={c.id}
-                      type="button"
-                      onClick={() => {
-                        setSelectedConsultancyId(c.id);
-                        setConsultancy(c);
-                        setBranchCode(c.branchCode || c.accessCode);
-                      }}
-                      className={`p-3 rounded-xl border text-left transition cursor-pointer flex items-center justify-between ${
-                        isSelected
-                          ? 'border-blue-600 bg-blue-50/70 ring-2 ring-blue-500/20'
-                          : 'border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-700'
-                      }`}
-                    >
-                      <div>
-                        <div className="font-bold text-xs text-slate-900">{c.name}</div>
-                        <div className="text-[10px] text-slate-500">{c.branch}</div>
-                      </div>
-                      {isSelected && <Check className="w-4 h-4 text-blue-600 shrink-0" />}
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-
-            {/* STEP 2: Pick Station Number */}
+            {/* Pick Station Number */}
             <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <label className="text-xs font-bold uppercase tracking-wider text-slate-700 flex items-center gap-1.5">
                   <Monitor className="w-4 h-4 text-blue-600" />
-                  <span>2. Tap This Computer's PC Number</span>
+                  <span>Tap This Computer's PC Number</span>
                 </label>
                 <span className="text-[11px] font-semibold text-blue-600">
                   Selected: <strong className="font-mono text-sm">{pcNumber || 'PC-01'}</strong>
@@ -746,7 +693,10 @@ export const StudentTerminalView: React.FC<StudentTerminalViewProps> = ({
                       type="button"
                       onClick={() => {
                         setPcNumber(st.name);
-                        localStorage.setItem('ielts_terminal_pc', st.name);
+                        if (typeof window !== 'undefined') {
+                          sessionStorage.setItem('ielts_terminal_pc', st.name);
+                          localStorage.setItem('ielts_terminal_pc', st.name);
+                        }
                       }}
                       className={`py-2 px-1.5 rounded-lg font-mono font-bold text-xs transition cursor-pointer border flex flex-col items-center justify-center gap-0.5 ${
                         isStSelected
@@ -773,7 +723,10 @@ export const StudentTerminalView: React.FC<StudentTerminalViewProps> = ({
                   onChange={(e) => {
                     const clean = e.target.value.toUpperCase();
                     setPcNumber(clean);
-                    if (clean) localStorage.setItem('ielts_terminal_pc', clean);
+                    if (clean && typeof window !== 'undefined') {
+                      sessionStorage.setItem('ielts_terminal_pc', clean);
+                      localStorage.setItem('ielts_terminal_pc', clean);
+                    }
                   }}
                   placeholder="Or type custom PC name (e.g. PC-12)"
                   className="flex-1 bg-white border border-slate-300 focus:border-blue-600 text-slate-900 font-mono font-bold text-xs px-3 py-2 rounded-lg outline-none uppercase"
@@ -827,7 +780,7 @@ export const StudentTerminalView: React.FC<StudentTerminalViewProps> = ({
                   </span>
                 </div>
                 <p className="text-xs text-slate-500">
-                  {consultancy ? `${consultancy.name} • ${consultancy.branch}` : 'Consultancy Lab'}
+                  Official IELTS Test Centre
                 </p>
               </div>
             </div>

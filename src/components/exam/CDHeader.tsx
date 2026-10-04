@@ -25,7 +25,7 @@ export const CDHeader: React.FC<CDHeaderProps> = ({
   onVolumeChange,
   candidateName,
   candidateId,
-  consultancyName
+  consultancyName: _consultancyName
 }) => {
   const [showHelpModal, setShowHelpModal] = useState(false);
 
@@ -58,14 +58,6 @@ export const CDHeader: React.FC<CDHeaderProps> = ({
             <span className="text-slate-700 font-medium hidden md:inline">
               Candidate: <strong>{candidateName || 'Candidate'} ({candidateId || '001428'})</strong>
             </span>
-            {consultancyName && (
-              <>
-                <span className="text-slate-400 hidden lg:inline">|</span>
-                <span className="text-blue-700 font-medium hidden lg:inline">
-                  {consultancyName}
-                </span>
-              </>
-            )}
             <span className="text-slate-400 hidden sm:inline">|</span>
             <span className="text-slate-600 hidden sm:inline">
               {test.title}

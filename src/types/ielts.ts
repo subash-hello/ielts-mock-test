@@ -109,6 +109,7 @@ export interface TestResult {
   consultancyId?: string;
   consultancyName?: string;
   targetBand?: number;
+  stationName?: string; // Station identifier e.g. "PC-01"
   isPublished?: boolean; // When false, result is pending release by consultancy admin
   publishedAt?: string; // Timestamp when consultancy admin published the result
   // Writing-specific fields

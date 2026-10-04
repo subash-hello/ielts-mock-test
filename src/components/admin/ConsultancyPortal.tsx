@@ -13,7 +13,6 @@ import {
   ExternalLink,
   Trash2,
   Search,
-  Key,
   Laptop,
   FileText,
   X,
@@ -104,11 +103,16 @@ export const ConsultancyPortal: React.FC<ConsultancyPortalProps> = ({
   const [newStationName, setNewStationName] = useState('');
 
   const [showAddStudentModal, setShowAddStudentModal] = useState(false);
-  const [newStudentForm, setNewStudentForm] = useState({
+  const [newStudentForm, setNewStudentForm] = useState<{
+    name: string;
+    email: string;
+    phone: string;
+    targetBand: string | number;
+  }>({
     name: '',
     email: '',
     phone: '',
-    targetBand: 7.0
+    targetBand: ''
   });
 
   const [aiReportModalData, setAiReportModalData] = useState<{
@@ -184,6 +188,8 @@ export const ConsultancyPortal: React.FC<ConsultancyPortalProps> = ({
     isDestructive?: boolean;
     onConfirm: () => void;
   } | null>(null);
+
+  const [sessionEndNotice, setSessionEndNotice] = useState<string | null>(null);
 
   // Reload local state from service
   const reloadAll = () => {
@@ -482,8 +488,6 @@ export const ConsultancyPortal: React.FC<ConsultancyPortalProps> = ({
     reloadAll();
   };
 
-  const [sessionEndNotice, setSessionEndNotice] = useState<string | null>(null);
-
   const handleStopBranchTest = () => {
     setConfirmModal({
       title: 'End Active Exam Session',
@@ -570,9 +574,9 @@ export const ConsultancyPortal: React.FC<ConsultancyPortalProps> = ({
       consultancyId: consultancy.id,
       candidateNumber: '00' + Math.floor(1000 + Math.random() * 9000),
       fullName: newStudentForm.name.trim(),
-      email: newStudentForm.email.trim() || `${newStudentForm.name.toLowerCase().replace(/\s+/g, '')}@student.com`,
-      phone: newStudentForm.phone.trim() || '9800000000',
-      targetBand: newStudentForm.targetBand,
+      email: newStudentForm.email.trim(),
+      phone: newStudentForm.phone.trim(),
+      targetBand: newStudentForm.targetBand ? Number(newStudentForm.targetBand) : 0,
       enrolledDate: new Date().toISOString().split('T')[0],
       testsCompletedCount: 0,
       highestBand: 0,
@@ -580,7 +584,7 @@ export const ConsultancyPortal: React.FC<ConsultancyPortalProps> = ({
     };
 
     ConsultancyService.saveStudent(newStd);
-    setNewStudentForm({ name: '', email: '', phone: '', targetBand: 7.0 });
+    setNewStudentForm({ name: '', email: '', phone: '', targetBand: '' });
     setShowAddStudentModal(false);
     reloadAll();
   };
@@ -624,23 +628,22 @@ export const ConsultancyPortal: React.FC<ConsultancyPortalProps> = ({
 
         {/* Center / Right controls */}
         <div className="flex items-center gap-3">
-          {/* Lab Station PIN & Password Pill */}
+          {/* Lab Station Pairing Link */}
           <button
             onClick={copyLabPairingLink}
-            className="flex items-center gap-2 bg-slate-50 hover:bg-slate-100 border border-slate-300 px-3.5 py-1.5 rounded-lg text-xs transition cursor-pointer text-slate-700 shadow-xs"
+            className={`flex items-center gap-2 border px-3.5 py-1.5 rounded-lg text-xs font-semibold transition cursor-pointer shadow-xs ${
+              copiedLink
+                ? 'bg-emerald-50 border-emerald-300 text-emerald-700'
+                : 'bg-slate-50 hover:bg-slate-100 border-slate-300 text-slate-700'
+            }`}
             title="Click to copy student computer pairing link"
           >
-            <Key className="w-3.5 h-3.5 text-blue-600" />
-            <span className="text-slate-500 font-medium">Branch:</span>
-            <span className="font-mono font-bold text-slate-900">{consultancy.branchCode || consultancy.accessCode}</span>
-            <span className="text-slate-300">|</span>
-            <span className="text-slate-500 font-medium">Pass:</span>
-            <span className="font-mono font-bold text-blue-700">{consultancy.examPassword || '1234'}</span>
             {copiedLink ? (
-              <Check className="w-3.5 h-3.5 text-emerald-600 ml-1" />
+              <Check className="w-3.5 h-3.5 text-emerald-600" />
             ) : (
-              <Copy className="w-3.5 h-3.5 text-slate-400 ml-1" />
+              <Copy className="w-3.5 h-3.5 text-blue-600" />
             )}
+            <span>{copiedLink ? 'Copied Pairing Link!' : 'Copy Pairing Link'}</span>
           </button>
 
           {/* Quick Terminal Launch */}
@@ -1121,8 +1124,13 @@ export const ConsultancyPortal: React.FC<ConsultancyPortalProps> = ({
                                     <div className="font-bold text-slate-900 text-sm">
                                       {res.candidateName || 'Candidate'}
                                     </div>
-                                    <div className="text-[11px] font-mono text-slate-500">
-                                      #{res.candidateId || '00' + (idx + 1000)}
+                                    <div className="flex items-center gap-1.5 text-[11px] font-mono text-slate-500">
+                                      <span>#{res.candidateId || '00' + (idx + 1000)}</span>
+                                      {res.stationName && (
+                                        <span className="px-1.5 py-0.5 rounded bg-blue-50 text-blue-700 font-bold border border-blue-200 text-[10px]">
+                                          {res.stationName}
+                                        </span>
+                                      )}
                                     </div>
                                   </div>
                                 </div>
@@ -1578,9 +1586,16 @@ export const ConsultancyPortal: React.FC<ConsultancyPortalProps> = ({
                           <span className="font-bold text-slate-900 text-xs">
                             {res.candidateName || 'Candidate'}
                           </span>
-                          <span className="text-[10px] font-mono text-slate-500">
-                            #{res.candidateId || '00' + (i + 1000)}
-                          </span>
+                          <div className="flex items-center gap-1.5">
+                            {res.stationName && (
+                              <span className="px-1.5 py-0.5 rounded bg-blue-50 text-blue-700 font-bold border border-blue-200 text-[9px] font-mono">
+                                {res.stationName}
+                              </span>
+                            )}
+                            <span className="text-[10px] font-mono text-slate-500">
+                              #{res.candidateId || '00' + (i + 1000)}
+                            </span>
+                          </div>
                         </div>
                         <p className="text-[11px] text-slate-600 truncate">
                           Cambridge {res.book} Test {res.testNumber} ({res.module})
@@ -2693,7 +2708,8 @@ export const ConsultancyPortal: React.FC<ConsultancyPortalProps> = ({
                   min="5.0"
                   max="9.0"
                   value={newStudentForm.targetBand}
-                  onChange={(e) => setNewStudentForm({ ...newStudentForm, targetBand: Number(e.target.value) })}
+                  onChange={(e) => setNewStudentForm({ ...newStudentForm, targetBand: e.target.value })}
+                  placeholder="System suggestion: 7.5"
                   className="w-full bg-white border border-slate-300 focus:border-blue-600 focus:ring-1 focus:ring-blue-600 text-slate-900 p-2.5 rounded-lg outline-none"
                 />
               </div>

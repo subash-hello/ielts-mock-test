@@ -29,7 +29,7 @@ interface UnifiedAuthViewProps {
 
 export const UnifiedAuthView: React.FC<UnifiedAuthViewProps> = ({
   initialTab = 'candidate',
-  initialBranchCode = 'APEX-2026',
+  initialBranchCode: _initialBranchCode = '',
   initialPcNumber = 'PC-01',
   onCandidateLogin,
   onAdminLogin,
@@ -38,12 +38,12 @@ export const UnifiedAuthView: React.FC<UnifiedAuthViewProps> = ({
 }) => {
   const [activeTab, setActiveTab] = useState<'candidate' | 'admin'>(initialTab);
 
-  // Candidate fields
+  // Candidate fields - ensure empty by default so credentials never leak across sessions
   const [candidateFullName, setCandidateFullName] = useState<string>(() => {
-    return localStorage.getItem('ielts_candidate_name') || '';
+    return typeof window !== 'undefined' ? localStorage.getItem('ielts_candidate_name') || '' : '';
   });
-  const [branchCode, setBranchCode] = useState(initialBranchCode);
-  const [pcNumber, setPcNumber] = useState(initialPcNumber);
+  const [branchCode, setBranchCode] = useState('');
+  const [pcNumber, setPcNumber] = useState(initialPcNumber || 'PC-01');
   const [examPassword, setExamPassword] = useState('');
   const [showExamPassword, setShowExamPassword] = useState(false);
 
@@ -55,10 +55,15 @@ export const UnifiedAuthView: React.FC<UnifiedAuthViewProps> = ({
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
+  // Prompt 1: Clear credentials on page load of manual login form & prevent persisting
   React.useEffect(() => {
     try {
       localStorage.removeItem('ielts_terminal_pass');
+      localStorage.removeItem('ielts_terminal_branch');
+      sessionStorage.removeItem('ielts_terminal_pass');
+      sessionStorage.removeItem('ielts_terminal_branch');
     } catch {}
+    setBranchCode('');
     setExamPassword('');
   }, []);
 
@@ -85,7 +90,7 @@ export const UnifiedAuthView: React.FC<UnifiedAuthViewProps> = ({
       const matched = stations.find((s) => s.name.toUpperCase() === res.stationName?.toUpperCase());
       const candidateName = candidateFullName.trim() || matched?.currentCandidate?.name || `Candidate ${res.stationName}`;
       const candidateId = matched?.currentCandidate?.candidateId || '00' + Math.floor(1000 + Math.random() * 9000);
-      const targetBand = matched?.currentCandidate?.targetBand || 7.5;
+      const targetBand = matched?.currentCandidate?.targetBand || undefined; // Do not silently default to 7.5
 
       if (candidateFullName.trim()) {
         localStorage.setItem('ielts_candidate_name', candidateFullName.trim());
@@ -98,7 +103,7 @@ export const UnifiedAuthView: React.FC<UnifiedAuthViewProps> = ({
         consultancyName: res.consultancy.name,
         candidateName,
         candidateId,
-        targetBand,
+        targetBand: targetBand || 0,
         loggedInAt: new Date().toISOString()
       };
 
@@ -298,7 +303,11 @@ export const UnifiedAuthView: React.FC<UnifiedAuthViewProps> = ({
                     required
                     value={branchCode}
                     onChange={(e) => setBranchCode(e.target.value.toUpperCase())}
-                    placeholder="e.g. APEX-2026"
+                    placeholder="Enter branch code"
+                    autoComplete="off"
+                    autoCorrect="off"
+                    autoCapitalize="off"
+                    spellCheck={false}
                     className="w-full bg-white border border-slate-300 focus:border-red-600 focus:ring-1 focus:ring-red-600 font-mono font-bold text-slate-900 pl-10 pr-4 py-2.5 rounded-lg outline-none text-xs uppercase"
                   />
                 </div>
@@ -317,6 +326,10 @@ export const UnifiedAuthView: React.FC<UnifiedAuthViewProps> = ({
                     value={pcNumber}
                     onChange={(e) => setPcNumber(e.target.value.toUpperCase())}
                     placeholder="e.g. PC-01, PC-05"
+                    autoComplete="off"
+                    autoCorrect="off"
+                    autoCapitalize="off"
+                    spellCheck={false}
                     className="w-full bg-white border border-slate-300 focus:border-red-600 focus:ring-1 focus:ring-red-600 font-bold text-slate-900 pl-10 pr-4 py-2.5 rounded-lg outline-none text-xs uppercase"
                   />
                 </div>
@@ -335,6 +348,10 @@ export const UnifiedAuthView: React.FC<UnifiedAuthViewProps> = ({
                     value={examPassword}
                     onChange={(e) => setExamPassword(e.target.value)}
                     placeholder="Enter exam password"
+                    autoComplete="new-password"
+                    autoCorrect="off"
+                    autoCapitalize="off"
+                    spellCheck={false}
                     className="w-full bg-white border border-slate-300 focus:border-red-600 focus:ring-1 focus:ring-red-600 text-slate-900 pl-10 pr-10 py-2.5 rounded-lg outline-none text-xs font-mono"
                   />
                   <button

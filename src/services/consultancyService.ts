@@ -616,32 +616,59 @@ export class ConsultancyService {
     }
   }
 
-  public static isConsultancyDeleted(id: string): boolean {
-    if (!id) return false;
+  public static isConsultancyDeleted(idOrCode: string): boolean {
+    if (!idOrCode) return false;
+    const clean = idOrCode.toLowerCase().trim();
+    const cleanAlphaNum = clean.replace(/[^a-z0-9]/g, '');
     const deleted = this.getDeletedConsultancyIds();
-    return deleted.includes(id.toLowerCase().trim());
+    return (
+      deleted.includes(clean) ||
+      deleted.includes(cleanAlphaNum) ||
+      deleted.some((d) => d === clean || d.replace(/[^a-z0-9]/g, '') === cleanAlphaNum)
+    );
   }
 
   public static getConsultancies(): Consultancy[] {
     const deletedIds = this.getDeletedConsultancyIds();
-    const raw = localStorage.getItem('ielts_consultancies');
+    const isExcluded = (c: Consultancy) => {
+      if ((c as any).status === 'inactive' || (c as any).status === 'deleted' || c.status === 'suspended') return true;
+      const id = (c.id || '').toLowerCase().trim();
+      const branch = (c.branchCode || '').toLowerCase().trim();
+      const access = (c.accessCode || '').toLowerCase().trim();
+      const name = (c.name || '').toLowerCase().trim();
+
+      // Data cleanup: Exclude developer test leftover "Consultancy Testing Lab" / "LAB01"
+      if (branch === 'lab01' || access === 'lab01' || id === 'lab01' || name === 'consultancy testing lab') {
+        return true;
+      }
+
+      if (deletedIds.includes(id)) return true;
+      if (branch && deletedIds.includes(branch)) return true;
+      if (access && deletedIds.includes(access)) return true;
+      if (name && deletedIds.includes(name)) return true;
+      return false;
+    };
+
+    const raw = typeof window !== 'undefined' ? localStorage.getItem('ielts_consultancies') : null;
     let list: Consultancy[] = [];
 
     if (!raw) {
-      list = DEFAULT_CONSULTANCIES.filter((d) => !deletedIds.includes(d.id.toLowerCase()));
-      localStorage.setItem('ielts_consultancies', JSON.stringify(list));
+      list = DEFAULT_CONSULTANCIES.filter((d) => !isExcluded(d));
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('ielts_consultancies', JSON.stringify(list));
+      }
       return list;
     }
 
     try {
       const parsed: Consultancy[] = JSON.parse(raw);
       if (Array.isArray(parsed) && parsed.length > 0) {
-        list = parsed.filter((c) => !deletedIds.includes(c.id.toLowerCase()));
+        list = parsed.filter((c) => !isExcluded(c));
 
-        // Merge missing default consultancies EXCEPT those explicitly deleted
+        // Merge missing default consultancies EXCEPT those explicitly deleted or inactive
         let changed = false;
         for (const def of DEFAULT_CONSULTANCIES) {
-          if (deletedIds.includes(def.id.toLowerCase())) continue;
+          if (isExcluded(def)) continue;
           const exists = list.some(
             (c) =>
               c.id.toLowerCase() === def.id.toLowerCase() ||
@@ -653,14 +680,14 @@ export class ConsultancyService {
             changed = true;
           }
         }
-        if (changed || list.length !== parsed.length) {
+        if (typeof window !== 'undefined' && (changed || list.length !== parsed.length)) {
           localStorage.setItem('ielts_consultancies', JSON.stringify(list));
         }
         return list;
       }
-      return DEFAULT_CONSULTANCIES.filter((d) => !deletedIds.includes(d.id.toLowerCase()));
+      return DEFAULT_CONSULTANCIES.filter((d) => !isExcluded(d));
     } catch {
-      return DEFAULT_CONSULTANCIES.filter((d) => !deletedIds.includes(d.id.toLowerCase()));
+      return DEFAULT_CONSULTANCIES.filter((d) => !isExcluded(d));
     }
   }
 
@@ -894,7 +921,14 @@ export class ConsultancyService {
 
   // --- CANDIDATE SESSION MANAGEMENT ---
   public static getCurrentCandidateSession(): CandidateSession | null {
-    const raw = localStorage.getItem('ielts_candidate_session');
+    try {
+      const sessRaw = typeof window !== 'undefined' ? sessionStorage.getItem('ielts_candidate_session') : null;
+      if (sessRaw) {
+        return JSON.parse(sessRaw);
+      }
+    } catch {}
+
+    const raw = typeof window !== 'undefined' ? localStorage.getItem('ielts_candidate_session') : null;
     if (!raw) return null;
     try {
       return JSON.parse(raw);
@@ -905,14 +939,36 @@ export class ConsultancyService {
 
   public static setCurrentCandidateSession(session: CandidateSession | null): void {
     if (session) {
-      localStorage.setItem('ielts_candidate_session', JSON.stringify(session));
+      try {
+        sessionStorage.setItem('ielts_candidate_session', JSON.stringify(session));
+        if (session.stationName) {
+          sessionStorage.setItem('ielts_terminal_pc', session.stationName);
+        }
+      } catch {}
+      try {
+        localStorage.setItem('ielts_candidate_session', JSON.stringify(session));
+        if (session.stationName) {
+          localStorage.setItem('ielts_terminal_pc', session.stationName);
+        }
+      } catch {}
     } else {
-      localStorage.removeItem('ielts_candidate_session');
+      try {
+        sessionStorage.removeItem('ielts_candidate_session');
+      } catch {}
+      try {
+        localStorage.removeItem('ielts_candidate_session');
+      } catch {}
     }
   }
 
   public static logoutCandidate(): void {
     this.setCurrentCandidateSession(null);
+    try {
+      localStorage.removeItem('ielts_terminal_pass');
+      localStorage.removeItem('ielts_terminal_branch');
+      sessionStorage.removeItem('ielts_terminal_pass');
+      sessionStorage.removeItem('ielts_terminal_branch');
+    } catch {}
   }
 
   public static saveConsultancy(consultancy: Consultancy, shouldBroadcast: boolean = true): void {
@@ -958,15 +1014,24 @@ export class ConsultancyService {
 
     // 2. Remove from active list
     const current = this.getConsultancies();
-    const target = current.find((c) => c.id.toLowerCase() === cleanId);
-    if (target?.branchCode && !deleted.includes(target.branchCode.toLowerCase())) {
-      deleted.push(target.branchCode.toLowerCase());
+    const target = current.find(
+      (c) =>
+        c.id.toLowerCase() === cleanId ||
+        (c.branchCode && c.branchCode.toLowerCase() === cleanId) ||
+        (c.accessCode && c.accessCode.toLowerCase() === cleanId)
+    );
+    if (target) {
+      if (target.id && !deleted.includes(target.id.toLowerCase())) deleted.push(target.id.toLowerCase());
+      if (target.branchCode && !deleted.includes(target.branchCode.toLowerCase())) deleted.push(target.branchCode.toLowerCase());
+      if (target.accessCode && !deleted.includes(target.accessCode.toLowerCase())) deleted.push(target.accessCode.toLowerCase());
+      if (target.name && !deleted.includes(target.name.toLowerCase())) deleted.push(target.name.toLowerCase());
     }
     localStorage.setItem('ielts_deleted_consultancies', JSON.stringify(deleted));
 
     const updated = current.filter((c) => {
       if (c.id.toLowerCase() === cleanId) return false;
       if (target) {
+        if (c.id.toLowerCase() === target.id.toLowerCase()) return false;
         if (target.branchCode && c.branchCode && c.branchCode.toUpperCase() === target.branchCode.toUpperCase()) return false;
         if (target.name && c.name && c.name.toLowerCase() === target.name.toLowerCase()) return false;
       }

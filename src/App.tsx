@@ -71,13 +71,17 @@ export const App: React.FC = () => {
       const urlStation = p.get('station') || p.get('st') || p.get('pc');
       if (urlStation) {
         const clean = urlStation.trim().toUpperCase();
-        return clean.startsWith('PC-') ? clean : `PC-${clean.replace(/^PC/i, '')}`;
+        const formatted = clean.startsWith('PC-') ? clean : `PC-${clean.replace(/^PC/i, '')}`;
+        sessionStorage.setItem('ielts_terminal_pc', formatted);
+        return formatted;
       }
+      const sessionPc = sessionStorage.getItem('ielts_terminal_pc');
+      if (sessionPc) return sessionPc;
       const savedPc = localStorage.getItem('ielts_terminal_pc');
       if (savedPc) return savedPc;
     }
     const saved = ConsultancyService.getCurrentCandidateSession();
-    return saved?.stationName || (typeof window !== 'undefined' && localStorage.getItem('ielts_terminal_pc')) || 'PC-01';
+    return saved?.stationName || (typeof window !== 'undefined' && (sessionStorage.getItem('ielts_terminal_pc') || localStorage.getItem('ielts_terminal_pc'))) || 'PC-01';
   });
 
   const [activeCandidateInfo, setActiveCandidateInfo] = useState<{
@@ -152,7 +156,6 @@ export const App: React.FC = () => {
       const cid = params.get('consultancy') || params.get('cid');
       const station = params.get('station') || params.get('st') || params.get('pc');
       const branch = params.get('branch') || params.get('access') || params.get('code');
-      const cname = params.get('cname') || params.get('name');
 
       // Resolve target consultancy
       let targetCid = cid;
@@ -163,27 +166,6 @@ export const App: React.FC = () => {
       if (targetCid) {
         setSelectedConsultancyId(targetCid);
         let cObj = ConsultancyService.getConsultancyById(targetCid);
-        if (!cObj && (cname || branch)) {
-          cObj = {
-            id: targetCid,
-            name: cname || 'Consultancy Testing Lab',
-            branch: 'Lab Station',
-            adminEmail: '',
-            phone: '',
-            accessCode: (branch || 'LAB01').toUpperCase(),
-            branchCode: (branch || 'LAB01').toUpperCase(),
-            examPassword: '1234',
-            adminPassword: '1234',
-            status: 'active',
-            computerLimit: 50,
-            testCredits: 500,
-            creditsUsed: 0,
-            createdAt: new Date().toISOString(),
-            validUntil: new Date(Date.now() + 365 * 24 * 3600 * 1000).toISOString(),
-            assignedTestIds: []
-          };
-          ConsultancyService.saveConsultancy(cObj);
-        }
         if (cObj) {
           localStorage.setItem('ielts_terminal_branch', cObj.branchCode || cObj.accessCode);
         }
@@ -196,6 +178,7 @@ export const App: React.FC = () => {
           ? cleanSt
           : `PC-${cleanSt.replace(/^PC/i, '')}`;
         setTerminalStationName(formattedStation);
+        sessionStorage.setItem('ielts_terminal_pc', formattedStation);
         localStorage.setItem('ielts_terminal_pc', formattedStation);
         if (targetCid) {
           ConsultancyService.addStation(targetCid, formattedStation);
@@ -453,6 +436,7 @@ export const App: React.FC = () => {
       name: string;
       candidateId: string;
       targetBand?: number;
+      stationName?: string;
       consultancyId?: string;
       consultancyName?: string;
       phone?: string;
@@ -473,14 +457,19 @@ export const App: React.FC = () => {
     if (candidate) {
       const targetCid = candidate.consultancyId || selectedConsultancyId || 'apex-global';
       const consultancyObj = ConsultancyService.getConsultancyById(targetCid);
+      const stName = candidate.stationName || (typeof window !== 'undefined' ? sessionStorage.getItem('ielts_terminal_pc') : null) || terminalStationName || 'PC-01';
+      setTerminalStationName(stName);
+      if (typeof window !== 'undefined') {
+        sessionStorage.setItem('ielts_terminal_pc', stName);
+      }
       const sess: CandidateSession = {
-        stationName: terminalStationName || 'PC-01',
+        stationName: stName,
         branchCode: consultancyObj?.branchCode || consultancyObj?.accessCode || targetCid,
         consultancyId: targetCid,
         consultancyName: candidate.consultancyName || consultancyObj?.name || 'IELTS Partner',
         candidateName: candidate.name,
         candidateId: candidate.candidateId,
-        targetBand: candidate.targetBand || 7.5,
+        targetBand: candidate.targetBand || 0,
         loggedInAt: new Date().toISOString()
       };
       ConsultancyService.setCurrentCandidateSession(sess);
@@ -490,25 +479,27 @@ export const App: React.FC = () => {
         name: candidate.name,
         candidateId: candidate.candidateId,
         targetBand: candidate.targetBand,
-        stationName: terminalStationName,
+        stationName: stName,
         consultancyId: targetCid
       });
     } else if (candidateSession) {
+      const stName = candidateSession.stationName || (typeof window !== 'undefined' ? sessionStorage.getItem('ielts_terminal_pc') : null) || terminalStationName || 'PC-01';
       setActiveCandidateInfo({
         name: candidateSession.candidateName,
         candidateId: candidateSession.candidateId,
         targetBand: candidateSession.targetBand,
-        stationName: candidateSession.stationName,
+        stationName: stName,
         consultancyId: candidateSession.consultancyId
       });
     } else {
       const fallbackName = localStorage.getItem('ielts_candidate_name') || 'Candidate';
       const fallbackId = '00' + Math.floor(1000 + Math.random() * 9000);
+      const stName = (typeof window !== 'undefined' ? sessionStorage.getItem('ielts_terminal_pc') : null) || terminalStationName || 'PC-01';
       setActiveCandidateInfo({
         name: fallbackName,
         candidateId: fallbackId,
-        targetBand: 7.5,
-        stationName: terminalStationName,
+        targetBand: 0,
+        stationName: stName,
         consultancyId: selectedConsultancyId || 'apex-global'
       });
     }
@@ -606,6 +597,13 @@ export const App: React.FC = () => {
     const consultancy = ConsultancyService.getConsultancyById(cid);
     const consultancyName = consultancy?.name || candidateSession?.consultancyName || 'IELTS Partner';
 
+    const resolvedStation =
+      activeCandidateInfo?.stationName ||
+      candidateSession?.stationName ||
+      (typeof window !== 'undefined' ? (sessionStorage.getItem('ielts_terminal_pc') || localStorage.getItem('ielts_terminal_pc')) : null) ||
+      terminalStationName ||
+      '';
+
     const newResult: TestResult = {
       testId: activeTest.id,
       book: activeTest.book,
@@ -619,9 +617,10 @@ export const App: React.FC = () => {
       answers: curAnswers,
       candidateName: studentName,
       candidateId: candId,
+      stationName: resolvedStation,
       consultancyId: cid,
       consultancyName: consultancyName,
-      targetBand: activeCandidateInfo?.targetBand || candidateSession?.targetBand || 7.5,
+      targetBand: activeCandidateInfo?.targetBand ?? candidateSession?.targetBand ?? 0,
       isPublished: false,
       writingSubmission: writingSub
     };
@@ -659,10 +658,11 @@ export const App: React.FC = () => {
     });
 
     // 4. If candidate took test in a consultancy lab station, update station
-    if (activeCandidateInfo?.stationName) {
+    const stationToUpdate = resolvedStation || activeCandidateInfo?.stationName;
+    if (stationToUpdate) {
       ConsultancyService.updateStationHeartbeat(
         cid,
-        activeCandidateInfo.stationName,
+        stationToUpdate,
         {
           status: 'submitted',
           remainingSeconds: 0,
@@ -670,7 +670,7 @@ export const App: React.FC = () => {
           currentCandidate: {
             candidateId: candId,
             name: studentName,
-            targetBand: activeCandidateInfo.targetBand
+            targetBand: activeCandidateInfo?.targetBand ?? candidateSession?.targetBand ?? 0
           }
         }
       );
@@ -792,7 +792,7 @@ export const App: React.FC = () => {
       {activeScreen === 'auth' && (
         <UnifiedAuthView
           initialTab={initialAuthTab}
-          initialBranchCode={candidateSession?.branchCode || 'APEX-2026'}
+          initialBranchCode=""
           initialPcNumber={terminalStationName || 'PC-01'}
           onCandidateLogin={handleCandidateLogin}
           onAdminLogin={handleAdminLogin}
@@ -888,6 +888,10 @@ export const App: React.FC = () => {
             const cleanStation = candidate.stationName || terminalStationName || 'PC-01';
             const cleanCid = candidate.consultancyId || selectedConsultancyId || 'apex-global';
             setTerminalStationName(cleanStation);
+            if (typeof window !== 'undefined') {
+              sessionStorage.setItem('ielts_terminal_pc', cleanStation);
+              localStorage.setItem('ielts_terminal_pc', cleanStation);
+            }
             setSelectedConsultancyId(cleanCid);
             const cObj = ConsultancyService.getConsultancyById(cleanCid);
             const sess: CandidateSession = {
@@ -897,7 +901,7 @@ export const App: React.FC = () => {
               consultancyName: cObj?.name || 'Educational Consultancy Lab',
               candidateName: candidate.name,
               candidateId: candidate.candidateId,
-              targetBand: candidate.targetBand || 7.5,
+              targetBand: candidate.targetBand || 0,
               loggedInAt: new Date().toISOString()
             };
             ConsultancyService.setCurrentCandidateSession(sess);
@@ -909,7 +913,7 @@ export const App: React.FC = () => {
               stationName: cleanStation,
               consultancyId: cleanCid
             });
-            startTest(test, undefined, fullMock);
+            startTest(test, { ...candidate, stationName: cleanStation, targetBand: candidate.targetBand || 0 }, fullMock);
           }}
           onExitTerminal={() => {
             try {

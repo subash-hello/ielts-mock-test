@@ -5,7 +5,6 @@ import {
   Clock,
   AlertCircle,
   FileCheck,
-  Building2,
   ArrowRight,
   RotateCw,
   X,
@@ -32,14 +31,30 @@ export const CandidateResultLookupModal: React.FC<CandidateResultLookupModalProp
   consultancyId
 }) => {
   const [candidateIdInput, setCandidateIdInput] = useState(initialCandidateId);
-  const [selectedCid, setSelectedCid] = useState<string>(consultancyId || 'all');
+  const [selectedCid] = useState<string>(consultancyId || 'all');
   const [searched, setSearched] = useState(false);
   const [isSearching, setIsSearching] = useState(false);
   const [publishedResults, setPublishedResults] = useState<TestResult[]>([]);
   const [pendingResults, setPendingResults] = useState<TestResult[]>([]);
   const [notFound, setNotFound] = useState(false);
 
-  const consultancies = ConsultancyService.getConsultancies();
+  const performLookup = (candId: string, cid?: string) => {
+    const clean = candId.trim().replace(/^#/, '');
+    if (!clean) return;
+
+    setIsSearching(true);
+    setSearched(true);
+
+    setTimeout(() => {
+      const activeCid = cid && cid !== 'all' ? cid : undefined;
+      const lookup = ConsultancyService.getCandidateResults(clean, activeCid);
+
+      setPublishedResults(lookup.publishedResults);
+      setPendingResults(lookup.pendingResults);
+      setNotFound(!lookup.found);
+      setIsSearching(false);
+    }, 200);
+  };
 
   useEffect(() => {
     if (isOpen) {
@@ -59,24 +74,6 @@ export const CandidateResultLookupModal: React.FC<CandidateResultLookupModalProp
       setIsSearching(false);
     }
   }, [isOpen, initialCandidateId, consultancyId]);
-
-  const performLookup = (candId: string, cid?: string) => {
-    const clean = candId.trim().replace(/^#/, '');
-    if (!clean) return;
-
-    setIsSearching(true);
-    setSearched(true);
-
-    setTimeout(() => {
-      const activeCid = cid && cid !== 'all' ? cid : undefined;
-      const lookup = ConsultancyService.getCandidateResults(clean, activeCid);
-
-      setPublishedResults(lookup.publishedResults);
-      setPendingResults(lookup.pendingResults);
-      setNotFound(!lookup.found);
-      setIsSearching(false);
-    }, 200);
-  };
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -166,26 +163,8 @@ export const CandidateResultLookupModal: React.FC<CandidateResultLookupModalProp
               </div>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-              <div>
-                <label className="block text-[11px] font-semibold text-slate-600 mb-1">
-                  Test Centre / Consultancy (Optional)
-                </label>
-                <select
-                  value={selectedCid}
-                  onChange={(e) => setSelectedCid(e.target.value)}
-                  className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs font-medium text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer"
-                >
-                  <option value="all">All Registered Centres</option>
-                  {consultancies.map((c) => (
-                    <option key={c.id} value={c.id}>
-                      {c.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div className="flex items-end">
+            <div className="flex flex-col sm:flex-row gap-2.5">
+              <div className="flex-1">
                 <button
                   type="submit"
                   disabled={isSearching || !candidateIdInput.trim()}
@@ -283,7 +262,7 @@ export const CandidateResultLookupModal: React.FC<CandidateResultLookupModalProp
                         )}
                       </div>
                       <span className="text-[10px] text-slate-500">
-                        Candidate: {pr.candidateName || 'Candidate'} • Submitted: {new Date(pr.completedAt).toLocaleString()} • {pr.consultancyName || 'Test Centre'}
+                        Candidate: {pr.candidateName || 'Candidate'} • Submitted: {new Date(pr.completedAt).toLocaleString()}
                       </span>
                       {pr.module === 'writing' && (
                         <p className="text-[11px] text-amber-800 mt-1 font-medium">
@@ -350,11 +329,6 @@ export const CandidateResultLookupModal: React.FC<CandidateResultLookupModalProp
                           <span className="font-medium text-slate-700">Candidate: {res.candidateName}</span>
                           <span>•</span>
                           <span>ID: <strong className="font-mono text-slate-900">{res.candidateId}</strong></span>
-                          <span>•</span>
-                          <span className="flex items-center gap-1">
-                            <Building2 className="w-3 h-3 text-slate-400" />
-                            {res.consultancyName || 'Apex Global Education'}
-                          </span>
                         </div>
                         <div className="text-[10px] text-slate-400">
                           Published: {res.publishedAt ? new Date(res.publishedAt).toLocaleString() : new Date(res.completedAt).toLocaleString()}

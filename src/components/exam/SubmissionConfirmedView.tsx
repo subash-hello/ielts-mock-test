@@ -122,10 +122,10 @@ export const SubmissionConfirmedView: React.FC<SubmissionConfirmedViewProps> = (
                 </div>
 
                 <div>
-                  <span className="text-slate-500 block text-[11px] font-medium">Test Centre / Consultancy</span>
+                  <span className="text-slate-500 block text-[11px] font-medium">Examination Facility</span>
                   <div className="flex items-center gap-1.5 font-bold text-slate-900 mt-0.5">
                     <Building2 className="w-3.5 h-3.5 text-slate-400" />
-                    <span>{candidateInfo.consultancyName || 'Apex Global Education'}</span>
+                    <span>Official IELTS Test Centre</span>
                   </div>
                 </div>
 

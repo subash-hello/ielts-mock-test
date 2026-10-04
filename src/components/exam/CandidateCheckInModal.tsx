@@ -68,9 +68,9 @@ export const CandidateCheckInModal: React.FC<CandidateCheckInModalProps> = ({
     return '00' + Math.floor(1000 + Math.random() * 9000);
   });
 
-  const [targetBand, setTargetBand] = useState<number>(() => {
+  const [targetBand, setTargetBand] = useState<number | string>(() => {
     const saved = localStorage.getItem('ielts_candidate_target_band');
-    return saved ? Number(saved) : 7.5;
+    return saved ? Number(saved) : '';
   });
 
   const [phone, setPhone] = useState<string>(() => {
@@ -122,7 +122,11 @@ export const CandidateCheckInModal: React.FC<CandidateCheckInModalProps> = ({
     localStorage.setItem('ielts_candidate_name', cleanName);
     localStorage.setItem('ielts_candidate_consultancy_id', selectedCid);
     localStorage.setItem('ielts_candidate_id', candidateId.trim());
-    localStorage.setItem('ielts_candidate_target_band', String(targetBand));
+    if (targetBand) {
+      localStorage.setItem('ielts_candidate_target_band', String(targetBand));
+    } else {
+      localStorage.removeItem('ielts_candidate_target_band');
+    }
     if (phone.trim()) {
       localStorage.setItem('ielts_candidate_phone', phone.trim());
     }
@@ -130,7 +134,7 @@ export const CandidateCheckInModal: React.FC<CandidateCheckInModalProps> = ({
     onConfirm({
       name: cleanName,
       candidateId: candidateId.trim(),
-      targetBand,
+      targetBand: targetBand ? Number(targetBand) : 0,
       consultancyId: selectedConsultancy?.id || 'apex-global',
       consultancyName: selectedConsultancy?.name || 'IELTS Partner',
       phone: phone.trim()
@@ -265,13 +269,14 @@ export const CandidateCheckInModal: React.FC<CandidateCheckInModalProps> = ({
             <div className="space-y-1.5">
               <label className="text-slate-700 font-semibold flex items-center gap-1 text-[11px]">
                 <Award className="w-3 h-3 text-slate-400" />
-                <span>Target Band</span>
+                <span>Target Band (Optional)</span>
               </label>
               <select
                 value={targetBand}
-                onChange={(e) => setTargetBand(Number(e.target.value))}
+                onChange={(e) => setTargetBand(e.target.value ? Number(e.target.value) : '')}
                 className="w-full bg-white border border-slate-300 focus:border-blue-600 text-slate-900 text-xs px-3 py-2 rounded-lg outline-none font-bold text-blue-700"
               >
+                <option value="">System suggestion: 7.5</option>
                 <option value={6.0}>Band 6.0 (Competent)</option>
                 <option value={6.5}>Band 6.5 (Competent +)</option>
                 <option value={7.0}>Band 7.0 (Good User)</option>
