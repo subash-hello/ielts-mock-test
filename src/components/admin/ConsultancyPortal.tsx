@@ -190,6 +190,8 @@ export const ConsultancyPortal: React.FC<ConsultancyPortalProps> = ({
   } | null>(null);
 
   const [sessionEndNotice, setSessionEndNotice] = useState<string | null>(null);
+  const [isSyncingStations, setIsSyncingStations] = useState<boolean>(false);
+  const [syncMessage, setSyncMessage] = useState<string | null>(null);
 
   // Reload local state from service
   const reloadAll = () => {
@@ -201,6 +203,29 @@ export const ConsultancyPortal: React.FC<ConsultancyPortalProps> = ({
     setTestResults(ConsultancyService.getResults(targetCid));
     setAssignedTestIds(ConsultancyService.getAssignedTestIds(targetCid));
     setActiveLaunchedTest(ConsultancyService.getActiveLaunchedTest(targetCid));
+  };
+
+  const handleSyncStationResults = () => {
+    setIsSyncingStations(true);
+    const targetCid = consultancy?.id || consultancyId;
+    ConsultancyService.requestStationSync(targetCid);
+    const rec = ConsultancyService.reconcileCandidatesFromStations(targetCid);
+    reloadAll();
+
+    setSyncMessage(
+      rec.reconciledCount > 0
+        ? `Station sync request sent. Reconciled ${rec.reconciledCount} candidate(s) into roster.`
+        : 'Station sync signal broadcast to all active workstations. Listening for incoming submissions...'
+    );
+
+    setTimeout(() => {
+      setIsSyncingStations(false);
+      reloadAll();
+    }, 1500);
+
+    setTimeout(() => {
+      setSyncMessage(null);
+    }, 6000);
   };
 
   // Real-time telemetry subscription
@@ -627,7 +652,22 @@ export const ConsultancyPortal: React.FC<ConsultancyPortalProps> = ({
         </div>
 
         {/* Center / Right controls */}
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2.5 sm:gap-3">
+          {/* Live Station Submission Sync */}
+          <button
+            onClick={handleSyncStationResults}
+            disabled={isSyncingStations}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition cursor-pointer shadow-xs border ${
+              isSyncingStations
+                ? 'bg-blue-50 border-blue-300 text-blue-700'
+                : 'bg-white hover:bg-slate-50 border-slate-300 text-slate-700'
+            }`}
+            title="Request all connected lab terminals to transmit completed candidate test submissions"
+          >
+            <RotateCcw className={`w-3.5 h-3.5 text-blue-600 ${isSyncingStations ? 'animate-spin' : ''}`} />
+            <span>{isSyncingStations ? 'Syncing...' : 'Sync Stations'}</span>
+          </button>
+
           {/* Lab Station Pairing Link */}
           <button
             onClick={copyLabPairingLink}
@@ -940,6 +980,20 @@ export const ConsultancyPortal: React.FC<ConsultancyPortalProps> = ({
                     </button>
                   )}
                   <button
+                    onClick={handleSyncStationResults}
+                    disabled={isSyncingStations}
+                    className={`flex items-center gap-1.5 px-3.5 py-2 text-xs font-bold rounded-xl shadow-xs transition cursor-pointer ${
+                      isSyncingStations
+                        ? 'bg-blue-100 text-blue-700'
+                        : 'bg-blue-600 hover:bg-blue-700 text-white'
+                    }`}
+                    title="Request all connected lab terminals to transmit stored test submissions"
+                  >
+                    <RotateCcw className={`w-3.5 h-3.5 ${isSyncingStations ? 'animate-spin' : ''}`} />
+                    <span>{isSyncingStations ? 'Syncing Stations...' : 'Sync Lab Stations'}</span>
+                  </button>
+
+                  <button
                     onClick={reloadAll}
                     className="flex items-center gap-1.5 px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-xl transition cursor-pointer"
                     title="Refresh student results"
@@ -949,6 +1003,19 @@ export const ConsultancyPortal: React.FC<ConsultancyPortalProps> = ({
                   </button>
                 </div>
               </div>
+
+              {/* Sync Notification Banner */}
+              {syncMessage && (
+                <div className="bg-blue-50 border border-blue-200 text-blue-900 px-4 py-3 rounded-xl text-xs font-medium flex items-center justify-between shadow-2xs animate-in fade-in">
+                  <div className="flex items-center gap-2">
+                    <RotateCcw className="w-4 h-4 text-blue-600 animate-spin shrink-0" />
+                    <span>{syncMessage}</span>
+                  </div>
+                  <button onClick={() => setSyncMessage(null)} className="text-blue-500 hover:text-blue-800 cursor-pointer">
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+              )}
 
               {/* Statistics Metrics Cards */}
               <div className="grid grid-cols-2 md:grid-cols-4 gap-3 pt-2">
@@ -1067,13 +1134,106 @@ export const ConsultancyPortal: React.FC<ConsultancyPortalProps> = ({
 
             {/* Results Table */}
             {testResults.length === 0 ? (
-              <div className="bg-white border border-dashed border-slate-200 rounded-2xl p-12 text-center space-y-3">
-                <Award className="w-12 h-12 text-slate-300 mx-auto" />
-                <h4 className="font-bold text-slate-800 text-sm">No exam submissions yet</h4>
-                <p className="text-xs text-slate-500 max-w-md mx-auto">
-                  When a student clicks on any mock test and enters their name with <strong>{consultancy.name}</strong>, their test score, band evaluation, and complete report will appear here instantly.
-                </p>
-              </div>
+              stations.filter((s) => s.currentCandidate?.name).length > 0 ? (
+                <div className="bg-white border-2 border-indigo-200 rounded-2xl p-6 shadow-sm space-y-5 animate-in fade-in">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-indigo-100">
+                    <div className="flex items-center gap-3">
+                      <div className="w-12 h-12 rounded-xl bg-indigo-50 border border-indigo-200 flex items-center justify-center text-indigo-600 shrink-0">
+                        <Monitor className="w-6 h-6" />
+                      </div>
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
+                          <h4 className="font-extrabold text-slate-900 text-base">
+                            {stations.filter((s) => s.currentCandidate?.name).length} Candidate Sessions Found on Lab Workstations
+                          </h4>
+                        </div>
+                        <p className="text-xs text-slate-600 mt-0.5">
+                          Student candidates were registered or submitted on PC terminals ({stations.filter((s) => s.currentCandidate?.name).map((s) => s.name).join(', ')}).
+                          Click <strong>Pull from Workstations</strong> to request results over cloud telemetry, or <strong>Import Result</strong> to restore records.
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2.5 shrink-0">
+                      <button
+                        onClick={handleSyncStationResults}
+                        disabled={isSyncingStations}
+                        className="px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold transition shadow-xs cursor-pointer flex items-center gap-2"
+                      >
+                        <RotateCcw className={`w-3.5 h-3.5 ${isSyncingStations ? 'animate-spin' : ''}`} />
+                        <span>{isSyncingStations ? 'Pulling Submissions...' : 'Pull from Workstations'}</span>
+                      </button>
+                      <button
+                        onClick={() => {
+                          const targetCid = consultancy?.id || consultancyId;
+                          ConsultancyService.reconcileCandidatesFromStations(targetCid);
+                          reloadAll();
+                          setActiveTab('students');
+                        }}
+                        className="px-4 py-2.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 rounded-xl text-xs font-bold transition cursor-pointer flex items-center gap-1.5"
+                      >
+                        <Users className="w-3.5 h-3.5" />
+                        <span>Candidate Roster</span>
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Candidate List Grid */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                    {stations
+                      .filter((s) => s.currentCandidate?.name)
+                      .map((st) => (
+                        <div
+                          key={st.id}
+                          className="bg-slate-50 border border-slate-200 rounded-xl p-3.5 flex items-center justify-between gap-3 hover:bg-white hover:border-indigo-300 transition shadow-2xs"
+                        >
+                          <div className="flex items-center gap-3">
+                            <div className="w-8 h-8 rounded-lg bg-indigo-100/70 border border-indigo-200 flex items-center justify-center font-bold text-indigo-900 text-xs font-mono">
+                              {st.name}
+                            </div>
+                            <div>
+                              <div className="font-bold text-slate-900 text-xs">
+                                {st.currentCandidate?.name}
+                              </div>
+                              <div className="text-[11px] font-mono text-slate-500">
+                                #{st.currentCandidate?.candidateId} • {st.testTitle || 'Cambridge 16 Test 1'}
+                              </div>
+                            </div>
+                          </div>
+                          <button
+                            onClick={() => {
+                              const targetCid = consultancy?.id || consultancyId;
+                              ConsultancyService.recordStationSubmissionResult(targetCid, st.name);
+                              reloadAll();
+                            }}
+                            className="px-2.5 py-1.5 bg-white hover:bg-indigo-50 border border-slate-300 hover:border-indigo-300 text-slate-700 hover:text-indigo-700 text-[11px] font-bold rounded-lg transition cursor-pointer shrink-0 shadow-2xs"
+                            title="Register and import result for this candidate"
+                          >
+                            Import Result
+                          </button>
+                        </div>
+                      ))}
+                  </div>
+                </div>
+              ) : (
+                <div className="bg-white border border-dashed border-slate-200 rounded-2xl p-12 text-center space-y-3">
+                  <Award className="w-12 h-12 text-slate-300 mx-auto" />
+                  <h4 className="font-bold text-slate-800 text-sm">No exam submissions yet</h4>
+                  <p className="text-xs text-slate-500 max-w-md mx-auto">
+                    When a student clicks on any mock test and enters their name with <strong>{consultancy.name}</strong>, their test score, band evaluation, and complete report will appear here instantly.
+                  </p>
+                  <div className="pt-2">
+                    <button
+                      onClick={handleSyncStationResults}
+                      disabled={isSyncingStations}
+                      className="px-4 py-2 bg-blue-50 hover:bg-blue-100 text-blue-700 font-bold text-xs rounded-xl transition cursor-pointer inline-flex items-center gap-2 border border-blue-200"
+                    >
+                      <RotateCcw className={`w-3.5 h-3.5 ${isSyncingStations ? 'animate-spin' : ''}`} />
+                      <span>Scan Lab Workstations</span>
+                    </button>
+                  </div>
+                </div>
+              )
             ) : (
               <div className="bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-xs">
                 <div className="overflow-x-auto">
@@ -1465,12 +1625,36 @@ export const ConsultancyPortal: React.FC<ConsultancyPortalProps> = ({
                     {/* Action Toolbar */}
                     <div className="pt-3 border-t border-slate-100 flex items-center justify-between gap-1 text-xs">
                       {isIdle ? (
-                        <button
-                          onClick={() => handleOpenAssignModal(st)}
-                          className="w-full py-1.5 bg-blue-50 hover:bg-blue-100 border border-blue-200 text-blue-700 rounded-lg font-semibold text-xs transition cursor-pointer text-center"
-                        >
-                          + Assign Exam
-                        </button>
+                        st.currentCandidate?.name ? (
+                          <div className="flex items-center justify-between w-full gap-2">
+                            <button
+                              onClick={() => {
+                                const targetCid = consultancy?.id || consultancyId;
+                                ConsultancyService.recordStationSubmissionResult(targetCid, st.name);
+                                reloadAll();
+                                setActiveTab('results');
+                              }}
+                              className="flex-1 py-1.5 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 text-indigo-700 rounded-lg font-semibold text-xs transition cursor-pointer text-center"
+                              title="Import candidate submission record into results center"
+                            >
+                              Import Result
+                            </button>
+                            <button
+                              onClick={() => handleOpenAssignModal(st)}
+                              className="px-2.5 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg font-medium text-xs transition cursor-pointer text-center"
+                              title="Assign a new test to this computer"
+                            >
+                              New Test
+                            </button>
+                          </div>
+                        ) : (
+                          <button
+                            onClick={() => handleOpenAssignModal(st)}
+                            className="w-full py-1.5 bg-blue-50 hover:bg-blue-100 border border-blue-200 text-blue-700 rounded-lg font-semibold text-xs transition cursor-pointer text-center"
+                          >
+                            + Assign Exam
+                          </button>
+                        )
                       ) : (
                         <div className="flex items-center justify-between w-full">
                           {isRunning ? (

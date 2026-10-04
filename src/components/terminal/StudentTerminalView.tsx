@@ -387,6 +387,12 @@ export const StudentTerminalView: React.FC<StudentTerminalViewProps> = ({
           }
           syncActiveTest();
         }
+      } else if (event.type === 'REQUEST_STATION_RESULTS') {
+        const targetCid = event.payload?.consultancyId;
+        const myCid = ConsultancyService.getCanonicalConsultancyId(consultancy?.id);
+        if (!targetCid || targetCid === myCid) {
+          ConsultancyService.pushLocalResultsToCloud(myCid);
+        }
       } else if (
         event.type === 'STATION_UPDATED' ||
         event.type === 'STORAGE_SYNC' ||
@@ -400,6 +406,13 @@ export const StudentTerminalView: React.FC<StudentTerminalViewProps> = ({
         }
       }
     });
+
+    // On terminal mount, automatically push any locally stored candidate results to cloud
+    if (consultancy?.id) {
+      setTimeout(() => {
+        ConsultancyService.pushLocalResultsToCloud(consultancy.id);
+      }, 500);
+    }
 
     // High-frequency responsive fallback interval (200ms) for instant test appearance
     const interval = setInterval(syncActiveTest, 200);

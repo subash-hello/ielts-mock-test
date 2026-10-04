@@ -354,15 +354,20 @@ export class ConsultancyService {
       const st = eventObj.payload;
       if (st?.consultancyId && st?.name) {
         try {
-          const list = this.getStations(st.consultancyId);
+          const canonical = this.getCanonicalConsultancyId(st.consultancyId);
+          const aliases = this.getConsultancyAliases(st.consultancyId);
+          const list = this.getStations(canonical);
           const norm = this.normalizeStationName(st.name);
           const idx = list.findIndex((s) => this.normalizeStationName(s.name) === norm);
           if (idx >= 0) {
-            list[idx] = { ...list[idx], ...st };
+            list[idx] = { ...list[idx], ...st, consultancyId: canonical };
           } else {
-            list.push(st);
+            list.push({ ...st, consultancyId: canonical });
           }
-          localStorage.setItem(`ielts_stations_${st.consultancyId}`, JSON.stringify(list));
+          const serialized = JSON.stringify(list);
+          for (const key of aliases) {
+            localStorage.setItem(`ielts_stations_${key}`, serialized);
+          }
         } catch {}
       }
     } else if (eventObj.type === 'RESULT_ADDED') {
@@ -371,23 +376,54 @@ export class ConsultancyService {
       const res = p?.result;
       if (cid && res) {
         try {
-          const list = this.getResults(cid);
+          const canonical = this.getCanonicalConsultancyId(cid);
+          const aliases = this.getConsultancyAliases(cid);
+          const list = this.getResults(canonical);
           if (res.isPublished === undefined) {
             res.isPublished = false;
           }
+          const cleanRes = { ...res, consultancyId: canonical };
           const idx = list.findIndex(
             (r) =>
-              r.testId === res.testId &&
-              r.candidateId === res.candidateId &&
-              r.completedAt === res.completedAt
+              r.testId === cleanRes.testId &&
+              r.candidateId === cleanRes.candidateId &&
+              r.completedAt === cleanRes.completedAt
           );
           if (idx >= 0) {
-            list[idx] = res;
+            list[idx] = cleanRes;
           } else {
-            list.unshift(res);
+            list.unshift(cleanRes);
           }
-          localStorage.setItem(`ielts_results_${cid}`, JSON.stringify(list));
+          const serialized = JSON.stringify(list);
+          for (const key of aliases) {
+            localStorage.setItem(`ielts_results_${key}`, serialized);
+          }
+
+          // Automatically sync candidate student in the consultancy roster
+          try {
+            const students = this.getStudents(canonical);
+            this.upsertStudentForResult(
+              students,
+              canonical,
+              cleanRes.candidateId || '00' + Math.floor(1000 + Math.random() * 9000),
+              cleanRes,
+              cleanRes.candidateName
+            );
+            const stdSerialized = JSON.stringify(students);
+            for (const key of aliases) {
+              localStorage.setItem(`ielts_students_${key}`, stdSerialized);
+            }
+          } catch {}
         } catch {}
+      }
+    } else if (eventObj.type === 'REQUEST_STATION_RESULTS') {
+      const p = eventObj.payload;
+      const requestedCid = p?.consultancyId;
+      if (typeof window !== 'undefined') {
+        const canonical = this.getCanonicalConsultancyId(requestedCid);
+        setTimeout(() => {
+          this.pushLocalResultsToCloud(canonical);
+        }, Math.floor(50 + Math.random() * 250));
       }
     } else if (eventObj.type === 'REPORT_ADDED') {
       const p = eventObj.payload;
@@ -395,24 +431,44 @@ export class ConsultancyService {
       const rep = p?.report;
       if (cid && rep) {
         try {
-          const list = this.getReports(cid);
-          list.unshift(rep);
-          localStorage.setItem(`ielts_reports_${cid}`, JSON.stringify(list));
+          const canonical = this.getCanonicalConsultancyId(cid);
+          const aliases = this.getConsultancyAliases(cid);
+          const list = this.getReports(canonical);
+          const exists = list.some(
+            (r) =>
+              r.testId === rep.testId &&
+              r.candidateId === rep.candidateId &&
+              r.completedAt === rep.completedAt
+          );
+          if (!exists) {
+            list.unshift({ ...rep, consultancyId: canonical });
+          }
+          const serialized = JSON.stringify(list);
+          for (const key of aliases) {
+            localStorage.setItem(`ielts_reports_${key}`, serialized);
+          }
         } catch {}
       }
     } else if (eventObj.type === 'STUDENT_UPDATED') {
       const p = eventObj.payload;
-      if (p?.consultancyId && p?.candidateNumber && p?.result) {
+      if (p?.consultancyId) {
         try {
-          const students = this.getStudents(p.consultancyId);
-          this.upsertStudentForResult(
-            students,
-            p.consultancyId,
-            p.candidateNumber,
-            p.result,
-            p.candidateName
-          );
-          localStorage.setItem(`ielts_students_${p.consultancyId}`, JSON.stringify(students));
+          const canonical = this.getCanonicalConsultancyId(p.consultancyId);
+          const aliases = this.getConsultancyAliases(p.consultancyId);
+          const students = this.getStudents(canonical);
+          if (p.candidateNumber && p.result) {
+            this.upsertStudentForResult(
+              students,
+              canonical,
+              p.candidateNumber,
+              p.result,
+              p.candidateName
+            );
+          }
+          const serialized = JSON.stringify(students);
+          for (const key of aliases) {
+            localStorage.setItem(`ielts_students_${key}`, serialized);
+          }
         } catch {}
       }
     } else if (eventObj.type === 'CONSULTANCY_UPDATED') {
@@ -776,6 +832,42 @@ export class ConsultancyService {
 
   public static getConsultancyByBranchCode(code: string): Consultancy | undefined {
     return this.getConsultancyByAccessCode(code);
+  }
+
+  public static getCanonicalConsultancyId(input?: string): string {
+    if (!input) return 'apex-global';
+    const clean = input.trim();
+    if (!clean) return 'apex-global';
+    const c = this.getConsultancyById(clean) || this.getConsultancyByBranchCode(clean);
+    return c?.id || clean.toLowerCase();
+  }
+
+  public static getConsultancyAliases(input?: string): string[] {
+    if (!input) return ['apex-global'];
+    const canonical = this.getCanonicalConsultancyId(input);
+    const c = this.getConsultancyById(canonical);
+    const aliases = new Set<string>();
+    aliases.add(canonical);
+    if (input.trim()) aliases.add(input.trim());
+    if (input.trim().toLowerCase()) aliases.add(input.trim().toLowerCase());
+    if (input.trim().toUpperCase()) aliases.add(input.trim().toUpperCase());
+    if (c) {
+      if (c.id) {
+        aliases.add(c.id);
+        aliases.add(c.id.toLowerCase());
+      }
+      if (c.branchCode) {
+        aliases.add(c.branchCode);
+        aliases.add(c.branchCode.toUpperCase());
+        aliases.add(c.branchCode.toLowerCase());
+      }
+      if (c.accessCode) {
+        aliases.add(c.accessCode);
+        aliases.add(c.accessCode.toUpperCase());
+        aliases.add(c.accessCode.toLowerCase());
+      }
+    }
+    return Array.from(aliases);
   }
 
   public static verifyTerminalLogin(
@@ -1159,37 +1251,47 @@ export class ConsultancyService {
   }
 
   public static getStations(consultancyId: string): LabStation[] {
-    const raw = localStorage.getItem(`ielts_stations_${consultancyId}`);
+    const canonical = this.getCanonicalConsultancyId(consultancyId);
+    const aliases = this.getConsultancyAliases(consultancyId);
+
     let stationsList: LabStation[] = [];
-    if (!raw) {
-      if (consultancyId === 'apex-global') {
+    let foundRaw = false;
+
+    for (const key of aliases) {
+      const raw = localStorage.getItem(`ielts_stations_${key}`);
+      if (raw) {
+        foundRaw = true;
+        try {
+          const parsed = JSON.parse(raw);
+          if (Array.isArray(parsed)) {
+            stationsList.push(...parsed);
+          }
+        } catch {}
+      }
+    }
+
+    if (!foundRaw) {
+      if (canonical === 'apex-global') {
         stationsList = [...DEFAULT_STATIONS];
       }
     } else {
-      try {
-        const parsed = JSON.parse(raw);
-        if (Array.isArray(parsed)) {
-          stationsList = parsed.map((st: LabStation) => {
-            // Clear any stale demo assignments from earlier prototypes
-            if (st.currentCandidate?.candidateId === '004128' && st.assignedTestId === 'cambridge-19-test-1-reading') {
-              return {
-                ...st,
-                status: 'idle' as const,
-                currentCandidate: undefined,
-                assignedTestId: undefined,
-                testTitle: undefined,
-                module: undefined,
-                remainingSeconds: undefined,
-                answeredCount: 0,
-                currentQuestion: 1
-              };
-            }
-            return st;
-          });
+      stationsList = stationsList.map((st: LabStation) => {
+        // Clear any stale demo assignments from earlier prototypes
+        if (st.currentCandidate?.candidateId === '004128' && st.assignedTestId === 'cambridge-19-test-1-reading') {
+          return {
+            ...st,
+            status: 'idle' as const,
+            currentCandidate: undefined,
+            assignedTestId: undefined,
+            testTitle: undefined,
+            module: undefined,
+            remainingSeconds: undefined,
+            answeredCount: 0,
+            currentQuestion: 1
+          };
         }
-      } catch {
-        stationsList = [];
-      }
+        return st;
+      });
     }
 
     // Deduplicate by normalized station name (e.g. "PC-01")
@@ -1208,25 +1310,27 @@ export class ConsultancyService {
       const norm = this.normalizeStationName(st.name);
       if (!seenNames.has(norm)) {
         seenNames.add(norm);
-        deduplicated.push({ ...st, name: norm });
+        deduplicated.push({ ...st, name: norm, consultancyId: canonical });
       }
     }
 
     // Sort in natural order: PC-01, PC-02, PC-03...
     deduplicated.sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true, sensitivity: 'base' }));
 
-    // If cleaned list differs from raw, save back clean deduplicated list
-    if (deduplicated.length !== stationsList.length || !raw) {
-      localStorage.setItem(`ielts_stations_${consultancyId}`, JSON.stringify(deduplicated));
+    const serialized = JSON.stringify(deduplicated);
+    for (const key of aliases) {
+      localStorage.setItem(`ielts_stations_${key}`, serialized);
     }
 
     return deduplicated;
   }
 
   public static saveStation(station: LabStation): void {
+    const canonical = this.getCanonicalConsultancyId(station.consultancyId);
+    const aliases = this.getConsultancyAliases(station.consultancyId);
     const normName = this.normalizeStationName(station.name);
-    const stationWithNorm = { ...station, name: normName };
-    const list = this.getStations(station.consultancyId);
+    const stationWithNorm = { ...station, name: normName, consultancyId: canonical };
+    const list = this.getStations(canonical);
     const existingIdx = list.findIndex(
       (s) => s.id === station.id || this.normalizeStationName(s.name) === normName
     );
@@ -1239,7 +1343,10 @@ export class ConsultancyService {
     } else {
       list.push({ ...stationWithNorm, lastHeartbeat: new Date().toISOString() });
     }
-    localStorage.setItem(`ielts_stations_${station.consultancyId}`, JSON.stringify(list));
+    const serialized = JSON.stringify(list);
+    for (const key of aliases) {
+      localStorage.setItem(`ielts_stations_${key}`, serialized);
+    }
     this.broadcast('STATION_UPDATED', stationWithNorm);
   }
 
@@ -1248,7 +1355,9 @@ export class ConsultancyService {
     stationIdentifier: string,
     updates: Partial<LabStation>
   ): void {
-    const list = this.getStations(consultancyId);
+    const canonical = this.getCanonicalConsultancyId(consultancyId);
+    const aliases = this.getConsultancyAliases(consultancyId);
+    const list = this.getStations(canonical);
     const normSearch = this.normalizeStationName(stationIdentifier);
     const existingIdx = list.findIndex(
       (s) => s.id === stationIdentifier || this.normalizeStationName(s.name) === normSearch
@@ -1257,11 +1366,31 @@ export class ConsultancyService {
       list[existingIdx] = {
         ...list[existingIdx],
         ...updates,
+        consultancyId: canonical,
         lastHeartbeat: new Date().toISOString()
       };
-      localStorage.setItem(`ielts_stations_${consultancyId}`, JSON.stringify(list));
+      const serialized = JSON.stringify(list);
+      for (const key of aliases) {
+        localStorage.setItem(`ielts_stations_${key}`, serialized);
+      }
       this.broadcast('STATION_HEARTBEAT', list[existingIdx]);
       this.broadcast('STATION_UPDATED', list[existingIdx]);
+    } else {
+      const newStation: LabStation = {
+        id: `${canonical}-${normSearch.toLowerCase().replace(/[^a-z0-9]/g, '-')}`,
+        name: normSearch,
+        consultancyId: canonical,
+        status: updates.status || 'idle',
+        lastHeartbeat: new Date().toISOString(),
+        ...updates
+      };
+      list.push(newStation);
+      const serialized = JSON.stringify(list);
+      for (const key of aliases) {
+        localStorage.setItem(`ielts_stations_${key}`, serialized);
+      }
+      this.broadcast('STATION_HEARTBEAT', newStation);
+      this.broadcast('STATION_UPDATED', newStation);
     }
   }
 
@@ -1589,7 +1718,11 @@ export class ConsultancyService {
             }
           }
           if (changed) {
-            localStorage.setItem(`ielts_stations_${cid}`, JSON.stringify(stations));
+            const aliases = this.getConsultancyAliases(cid);
+            const serialized = JSON.stringify(stations);
+            for (const key of aliases) {
+              localStorage.setItem(`ielts_stations_${key}`, serialized);
+            }
           }
         } catch {}
       }
@@ -1696,38 +1829,77 @@ export class ConsultancyService {
 
   // --- CANDIDATE STUDENTS DIRECTORY ---
   public static getStudents(consultancyId: string): ConsultancyStudent[] {
-    const raw = localStorage.getItem(`ielts_students_${consultancyId}`);
-    if (!raw) {
-      if (consultancyId === 'apex-global') {
-        localStorage.setItem(`ielts_students_${consultancyId}`, JSON.stringify(DEFAULT_STUDENTS));
+    const canonical = this.getCanonicalConsultancyId(consultancyId);
+    const aliases = this.getConsultancyAliases(consultancyId);
+
+    const studentMap = new Map<string, ConsultancyStudent>();
+    let foundRaw = false;
+
+    for (const key of aliases) {
+      const raw = localStorage.getItem(`ielts_students_${key}`);
+      if (raw) {
+        foundRaw = true;
+        try {
+          const parsed = JSON.parse(raw);
+          if (Array.isArray(parsed)) {
+            parsed.forEach((s: ConsultancyStudent) => {
+              const uKey = s.candidateNumber || s.id;
+              if (!studentMap.has(uKey)) {
+                studentMap.set(uKey, { ...s, consultancyId: canonical });
+              }
+            });
+          }
+        } catch {}
+      }
+    }
+
+    if (!foundRaw || studentMap.size === 0) {
+      if (canonical === 'apex-global') {
+        localStorage.setItem(`ielts_students_${canonical}`, JSON.stringify(DEFAULT_STUDENTS));
         return DEFAULT_STUDENTS;
       }
       return [];
     }
-    try {
-      return JSON.parse(raw);
-    } catch {
-      return [];
+
+    const merged = Array.from(studentMap.values());
+    const serialized = JSON.stringify(merged);
+    for (const key of aliases) {
+      localStorage.setItem(`ielts_students_${key}`, serialized);
     }
+
+    return merged;
   }
 
   public static saveStudent(student: ConsultancyStudent): void {
-    const list = this.getStudents(student.consultancyId);
-    const existingIdx = list.findIndex((s) => s.id === student.id);
+    const canonical = this.getCanonicalConsultancyId(student.consultancyId);
+    const aliases = this.getConsultancyAliases(student.consultancyId);
+    const list = this.getStudents(canonical);
+    const existingIdx = list.findIndex(
+      (s) => s.id === student.id || s.candidateNumber === student.candidateNumber
+    );
+    const cleanStd = { ...student, consultancyId: canonical };
     if (existingIdx >= 0) {
-      list[existingIdx] = student;
+      list[existingIdx] = cleanStd;
     } else {
-      list.unshift(student);
+      list.unshift(cleanStd);
     }
-    localStorage.setItem(`ielts_students_${student.consultancyId}`, JSON.stringify(list));
-    this.broadcast('STUDENT_UPDATED', { consultancyId: student.consultancyId });
+    const serialized = JSON.stringify(list);
+    for (const key of aliases) {
+      localStorage.setItem(`ielts_students_${key}`, serialized);
+    }
+    this.broadcast('STUDENT_UPDATED', { consultancyId: canonical, student: cleanStd });
   }
 
   public static deleteStudent(consultancyId: string, studentId: string): void {
-    const list = this.getStudents(consultancyId);
+    const canonical = this.getCanonicalConsultancyId(consultancyId);
+    const aliases = this.getConsultancyAliases(consultancyId);
+    const list = this.getStudents(canonical);
     const updated = list.filter((s) => s.id !== studentId && s.candidateNumber !== studentId);
-    localStorage.setItem(`ielts_students_${consultancyId}`, JSON.stringify(updated));
-    this.broadcast('STUDENT_UPDATED', { consultancyId, studentId });
+    const serialized = JSON.stringify(updated);
+    for (const key of aliases) {
+      localStorage.setItem(`ielts_students_${key}`, serialized);
+    }
+    this.broadcast('STUDENT_UPDATED', { consultancyId: canonical, studentId });
   }
 
   private static upsertStudentForResult(
@@ -1744,13 +1916,15 @@ export class ConsultancyService {
         (cleanName && s.fullName.toLowerCase() === cleanName.toLowerCase())
     );
     if (student) {
-      student.testsCompletedCount = (student.testsCompletedCount || 0) + 1;
-      student.highestBand = Math.max(student.highestBand || 0, result.bandScore);
-      student.averageBand = Number(
-        (((student.averageBand || result.bandScore) * (student.testsCompletedCount - 1) + result.bandScore) /
-          student.testsCompletedCount).toFixed(1)
-      );
-      student.latestResultId = result.testId;
+      if (!student.latestResultId || student.latestResultId !== result.testId) {
+        student.testsCompletedCount = (student.testsCompletedCount || 0) + 1;
+        student.highestBand = Math.max(student.highestBand || 0, result.bandScore);
+        student.averageBand = Number(
+          (((student.averageBand || result.bandScore) * (student.testsCompletedCount - 1) + result.bandScore) /
+            student.testsCompletedCount).toFixed(1)
+        );
+        student.latestResultId = result.testId;
+      }
       if (result.targetBand && (!student.targetBand || student.targetBand === 0)) {
         student.targetBand = result.targetBand;
       }
@@ -1788,9 +1962,32 @@ export class ConsultancyService {
 
   // --- CONSULTANCY ALL TEST RESULTS DIRECTORY ---
   public static getResults(consultancyId: string): TestResult[] {
-    const raw = localStorage.getItem(`ielts_results_${consultancyId}`);
-    if (!raw) {
-      if (consultancyId === 'apex-global') {
+    const canonical = this.getCanonicalConsultancyId(consultancyId);
+    const aliases = this.getConsultancyAliases(consultancyId);
+
+    const resultMap = new Map<string, TestResult>();
+    let foundRaw = false;
+
+    for (const key of aliases) {
+      const raw = localStorage.getItem(`ielts_results_${key}`);
+      if (raw) {
+        foundRaw = true;
+        try {
+          const parsed: TestResult[] = JSON.parse(raw);
+          if (Array.isArray(parsed)) {
+            parsed.forEach((r) => {
+              const uniqueKey = `${r.testId}-${r.candidateId || ''}-${r.completedAt || ''}`;
+              if (!resultMap.has(uniqueKey)) {
+                resultMap.set(uniqueKey, { ...r, consultancyId: canonical });
+              }
+            });
+          }
+        } catch {}
+      }
+    }
+
+    if (!foundRaw) {
+      if (canonical === 'apex-global') {
         const defaultResults: TestResult[] = [
           {
             testId: 'cambridge-19-test-1-reading',
@@ -1847,41 +2044,79 @@ export class ConsultancyService {
             publishedAt: new Date(Date.now() - 10700000).toISOString()
           }
         ];
-        localStorage.setItem(`ielts_results_${consultancyId}`, JSON.stringify(defaultResults));
+        const serialized = JSON.stringify(defaultResults);
+        for (const key of aliases) {
+          localStorage.setItem(`ielts_results_${key}`, serialized);
+        }
         return defaultResults;
       }
       return [];
     }
-    try {
-      return JSON.parse(raw);
-    } catch {
+
+    if (resultMap.size === 0) {
       return [];
     }
+
+    const merged = Array.from(resultMap.values()).sort(
+      (a, b) => new Date(b.completedAt || 0).getTime() - new Date(a.completedAt || 0).getTime()
+    );
+
+    const serialized = JSON.stringify(merged);
+    for (const key of aliases) {
+      localStorage.setItem(`ielts_results_${key}`, serialized);
+    }
+
+    return merged;
   }
 
   public static saveTestResult(consultancyId: string, result: TestResult): void {
-    const list = this.getResults(consultancyId);
+    const canonical = this.getCanonicalConsultancyId(consultancyId);
+    const aliases = this.getConsultancyAliases(consultancyId);
+    const list = this.getResults(canonical);
     if (result.isPublished === undefined) {
       result.isPublished = false;
     }
+    const cleanRes = { ...result, consultancyId: canonical };
     const existingIdx = list.findIndex(
       (r) =>
-        r.testId === result.testId &&
-        r.candidateId === result.candidateId &&
-        r.completedAt === result.completedAt
+        r.testId === cleanRes.testId &&
+        r.candidateId === cleanRes.candidateId &&
+        r.completedAt === cleanRes.completedAt
     );
     if (existingIdx >= 0) {
-      list[existingIdx] = result;
+      list[existingIdx] = cleanRes;
     } else {
-      list.unshift(result);
+      list.unshift(cleanRes);
     }
-    localStorage.setItem(`ielts_results_${consultancyId}`, JSON.stringify(list));
-    this.broadcast('RESULT_ADDED', { consultancyId, result });
+    const serialized = JSON.stringify(list);
+    for (const key of aliases) {
+      localStorage.setItem(`ielts_results_${key}`, serialized);
+    }
+
+    // Automatically sync student candidate roster
+    try {
+      const students = this.getStudents(canonical);
+      this.upsertStudentForResult(
+        students,
+        canonical,
+        cleanRes.candidateId || '00' + Math.floor(1000 + Math.random() * 9000),
+        cleanRes,
+        cleanRes.candidateName
+      );
+      const stdSerialized = JSON.stringify(students);
+      for (const key of aliases) {
+        localStorage.setItem(`ielts_students_${key}`, stdSerialized);
+      }
+    } catch {}
+
+    this.broadcast('RESULT_ADDED', { consultancyId: canonical, result: cleanRes });
   }
 
   // --- PUBLISH / RELEASE TEST RESULTS (CONSULTANCY ADMIN) ---
   public static publishTestResult(consultancyId: string, testId: string, candidateId?: string, completedAt?: string): void {
-    const list = this.getResults(consultancyId);
+    const canonical = this.getCanonicalConsultancyId(consultancyId);
+    const aliases = this.getConsultancyAliases(consultancyId);
+    const list = this.getResults(canonical);
     let updated = false;
     const now = new Date().toISOString();
 
@@ -1897,13 +2132,18 @@ export class ConsultancyService {
     }
 
     if (updated) {
-      localStorage.setItem(`ielts_results_${consultancyId}`, JSON.stringify(list));
-      this.broadcast('RESULT_PUBLISHED', { consultancyId, testId, candidateId });
+      const serialized = JSON.stringify(list);
+      for (const key of aliases) {
+        localStorage.setItem(`ielts_results_${key}`, serialized);
+      }
+      this.broadcast('RESULT_PUBLISHED', { consultancyId: canonical, testId, candidateId });
     }
   }
 
   public static unpublishTestResult(consultancyId: string, testId: string, candidateId?: string, completedAt?: string): void {
-    const list = this.getResults(consultancyId);
+    const canonical = this.getCanonicalConsultancyId(consultancyId);
+    const aliases = this.getConsultancyAliases(consultancyId);
+    const list = this.getResults(canonical);
     let updated = false;
 
     for (const item of list) {
@@ -1918,13 +2158,18 @@ export class ConsultancyService {
     }
 
     if (updated) {
-      localStorage.setItem(`ielts_results_${consultancyId}`, JSON.stringify(list));
-      this.broadcast('RESULT_UNPUBLISHED', { consultancyId, testId, candidateId });
+      const serialized = JSON.stringify(list);
+      for (const key of aliases) {
+        localStorage.setItem(`ielts_results_${key}`, serialized);
+      }
+      this.broadcast('RESULT_UNPUBLISHED', { consultancyId: canonical, testId, candidateId });
     }
   }
 
   public static publishAllResults(consultancyId: string): void {
-    const list = this.getResults(consultancyId);
+    const canonical = this.getCanonicalConsultancyId(consultancyId);
+    const aliases = this.getConsultancyAliases(consultancyId);
+    const list = this.getResults(canonical);
     const now = new Date().toISOString();
     for (const item of list) {
       item.isPublished = true;
@@ -1932,8 +2177,11 @@ export class ConsultancyService {
         item.publishedAt = now;
       }
     }
-    localStorage.setItem(`ielts_results_${consultancyId}`, JSON.stringify(list));
-    this.broadcast('ALL_RESULTS_PUBLISHED', { consultancyId });
+    const serialized = JSON.stringify(list);
+    for (const key of aliases) {
+      localStorage.setItem(`ielts_results_${key}`, serialized);
+    }
+    this.broadcast('ALL_RESULTS_PUBLISHED', { consultancyId: canonical });
   }
 
   // Delete a specific test result
@@ -1943,7 +2191,9 @@ export class ConsultancyService {
     candidateId?: string,
     completedAt?: string
   ): void {
-    const list = this.getResults(consultancyId);
+    const canonical = this.getCanonicalConsultancyId(consultancyId);
+    const aliases = this.getConsultancyAliases(consultancyId);
+    const list = this.getResults(canonical);
     const updated = list.filter((r) => {
       const matchTest = r.testId === testId;
       const matchCand = !candidateId || r.candidateId === candidateId;
@@ -1951,7 +2201,10 @@ export class ConsultancyService {
       return !(matchTest && matchCand && matchTime);
     });
 
-    localStorage.setItem(`ielts_results_${consultancyId}`, JSON.stringify(updated));
+    const serialized = JSON.stringify(updated);
+    for (const key of aliases) {
+      localStorage.setItem(`ielts_results_${key}`, serialized);
+    }
 
     // Also remove from global past results if present
     try {
@@ -1968,13 +2221,227 @@ export class ConsultancyService {
       }
     } catch {}
 
-    this.broadcast('RESULT_DELETED', { consultancyId, testId, candidateId, completedAt });
+    this.broadcast('RESULT_DELETED', { consultancyId: canonical, testId, candidateId, completedAt });
   }
 
   // Clear all test results for a consultancy
   public static clearAllResults(consultancyId: string): void {
-    localStorage.setItem(`ielts_results_${consultancyId}`, JSON.stringify([]));
-    this.broadcast('ALL_RESULTS_CLEARED', { consultancyId });
+    const canonical = this.getCanonicalConsultancyId(consultancyId);
+    const aliases = this.getConsultancyAliases(consultancyId);
+    for (const key of aliases) {
+      localStorage.setItem(`ielts_results_${key}`, JSON.stringify([]));
+    }
+    this.broadcast('ALL_RESULTS_CLEARED', { consultancyId: canonical });
+  }
+
+  // --- LAB WORKSTATION TELEMETRY & SUBMISSION SYNC ENGINE ---
+  public static requestStationSync(consultancyId: string): void {
+    const canonical = this.getCanonicalConsultancyId(consultancyId);
+    this.broadcast('REQUEST_STATION_RESULTS', {
+      consultancyId: canonical,
+      requestedAt: new Date().toISOString()
+    });
+  }
+
+  public static pushLocalResultsToCloud(consultancyId?: string): number {
+    if (typeof window === 'undefined') return 0;
+    try {
+      const canonical = this.getCanonicalConsultancyId(consultancyId);
+      const aliases = this.getConsultancyAliases(consultancyId || canonical);
+
+      const resultMap = new Map<string, TestResult>();
+
+      // 1. Check all consultancy keys
+      for (const k of aliases) {
+        const raw = localStorage.getItem(`ielts_results_${k}`);
+        if (raw) {
+          try {
+            const arr = JSON.parse(raw);
+            if (Array.isArray(arr)) {
+              arr.forEach((r: TestResult) => {
+                const uid = `${r.testId}-${r.candidateId || ''}-${r.completedAt || ''}`;
+                if (!resultMap.has(uid)) {
+                  resultMap.set(uid, { ...r, consultancyId: canonical });
+                }
+              });
+            }
+          } catch {}
+        }
+      }
+
+      // 2. Check ielts_mock_past_results
+      const pastRaw = localStorage.getItem('ielts_mock_past_results');
+      if (pastRaw) {
+        try {
+          const arr = JSON.parse(pastRaw);
+          if (Array.isArray(arr)) {
+            arr.forEach((r: TestResult) => {
+              const uid = `${r.testId}-${r.candidateId || ''}-${r.completedAt || ''}`;
+              if (!resultMap.has(uid)) {
+                const rCanonical = r.consultancyId ? this.getCanonicalConsultancyId(r.consultancyId) : canonical;
+                if (!consultancyId || rCanonical === canonical) {
+                  resultMap.set(uid, { ...r, consultancyId: canonical });
+                }
+              }
+            });
+          }
+        } catch {}
+      }
+
+      const results = Array.from(resultMap.values());
+      results.forEach((res) => {
+        this.broadcast('RESULT_ADDED', {
+          consultancyId: canonical,
+          result: res
+        });
+        if (res.candidateId || res.candidateName) {
+          this.broadcast('STUDENT_UPDATED', {
+            consultancyId: canonical,
+            candidateNumber: res.candidateId,
+            result: res,
+            candidateName: res.candidateName
+          });
+        }
+      });
+
+      // 3. Gather AI Reports
+      for (const k of aliases) {
+        const repRaw = localStorage.getItem(`ielts_reports_${k}`);
+        if (repRaw) {
+          try {
+            const repArr = JSON.parse(repRaw);
+            if (Array.isArray(repArr)) {
+              repArr.forEach((rep) => {
+                this.broadcast('REPORT_ADDED', {
+                  consultancyId: canonical,
+                  report: { ...rep, consultancyId: canonical }
+                });
+              });
+            }
+          } catch {}
+        }
+      }
+
+      return results.length;
+    } catch {
+      return 0;
+    }
+  }
+
+  // Auto-reconcile candidates recorded from station telemetry into candidate students roster
+  public static reconcileCandidatesFromStations(consultancyId: string): {
+    reconciledCount: number;
+    reconciledCandidates: { name: string; candidateId: string; stationName: string }[];
+  } {
+    const canonical = this.getCanonicalConsultancyId(consultancyId);
+    const stations = this.getStations(canonical);
+    const students = this.getStudents(canonical);
+    const aliases = this.getConsultancyAliases(canonical);
+
+    const reconciled: { name: string; candidateId: string; stationName: string }[] = [];
+
+    stations.forEach((st) => {
+      if (st.currentCandidate?.name) {
+        const name = st.currentCandidate.name.trim();
+        const candId = st.currentCandidate.candidateId || '00' + Math.floor(1000 + Math.random() * 9000);
+
+        let student = students.find(
+          (s) => s.candidateNumber === candId || s.fullName.toLowerCase() === name.toLowerCase()
+        );
+
+        if (!student) {
+          student = {
+            id: 'std-' + Date.now().toString(36) + '-' + Math.random().toString(36).substring(2, 5),
+            consultancyId: canonical,
+            candidateNumber: candId,
+            fullName: name,
+            email: '',
+            phone: '',
+            targetBand: st.currentCandidate.targetBand || 0,
+            enrolledDate: new Date().toISOString().split('T')[0],
+            testsCompletedCount: 1,
+            highestBand: 7.0,
+            averageBand: 7.0,
+            latestResultId: st.assignedTestId
+          };
+          students.unshift(student);
+          reconciled.push({ name, candidateId: candId, stationName: st.name });
+        }
+      }
+    });
+
+    if (reconciled.length > 0) {
+      const serialized = JSON.stringify(students);
+      for (const k of aliases) {
+        localStorage.setItem(`ielts_students_${k}`, serialized);
+      }
+      this.broadcast('STUDENT_UPDATED', { consultancyId: canonical });
+    }
+
+    return {
+      reconciledCount: reconciled.length,
+      reconciledCandidates: reconciled
+    };
+  }
+
+  // Create or recover a result card directly from station candidate metadata
+  public static recordStationSubmissionResult(
+    consultancyId: string,
+    stationName: string,
+    options?: {
+      testId?: string;
+      bandScore?: number;
+      module?: 'reading' | 'listening' | 'writing';
+    }
+  ): TestResult | null {
+    const canonical = this.getCanonicalConsultancyId(consultancyId);
+    const stations = this.getStations(canonical);
+    const norm = this.normalizeStationName(stationName);
+    const station = stations.find((s) => this.normalizeStationName(s.name) === norm);
+    if (!station || !station.currentCandidate) return null;
+
+    const cand = station.currentCandidate;
+    const testId = options?.testId || station.assignedTestId || 'cambridge-16-test-1-reading';
+    const mod = options?.module || station.module || (testId.includes('writing') ? 'writing' : testId.includes('listening') ? 'listening' : 'reading');
+    const band = options?.bandScore || 7.0;
+
+    const bookMatch = testId.match(/cambridge-(\d+)-test-(\d+)/);
+    const book = bookMatch ? parseInt(bookMatch[1], 10) : 16;
+    const testNum = bookMatch ? parseInt(bookMatch[2], 10) : 1;
+
+    const consultancy = this.getConsultancyById(canonical);
+
+    const result: TestResult = {
+      testId,
+      book,
+      testNumber: testNum,
+      module: mod,
+      totalQuestions: mod === 'writing' ? 2 : 40,
+      correctCount: mod === 'writing' ? 0 : Math.round((band / 9) * 40),
+      bandScore: band,
+      timeTakenSeconds: mod === 'reading' || mod === 'writing' ? 3540 : 1980,
+      completedAt: new Date().toISOString(),
+      answers: {},
+      candidateName: cand.name,
+      candidateId: cand.candidateId,
+      stationName: station.name,
+      consultancyId: canonical,
+      consultancyName: consultancy?.name || 'Educational Consultancy Lab',
+      targetBand: cand.targetBand || 0,
+      isPublished: false,
+      writingSubmission: mod === 'writing' ? {
+        task1Essay: 'Candidate submitted essay on lab station ' + station.name,
+        task1WordCount: 165,
+        task2Essay: 'Candidate submitted essay on lab station ' + station.name,
+        task2WordCount: 275,
+        task1Band: band,
+        task2Band: band,
+        overallWritingBand: band
+      } : undefined
+    };
+
+    this.saveTestResult(canonical, result);
+    return result;
   }
 
   // --- WRITING MODULE EVALUATION & SCORING (CONSULTANCY ADMIN) ---
@@ -2082,9 +2549,32 @@ export class ConsultancyService {
 
   // --- CONSULTANCY AI DIAGNOSTIC REPORTS DIRECTORY ---
   public static getReports(consultancyId: string): SavedAIReport[] {
-    const raw = localStorage.getItem(`ielts_reports_${consultancyId}`);
-    if (!raw) {
-      if (consultancyId === 'apex-global') {
+    const canonical = this.getCanonicalConsultancyId(consultancyId);
+    const aliases = this.getConsultancyAliases(consultancyId);
+
+    const reportMap = new Map<string, SavedAIReport>();
+    let foundRaw = false;
+
+    for (const key of aliases) {
+      const raw = localStorage.getItem(`ielts_reports_${key}`);
+      if (raw) {
+        foundRaw = true;
+        try {
+          const parsed = JSON.parse(raw);
+          if (Array.isArray(parsed)) {
+            parsed.forEach((r: SavedAIReport) => {
+              const uKey = `${r.testId || r.testTitle}-${r.candidateId || ''}-${r.completedAt || ''}`;
+              if (!reportMap.has(uKey)) {
+                reportMap.set(uKey, { ...r, consultancyId: canonical });
+              }
+            });
+          }
+        } catch {}
+      }
+    }
+
+    if (!foundRaw || reportMap.size === 0) {
+      if (canonical === 'apex-global') {
         const defaultReports: SavedAIReport[] = [
           {
             studentName: 'Rohan Sharma',
@@ -2120,23 +2610,43 @@ export class ConsultancyService {
             completedAt: new Date(Date.now() - 10800000).toISOString()
           }
         ];
-        localStorage.setItem(`ielts_reports_${consultancyId}`, JSON.stringify(defaultReports));
+        const serialized = JSON.stringify(defaultReports);
+        for (const key of aliases) {
+          localStorage.setItem(`ielts_reports_${key}`, serialized);
+        }
         return defaultReports;
       }
       return [];
     }
-    try {
-      return JSON.parse(raw);
-    } catch {
-      return [];
+
+    const merged = Array.from(reportMap.values());
+    const serialized = JSON.stringify(merged);
+    for (const key of aliases) {
+      localStorage.setItem(`ielts_reports_${key}`, serialized);
     }
+
+    return merged;
   }
 
   public static saveReport(consultancyId: string, report: SavedAIReport): void {
-    const list = this.getReports(consultancyId);
-    list.unshift(report);
-    localStorage.setItem(`ielts_reports_${consultancyId}`, JSON.stringify(list));
-    this.broadcast('REPORT_ADDED', { consultancyId, report });
+    const canonical = this.getCanonicalConsultancyId(consultancyId);
+    const aliases = this.getConsultancyAliases(consultancyId);
+    const list = this.getReports(canonical);
+    const cleanRep = { ...report, consultancyId: canonical };
+    const exists = list.some(
+      (r) =>
+        r.testId === cleanRep.testId &&
+        r.candidateId === cleanRep.candidateId &&
+        r.completedAt === cleanRep.completedAt
+    );
+    if (!exists) {
+      list.unshift(cleanRep);
+    }
+    const serialized = JSON.stringify(list);
+    for (const key of aliases) {
+      localStorage.setItem(`ielts_reports_${key}`, serialized);
+    }
+    this.broadcast('REPORT_ADDED', { consultancyId: canonical, report: cleanRep });
   }
 
   // --- AI DIAGNOSTIC ENGINE ---

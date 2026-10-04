@@ -970,6 +970,93 @@ suite('Suite 6: Cross-Machine Telemetry Persistence (KIEC Live Fix)', () => {
   });
 });
 
+suite('Suite 7: Branch Normalization, Lab Workstation Sync & Station Reconciliation', () => {
+  test('Branch code normalization resolves KIEC321 to kiec-lalitpur canonical ID', () => {
+    const canonical = ConsultancyService.getCanonicalConsultancyId('KIEC321');
+    assertEqual(canonical, 'kiec-lalitpur', 'KIEC321 resolves to kiec-lalitpur');
+    const aliases = ConsultancyService.getConsultancyAliases('KIEC321');
+    assert(aliases.includes('kiec-lalitpur'), 'Aliases contains canonical ID');
+    assert(aliases.includes('KIEC321'), 'Aliases contains branch code');
+  });
+
+  test('Cross-alias result persistence: saved as KIEC321, read as kiec-lalitpur', () => {
+    const res: any = {
+      testId: 'cambridge-16-test-1-reading',
+      book: 16,
+      testNumber: 1,
+      module: 'reading',
+      totalQuestions: 40,
+      correctCount: 35,
+      bandScore: 8.0,
+      timeTakenSeconds: 3000,
+      completedAt: '2026-10-04T12:30:00Z',
+      answers: {},
+      candidateName: 'Shyam Yadav',
+      candidateId: '002681',
+      stationName: 'PC-05'
+    };
+
+    // Save under branch code key
+    ConsultancyService.saveTestResult('KIEC321', res);
+
+    // Read under canonical ID
+    const results = ConsultancyService.getResults('kiec-lalitpur');
+    const found = results.find((r) => r.candidateId === '002681');
+    assert(!!found, 'Result saved under branch code is seamlessly found under canonical ID');
+    assertEqual(found?.candidateName, 'Shyam Yadav', 'Candidate name intact');
+    assertEqual(found?.bandScore, 8.0, 'Band score intact');
+  });
+
+  test('Candidate auto-reconciliation from lab stations', () => {
+    const cid = 'kiec-lalitpur';
+    // Emulate station heartbeat with student candidate
+    ConsultancyService.updateStationHeartbeat(cid, 'PC-01', {
+      status: 'idle',
+      currentCandidate: {
+        candidateId: '004547',
+        name: 'Shyam',
+        targetBand: 7.5
+      }
+    });
+
+    const rec = ConsultancyService.reconcileCandidatesFromStations(cid);
+    assert(rec.reconciledCount >= 1, 'Reconciled at least 1 candidate from station');
+
+    const students = ConsultancyService.getStudents(cid);
+    const shyam = students.find((s) => s.candidateNumber === '004547' || s.fullName === 'Shyam');
+    assert(!!shyam, 'Shyam was successfully added to student candidates roster');
+  });
+
+  test('Station submission result record creation from station candidate metadata', () => {
+    const cid = 'kiec-lalitpur';
+    ConsultancyService.updateStationHeartbeat(cid, 'PC-02', {
+      status: 'idle',
+      currentCandidate: {
+        candidateId: '008709',
+        name: 'sandhya Roka',
+        targetBand: 7.0
+      },
+      assignedTestId: 'cambridge-16-test-1-reading',
+      module: 'reading'
+    });
+
+    const recorded = ConsultancyService.recordStationSubmissionResult(cid, 'PC-02', {
+      testId: 'cambridge-16-test-1-reading',
+      bandScore: 7.5
+    });
+
+    assert(!!recorded, 'Station submission record created');
+    assertEqual(recorded?.candidateName, 'sandhya Roka', 'Recorded correct candidate name');
+    assertEqual(recorded?.stationName, 'PC-02', 'Recorded correct station');
+    assertEqual(recorded?.bandScore, 7.5, 'Recorded correct band score');
+
+    // Verify it now appears in getResults
+    const results = ConsultancyService.getResults(cid);
+    const found = results.find((r) => r.candidateId === '008709');
+    assert(!!found, 'Record appears in consultancy results list');
+  });
+});
+
 // --- FINAL VERIFICATION SUMMARY ---
 console.log('\n========================================');
 console.log('SYSTEM VERIFICATION SUMMARY');
