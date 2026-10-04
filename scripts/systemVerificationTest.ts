@@ -897,6 +897,79 @@ suite('Suite 5: Publishing Control & Name/ID Candidate Search', () => {
   });
 });
 
+suite('Suite 6: Cross-Machine Telemetry Persistence (KIEC Live Fix)', () => {
+  test('Cloud telemetry RESULT_ADDED persists to localStorage without re-broadcasting', () => {
+    const cid = 'kiec-lalitpur';
+    const testResult: any = {
+      testId: 'cambridge-16-test-1-reading',
+      module: 'reading',
+      candidateName: 'Aayush Shrestha',
+      candidateId: '007711',
+      consultancyId: cid,
+      bandScore: 7.5,
+      completedAt: '2026-10-04T12:00:00Z',
+      answers: {}
+    };
+
+    // Simulate cross-machine Supabase Realtime broadcast message received by admin portal
+    (ConsultancyService as any).handleCloudTelemetry({
+      type: 'RESULT_ADDED',
+      payload: { consultancyId: cid, result: testResult }
+    });
+
+    const results = ConsultancyService.getResults(cid);
+    const found = results.find((r) => r.candidateId === '007711');
+    assert(!!found, 'Result was persisted in localStorage from cloud telemetry');
+    assertEqual(found?.isPublished, false, 'Default isPublished is false');
+  });
+
+  test('Cloud telemetry REPORT_ADDED persists to localStorage', () => {
+    const cid = 'kiec-lalitpur';
+    const report: any = {
+      id: 'rep-test-99',
+      candidateId: '007711',
+      candidateName: 'Aayush Shrestha',
+      testId: 'cambridge-16-test-1-reading',
+      consultancyId: cid,
+      overallBand: 7.5,
+      createdAt: '2026-10-04T12:01:00Z'
+    };
+
+    (ConsultancyService as any).handleCloudTelemetry({
+      type: 'REPORT_ADDED',
+      payload: { consultancyId: cid, report }
+    });
+
+    const reports = ConsultancyService.getReports(cid);
+    const found = reports.find((r) => r.id === 'rep-test-99');
+    assert(!!found, 'Report was persisted in localStorage from cloud telemetry');
+  });
+
+  test('Cloud telemetry STUDENT_UPDATED updates/creates student record in localStorage', () => {
+    const cid = 'kiec-lalitpur';
+    const res: any = {
+      testId: 'cambridge-16-test-1-reading',
+      bandScore: 7.5,
+      candidateName: 'Aayush Shrestha'
+    };
+
+    (ConsultancyService as any).handleCloudTelemetry({
+      type: 'STUDENT_UPDATED',
+      payload: {
+        consultancyId: cid,
+        candidateNumber: '007711',
+        result: res
+      }
+    });
+
+    const students = ConsultancyService.getStudents(cid);
+    const student = students.find((s) => s.candidateNumber === '007711');
+    assert(!!student, 'Student was created/updated in localStorage from cloud telemetry');
+    assertEqual(student?.highestBand, 7.5, 'Student highest band recorded');
+    assertEqual(student?.testsCompletedCount, 1, 'Tests completed incremented');
+  });
+});
+
 // --- FINAL VERIFICATION SUMMARY ---
 console.log('\n========================================');
 console.log('SYSTEM VERIFICATION SUMMARY');

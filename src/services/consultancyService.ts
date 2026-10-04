@@ -365,6 +365,56 @@ export class ConsultancyService {
           localStorage.setItem(`ielts_stations_${st.consultancyId}`, JSON.stringify(list));
         } catch {}
       }
+    } else if (eventObj.type === 'RESULT_ADDED') {
+      const p = eventObj.payload;
+      const cid = p?.consultancyId;
+      const res = p?.result;
+      if (cid && res) {
+        try {
+          const list = this.getResults(cid);
+          if (res.isPublished === undefined) {
+            res.isPublished = false;
+          }
+          const idx = list.findIndex(
+            (r) =>
+              r.testId === res.testId &&
+              r.candidateId === res.candidateId &&
+              r.completedAt === res.completedAt
+          );
+          if (idx >= 0) {
+            list[idx] = res;
+          } else {
+            list.unshift(res);
+          }
+          localStorage.setItem(`ielts_results_${cid}`, JSON.stringify(list));
+        } catch {}
+      }
+    } else if (eventObj.type === 'REPORT_ADDED') {
+      const p = eventObj.payload;
+      const cid = p?.consultancyId;
+      const rep = p?.report;
+      if (cid && rep) {
+        try {
+          const list = this.getReports(cid);
+          list.unshift(rep);
+          localStorage.setItem(`ielts_reports_${cid}`, JSON.stringify(list));
+        } catch {}
+      }
+    } else if (eventObj.type === 'STUDENT_UPDATED') {
+      const p = eventObj.payload;
+      if (p?.consultancyId && p?.candidateNumber && p?.result) {
+        try {
+          const students = this.getStudents(p.consultancyId);
+          this.upsertStudentForResult(
+            students,
+            p.consultancyId,
+            p.candidateNumber,
+            p.result,
+            p.candidateName
+          );
+          localStorage.setItem(`ielts_students_${p.consultancyId}`, JSON.stringify(students));
+        } catch {}
+      }
     } else if (eventObj.type === 'CONSULTANCY_UPDATED') {
       const c = eventObj.payload;
       if (c && c.id) {
@@ -1680,13 +1730,13 @@ export class ConsultancyService {
     this.broadcast('STUDENT_UPDATED', { consultancyId, studentId });
   }
 
-  public static recordStudentTestResult(
+  private static upsertStudentForResult(
+    students: ConsultancyStudent[],
     consultancyId: string,
     candidateNumber: string,
     result: TestResult,
     candidateName?: string
-  ): void {
-    const students = this.getStudents(consultancyId);
+  ): ConsultancyStudent {
     const cleanName = candidateName?.trim() || result.candidateName?.trim() || 'Candidate';
     let student = students.find(
       (s) =>
@@ -1704,9 +1754,8 @@ export class ConsultancyService {
       if (result.targetBand && (!student.targetBand || student.targetBand === 0)) {
         student.targetBand = result.targetBand;
       }
-      this.saveStudent(student);
     } else {
-      const newStd: ConsultancyStudent = {
+      student = {
         id: 'std-' + Date.now().toString(36) + '-' + Math.random().toString(36).substring(2, 5),
         consultancyId,
         candidateNumber: candidateNumber || '00' + Math.floor(1000 + Math.random() * 9000),
@@ -1720,9 +1769,21 @@ export class ConsultancyService {
         averageBand: result.bandScore,
         latestResultId: result.testId
       };
-      this.saveStudent(newStd);
+      students.unshift(student);
     }
-    this.broadcast('STUDENT_UPDATED', { consultancyId, candidateNumber, result });
+    return student;
+  }
+
+  public static recordStudentTestResult(
+    consultancyId: string,
+    candidateNumber: string,
+    result: TestResult,
+    candidateName?: string
+  ): void {
+    const students = this.getStudents(consultancyId);
+    const student = this.upsertStudentForResult(students, consultancyId, candidateNumber, result, candidateName);
+    this.saveStudent(student);
+    this.broadcast('STUDENT_UPDATED', { consultancyId, candidateNumber, result, candidateName });
   }
 
   // --- CONSULTANCY ALL TEST RESULTS DIRECTORY ---
