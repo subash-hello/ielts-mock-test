@@ -330,7 +330,22 @@ export const App: React.FC = () => {
         localStorage.setItem('ielts_terminal_pc', formatted);
       }
 
-      setActiveRoute('branch-login');
+      // Check if this device is already remembered as a lab PC
+      const isExplicitReset = params.get('reset') === 'true';
+      const rememberedStation = parts[1] || localStorage.getItem('ielts_terminal_pc');
+      const rememberedBranch = localStorage.getItem('ielts_terminal_branch');
+      const rememberedRole = localStorage.getItem('ielts_device_role');
+      const isMatchingBranch = !rememberedBranch ||
+        (found && rememberedBranch.toUpperCase() === (found.branchCode || found.accessCode || found.id).toUpperCase());
+
+      if (!isExplicitReset && rememberedStation && isMatchingBranch && rememberedRole !== 'invigilator' && found) {
+        const cleanSt = rememberedStation.trim().toUpperCase();
+        const formatted = cleanSt.startsWith('PC-') ? cleanSt : `PC-${cleanSt.replace(/^PC/i, '')}`;
+        setTerminalStationName(formatted);
+        setActiveRoute('kiosk-student');
+      } else {
+        setActiveRoute('branch-login');
+      }
     } else if (pathname === '/kiosk/student') {
       setActiveRoute('kiosk-student');
     } else if (pathname === '/kiosk/test') {
@@ -560,9 +575,42 @@ export const App: React.FC = () => {
               setActiveRoute('kiosk-student');
             }
           }
+        } else {
+          // Lab-wide broadcast test launch (Bug 1 fix): auto-deliver and auto-start the exam!
+          const targetCid = payload.consultancyId || selectedConsultancyId;
+          const isTargetBranch =
+            !payload?.consultancyId ||
+            !cId ||
+            payload.consultancyId === cId ||
+            payload.consultancyId === currentBranchCode;
+
+          if (isTargetBranch && activeRoute !== 'kiosk-exam') {
+            const testId = payload.testId;
+            const matchedTest = tests.find((t) => t.id === testId) || allMockTests.find((t) => t.id === testId) || tests[0];
+            const isFull = payload.isFullMock || testId.endsWith('-full');
+            const matchedFull = isFull
+              ? allFullMockTests.find((fm) => fm.id === testId || fm.book === matchedTest?.book)
+              : undefined;
+
+            if (matchedTest) {
+              const assignedStation = ConsultancyService.getStations(targetCid).find(
+                (s) => s.name === (terminalStationName || cStation)
+              );
+              const currentCand = activeCandidateInfo || {
+                name: assignedStation?.currentCandidate?.name || (terminalStationName ? `Candidate (${terminalStationName})` : 'Candidate'),
+                candidateId: assignedStation?.currentCandidate?.candidateId || ('00' + Math.floor(1000 + Math.random() * 9000)),
+                targetBand: assignedStation?.currentCandidate?.targetBand,
+                stationName: terminalStationName || cStation,
+                consultancyId: targetCid
+              };
+
+              setActiveCandidateInfo(currentCand);
+              startExamExecution(matchedTest, matchedFull);
+            }
+          }
         }
       } else if (event.type === 'STATION_COMMAND') {
-        const { stationId, stationName, command, payload, consultancyId: cmdCid } = event.payload || {};
+        const { stationId, stationName, command, payload, testId, consultancyId: cmdCid } = event.payload || {};
         const cleanStation = cStation ? ConsultancyService.normalizeStationName(cStation) : '';
 
         const isTargetStation =
@@ -571,10 +619,35 @@ export const App: React.FC = () => {
             ConsultancyService.normalizeStationName(stationId) === cleanStation ||
             (stationName && ConsultancyService.normalizeStationName(stationName) === cleanStation));
 
-        const isTargetBranch = !cmdCid || !cId || cmdCid === cId;
+        const isTargetBranch = !cmdCid || !cId || cmdCid === cId || cmdCid === currentBranchCode;
 
-        if (isTargetStation || (command === 'END_TEST' && isTargetBranch)) {
-          if (command === 'PAUSE_EXAM') {
+        if (isTargetStation || ((command === 'END_TEST' || command === 'START_TEST') && isTargetBranch)) {
+          if (command === 'START_TEST') {
+            const targetTestId = payload?.testId || testId || (event.payload as any)?.testId;
+            if (targetTestId && activeRoute !== 'kiosk-exam') {
+              const matchedTest = tests.find((t) => t.id === targetTestId) || allMockTests.find((t) => t.id === targetTestId) || tests[0];
+              const isFull = payload?.isFullMock || (event.payload as any)?.isFullMock || targetTestId.endsWith('-full');
+              const matchedFull = isFull
+                ? allFullMockTests.find((fm) => fm.id === targetTestId || fm.book === matchedTest?.book)
+                : undefined;
+
+              if (matchedTest) {
+                const assignedStation = ConsultancyService.getStations(cId).find(
+                  (s) => s.name === (terminalStationName || cStation)
+                );
+                const currentCand = activeCandidateInfo || {
+                  name: assignedStation?.currentCandidate?.name || (terminalStationName ? `Candidate (${terminalStationName})` : 'Candidate'),
+                  candidateId: assignedStation?.currentCandidate?.candidateId || ('00' + Math.floor(1000 + Math.random() * 9000)),
+                  targetBand: assignedStation?.currentCandidate?.targetBand,
+                  stationName: terminalStationName || cStation,
+                  consultancyId: cId
+                };
+
+                setActiveCandidateInfo(currentCand);
+                startExamExecution(matchedTest, matchedFull);
+              }
+            }
+          } else if (command === 'PAUSE_EXAM') {
             setIsExamPausedByTeacher(true);
           } else if (command === 'RESUME_EXAM') {
             setIsExamPausedByTeacher(false);
@@ -970,17 +1043,26 @@ export const App: React.FC = () => {
             const assignedTestId = stationObj?.assignedTestId || activeLaunch?.testId;
 
             if (assignedTestId) {
-              const matchedTest = tests.find((t) => t.id === assignedTestId) || tests[0];
+              const matchedTest = tests.find((t) => t.id === assignedTestId) || allMockTests.find((t) => t.id === assignedTestId) || tests[0];
               const isFull = stationObj?.isFullMock || activeLaunch?.isFullMock || assignedTestId.endsWith('-full');
               const matchedFull = isFull ? allFullMockTests.find((fm) => fm.id === assignedTestId || fm.book === matchedTest.book) : undefined;
               setCurrentTest(matchedTest);
               setSelectedFullMock(matchedFull);
-              setActiveRoute('kiosk-confirm');
+
+              // If an active lab-wide broadcast is running, auto-start immediately
+              if (activeLaunch?.testId && activeLaunch.testId === assignedTestId) {
+                startExamExecution(matchedTest, matchedFull);
+              } else {
+                setActiveRoute('kiosk-confirm');
+              }
             } else {
               setActiveRoute('kiosk-test');
             }
           }}
           onSwitchStationOrReset={() => {
+            if (typeof window !== 'undefined') {
+              window.history.pushState(null, '', `/b/${currentBranchCode}?reset=true`);
+            }
             setActiveRoute('branch-login');
           }}
         />

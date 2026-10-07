@@ -225,6 +225,13 @@ export const LaunchConsoleView: React.FC<LaunchConsoleViewProps> = ({
     onSessionEnded();
   };
 
+  const activeLaunch = ConsultancyService.getActiveLaunchedTest(consultancy.id);
+  const activeBatch = ConsultancyService.getActiveBatchName(consultancy.id);
+  const hasActiveStations = stations.some(
+    (s) => s.status === 'in_progress' || s.status === 'paused' || s.status === 'assigned'
+  );
+  const hasActiveSession = Boolean(activeLaunch || activeBatch || hasActiveStations);
+
   return (
     <div className="space-y-6">
       {/* Header Banner */}
@@ -247,16 +254,18 @@ export const LaunchConsoleView: React.FC<LaunchConsoleViewProps> = ({
         </div>
 
         {/* End Session Button (Blueprint 6.7: Red, separated, ALWAYS confirms!) */}
-        <div>
-          <button
-            type="button"
-            onClick={() => setShowEndSessionModal(true)}
-            className="btn-texture px-4 py-2 bg-white hover:bg-red-50 text-[#C0392B] border border-[#C0392B]/40 text-xs font-bold shadow-2xs flex items-center gap-2"
-          >
-            <StopCircle className="w-4 h-4" />
-            <span>End Active Lab Session</span>
-          </button>
-        </div>
+        {hasActiveSession && (
+          <div>
+            <button
+              type="button"
+              onClick={() => setShowEndSessionModal(true)}
+              className="btn-texture px-4 py-2 bg-white hover:bg-red-50 text-[#C0392B] border border-[#C0392B]/40 text-xs font-bold shadow-2xs flex items-center gap-2"
+            >
+              <StopCircle className="w-4 h-4" />
+              <span>End Active Lab Session</span>
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Mode Selector Tabs (Blueprint 6.7: Mode A & Mode B side by side) */}

@@ -1826,6 +1826,13 @@ export class ConsultancyService {
     }
 
     this.broadcast('BRANCH_TEST_LAUNCHED', data);
+    this.broadcast('STATION_COMMAND', {
+      consultancyId: data.consultancyId,
+      command: 'START_TEST',
+      testId,
+      isFullMock: data.isFullMock,
+      title: data.title
+    });
   }
 
   public static forceSubmitStation(consultancyId: string, stationId: string): void {
@@ -2172,6 +2179,7 @@ export class ConsultancyService {
       } else {
         list.unshift(cleanRes);
       }
+      this.consumeCredit(canonical);
     }
     const serialized = JSON.stringify(list);
     for (const key of aliases) {
@@ -2195,6 +2203,21 @@ export class ConsultancyService {
     } catch {}
 
     this.broadcast('RESULT_ADDED', { consultancyId: canonical, result: cleanRes });
+  }
+
+  public static consumeCredit(consultancyId: string, count: number = 1): void {
+    const canonical = this.getCanonicalConsultancyId(consultancyId);
+    const list = this.getConsultancies();
+    const idx = list.findIndex(
+      (c) =>
+        c.id.toLowerCase() === canonical.toLowerCase() ||
+        (c.branchCode && c.branchCode.toLowerCase() === canonical.toLowerCase())
+    );
+    if (idx >= 0) {
+      const current = list[idx];
+      current.creditsUsed = (current.creditsUsed || 0) + count;
+      this.saveConsultancy(current);
+    }
   }
 
   // --- EDIT / ADJUST CANDIDATE TEST RESULT (CONSULTANCY ADMIN) ---

@@ -43,6 +43,28 @@ export const BranchLoginView: React.FC<BranchLoginViewProps> = ({
     const found = ConsultancyService.getConsultancyByBranchCode(branchCode);
     setConsultancy(found || null);
     if (found) {
+      // Check if this device is an already configured & remembered student lab PC
+      const isExplicitReset = typeof window !== 'undefined' && (
+        new URLSearchParams(window.location.search).get('reset') === 'true' ||
+        window.location.hash.includes('reset')
+      );
+
+      const rememberedStation = initialStationId || localStorage.getItem('ielts_terminal_pc') || sessionStorage.getItem('ielts_terminal_pc');
+      const rememberedBranch = localStorage.getItem('ielts_terminal_branch');
+      const rememberedRole = localStorage.getItem('ielts_device_role') as 'student' | 'invigilator' | null;
+
+      const isMatchingBranch = !rememberedBranch ||
+        rememberedBranch.toUpperCase() === (found.branchCode || found.accessCode || found.id).toUpperCase();
+
+      if (!isExplicitReset && rememberedStation && isMatchingBranch && rememberedRole !== 'invigilator') {
+        const formatted = rememberedStation.trim().toUpperCase().startsWith('PC-')
+          ? rememberedStation.trim().toUpperCase()
+          : `PC-${rememberedStation.trim().toUpperCase().replace(/^PC/i, '')}`;
+        setIsLoading(false);
+        onEnterStudentKiosk(found, formatted);
+        return;
+      }
+
       // Station is currently locked awaiting invigilator/student PIN.
       // Ensure workstation telemetry reflects idle with no active candidate (resolves stale QA-Monitor display)
       ConsultancyService.updateStationHeartbeat(found.id, stationName, {
@@ -55,7 +77,7 @@ export const BranchLoginView: React.FC<BranchLoginViewProps> = ({
       localStorage.removeItem('ielts_active_kiosk_exam_session');
     }
     setIsLoading(false);
-  }, [branchCode, stationName]);
+  }, [branchCode, stationName, initialStationId, onEnterStudentKiosk]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -80,6 +102,13 @@ export const BranchLoginView: React.FC<BranchLoginViewProps> = ({
         } else {
           onEnterStudentKiosk(consultancy, rememberedStation);
         }
+        return;
+      }
+
+      // If station was remembered without explicit role, default to student kiosk
+      if (rememberedStation) {
+        localStorage.setItem('ielts_device_role', 'student');
+        onEnterStudentKiosk(consultancy, rememberedStation);
         return;
       }
 
