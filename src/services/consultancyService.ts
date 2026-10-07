@@ -732,7 +732,31 @@ export class ConsultancyService {
   public static getDeletedConsultancyIds(): string[] {
     try {
       const raw = localStorage.getItem('ielts_deleted_consultancies');
-      return raw ? JSON.parse(raw) : [];
+      let list: string[] = raw ? JSON.parse(raw) : [];
+      if (Array.isArray(list)) {
+        // Self-heal: Any active consultancy in storage must NEVER be marked deleted
+        if (typeof window !== 'undefined') {
+          const rawActive = localStorage.getItem('ielts_consultancies');
+          if (rawActive) {
+            try {
+              const active: Consultancy[] = JSON.parse(rawActive);
+              const activeKeys = new Set<string>();
+              active.forEach((c) => {
+                if (c.id) activeKeys.add(c.id.toLowerCase().trim());
+                if (c.branchCode) activeKeys.add(c.branchCode.toLowerCase().trim());
+                if (c.accessCode) activeKeys.add(c.accessCode.toLowerCase().trim());
+              });
+              const cleaned = list.filter((key) => !activeKeys.has(key.toLowerCase().trim()));
+              if (cleaned.length !== list.length) {
+                localStorage.setItem('ielts_deleted_consultancies', JSON.stringify(cleaned));
+                list = cleaned;
+              }
+            } catch {}
+          }
+        }
+        return list;
+      }
+      return [];
     } catch {
       return [];
     }
@@ -764,10 +788,10 @@ export class ConsultancyService {
         return true;
       }
 
-      if (deletedIds.includes(id)) return true;
+      // Exclude strictly by unique ID or branchCode tombstone, NEVER by common human name
+      if (id && deletedIds.includes(id)) return true;
       if (branch && deletedIds.includes(branch)) return true;
       if (access && deletedIds.includes(access)) return true;
-      if (name && deletedIds.includes(name)) return true;
       return false;
     };
 
@@ -1148,14 +1172,25 @@ export class ConsultancyService {
     consultancy.examPassword = (consultancy.examPassword || '1234').trim();
     consultancy.adminPassword = (consultancy.adminPassword || consultancy.examPassword || '1234').trim();
 
-    // Revive from deleted list if it was previously deleted
-    const deleted = this.getDeletedConsultancyIds().filter((d) => d !== consultancy.id.toLowerCase());
+    // Revive from deleted list if it was previously in tombstone (strip all associated identifiers/names)
+    const cleanId = (consultancy.id || '').trim().toLowerCase();
+    const cleanBranch = (consultancy.branchCode || '').trim().toLowerCase();
+    const cleanAccess = (consultancy.accessCode || '').trim().toLowerCase();
+    const cleanName = (consultancy.name || '').trim().toLowerCase();
+
+    const deleted = this.getDeletedConsultancyIds().filter(
+      (d) =>
+        d.toLowerCase().trim() !== cleanId &&
+        d.toLowerCase().trim() !== cleanBranch &&
+        d.toLowerCase().trim() !== cleanAccess &&
+        d.toLowerCase().trim() !== cleanName
+    );
     localStorage.setItem('ielts_deleted_consultancies', JSON.stringify(deleted));
 
     const list = this.getConsultancies();
     const existingIdx = list.findIndex(
       (c) =>
-        c.id.toLowerCase() === consultancy.id.toLowerCase() ||
+        (c.id && consultancy.id && c.id.toLowerCase() === consultancy.id.toLowerCase()) ||
         (consultancy.branchCode && c.branchCode && c.branchCode.trim().toUpperCase() === consultancy.branchCode) ||
         (consultancy.accessCode && c.accessCode && c.accessCode.trim().toUpperCase() === consultancy.accessCode) ||
         (consultancy.adminEmail && c.adminEmail && c.adminEmail.trim().toLowerCase() === consultancy.adminEmail)
@@ -1175,38 +1210,32 @@ export class ConsultancyService {
     if (!id) return;
     const cleanId = id.trim().toLowerCase();
 
-    // 1. Record tombstone
-    const deleted = this.getDeletedConsultancyIds();
-    if (!deleted.includes(cleanId)) {
-      deleted.push(cleanId);
-    }
-
-    // 2. Remove from active list
+    // 1. Remove from active list
     const current = this.getConsultancies();
     const target = current.find(
       (c) =>
-        c.id.toLowerCase() === cleanId ||
+        (c.id && c.id.toLowerCase() === cleanId) ||
         (c.branchCode && c.branchCode.toLowerCase() === cleanId) ||
         (c.accessCode && c.accessCode.toLowerCase() === cleanId)
     );
-    if (target) {
-      if (target.id && !deleted.includes(target.id.toLowerCase())) deleted.push(target.id.toLowerCase());
-      if (target.branchCode && !deleted.includes(target.branchCode.toLowerCase())) deleted.push(target.branchCode.toLowerCase());
-      if (target.accessCode && !deleted.includes(target.accessCode.toLowerCase())) deleted.push(target.accessCode.toLowerCase());
-      if (target.name && !deleted.includes(target.name.toLowerCase())) deleted.push(target.name.toLowerCase());
-    }
-    localStorage.setItem('ielts_deleted_consultancies', JSON.stringify(deleted));
 
     const updated = current.filter((c) => {
-      if (c.id.toLowerCase() === cleanId) return false;
-      if (target) {
-        if (c.id.toLowerCase() === target.id.toLowerCase()) return false;
-        if (target.branchCode && c.branchCode && c.branchCode.toUpperCase() === target.branchCode.toUpperCase()) return false;
-        if (target.name && c.name && c.name.toLowerCase() === target.name.toLowerCase()) return false;
-      }
+      if (c.id && c.id.toLowerCase() === cleanId) return false;
+      if (target && target.id && c.id && c.id.toLowerCase() === target.id.toLowerCase()) return false;
       return true;
     });
     localStorage.setItem('ielts_consultancies', JSON.stringify(updated));
+
+    // 2. Record tombstone strictly for the unique id and codes (never generic branch names)
+    const toRemove = new Set<string>();
+    toRemove.add(cleanId);
+    if (target?.id) toRemove.add(target.id.toLowerCase().trim());
+    if (target?.branchCode) toRemove.add(target.branchCode.toLowerCase().trim());
+    if (target?.accessCode) toRemove.add(target.accessCode.toLowerCase().trim());
+
+    const deleted = this.getDeletedConsultancyIds().filter((d) => !toRemove.has(d.toLowerCase().trim()));
+    toRemove.forEach((key) => deleted.push(key));
+    localStorage.setItem('ielts_deleted_consultancies', JSON.stringify(deleted));
 
     // 3. Clean up related station and session keys
     try {
