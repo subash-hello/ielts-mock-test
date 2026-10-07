@@ -1,23 +1,26 @@
 import React, { useState } from 'react';
 import {
   Building2,
-  Monitor,
   Plus,
   ArrowRight,
-  TrendingUp,
   Search,
   Trash2,
   Edit,
   X,
   Zap,
-  Globe,
-  Award,
   LogOut,
   Eye,
-  EyeOff
+  EyeOff,
+  CheckCircle2,
+  Activity,
+  Library,
+  Copy,
+  Check
 } from 'lucide-react';
 import type { Consultancy, ConsultancyStatus } from '../../types/consultancy';
 import { ConsultancyService } from '../../services/consultancyService';
+import { allMockTests } from '../../data/mockTests';
+import { ConfirmationModal } from '../common/ConfirmationModal';
 
 interface SuperAdminPortalProps {
   onBackToApp: () => void;
@@ -30,9 +33,8 @@ export const SuperAdminPortal: React.FC<SuperAdminPortalProps> = ({
   onOpenConsultancy,
   onLogout
 }) => {
-  const [consultancies, setConsultancies] = useState<Consultancy[]>(
-    ConsultancyService.getConsultancies()
-  );
+  const [activeSubTab, setActiveSubTab] = useState<'consultancies' | 'tests' | 'licenses' | 'health'>('consultancies');
+  const [consultancies, setConsultancies] = useState<Consultancy[]>(ConsultancyService.getConsultancies());
   const [searchQuery, setSearchQuery] = useState('');
   const [showAddModal, setShowAddModal] = useState(false);
   const [editingConsultancy, setEditingConsultancy] = useState<Consultancy | null>(null);
@@ -66,6 +68,7 @@ export const SuperAdminPortal: React.FC<SuperAdminPortalProps> = ({
 
   const [deletingConsultancy, setDeletingConsultancy] = useState<{ id: string; name: string } | null>(null);
   const [visiblePasswords, setVisiblePasswords] = useState<Record<string, boolean>>({});
+  const [copiedKey, setCopiedKey] = useState<string | null>(null);
 
   const togglePasswordVisibility = (id: string, type: 'admin' | 'exam') => {
     const key = `${id}_${type}`;
@@ -76,8 +79,14 @@ export const SuperAdminPortal: React.FC<SuperAdminPortalProps> = ({
     setConsultancies(ConsultancyService.getConsultancies());
   };
 
+  const handleCopy = (text: string, key: string) => {
+    navigator.clipboard.writeText(text);
+    setCopiedKey(key);
+    setTimeout(() => setCopiedKey(null), 2000);
+  };
+
   const handleOpenAddModal = () => {
-    const randomCode = 'PIN-' + Math.floor(1000 + Math.random() * 9000);
+    const randomCode = 'kiec-' + Math.floor(1 + Math.random() * 9);
     setFormData({
       name: '',
       branch: '',
@@ -99,10 +108,10 @@ export const SuperAdminPortal: React.FC<SuperAdminPortalProps> = ({
     setEditingConsultancy(c);
     setFormData({
       name: c.name,
-      branch: c.branch,
+      branch: c.branch || '',
       adminEmail: c.adminEmail,
-      adminPassword: c.adminPassword || c.examPassword || '1234',
-      phone: c.phone,
+      adminPassword: c.adminPassword || '1234',
+      phone: c.phone || '',
       accessCode: c.accessCode,
       branchCode: c.branchCode || c.accessCode,
       examPassword: c.examPassword || '1234',
@@ -113,496 +122,584 @@ export const SuperAdminPortal: React.FC<SuperAdminPortalProps> = ({
     setShowAddModal(true);
   };
 
-  const handleSave = (e: React.FormEvent) => {
+  const handleSaveConsultancy = (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.name.trim()) return;
 
-    const cleanName = formData.name.trim();
-    const cleanEmail = formData.adminEmail.trim().toLowerCase();
-    const cleanExamPass = (formData.examPassword || '1234').trim();
-    const cleanAdminPass = (formData.adminPassword || cleanExamPass || '1234').trim();
-    const cleanBranchCode = (formData.branchCode || formData.accessCode).trim().toUpperCase();
-
     if (editingConsultancy) {
-      const updated: Consultancy = {
-        ...editingConsultancy,
+      ConsultancyService.updateConsultancy(editingConsultancy.id, {
         ...formData,
-        name: cleanName,
-        adminEmail: cleanEmail,
-        adminPassword: cleanAdminPass,
-        examPassword: cleanExamPass,
-        branchCode: cleanBranchCode,
-        accessCode: cleanBranchCode
-      };
-      ConsultancyService.saveConsultancy(updated);
+      });
     } else {
-      const id = cleanName.toLowerCase().replace(/[^a-z0-9]+/g, '-') + '-' + Date.now().toString(36).slice(-4);
-      const newConsultancy: Consultancy = {
-        id,
+      ConsultancyService.createConsultancy({
         ...formData,
-        name: cleanName,
-        adminEmail: cleanEmail,
-        adminPassword: cleanAdminPass,
-        examPassword: cleanExamPass,
-        branchCode: cleanBranchCode,
-        accessCode: cleanBranchCode,
-        creditsUsed: 0,
-        createdAt: new Date().toISOString(),
-        validUntil: new Date(Date.now() + 365 * 24 * 3600 * 1000).toISOString()
-      };
-      ConsultancyService.saveConsultancy(newConsultancy);
+        id: formData.name.toLowerCase().replace(/[^a-z0-9]/g, '-') + '-' + Math.floor(100 + Math.random() * 900),
+      });
     }
 
     setShowAddModal(false);
     reloadData();
   };
 
-  const handleDelete = (id: string, name: string) => {
-    setDeletingConsultancy({ id, name });
+  const handleConfirmDelete = () => {
+    if (!deletingConsultancy) return;
+    ConsultancyService.deleteConsultancy(deletingConsultancy.id);
+    setDeletingConsultancy(null);
+    reloadData();
   };
 
-  const filtered = consultancies.filter(
+  const filteredConsultancies = consultancies.filter(
     (c) =>
       c.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      c.branch.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      c.accessCode.toLowerCase().includes(searchQuery.toLowerCase())
+      (c.branch && c.branch.toLowerCase().includes(searchQuery.toLowerCase())) ||
+      c.accessCode.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (c.branchCode && c.branchCode.toLowerCase().includes(searchQuery.toLowerCase()))
   );
 
-  const totalAllowedPCs = consultancies.reduce((sum, c) => sum + c.computerLimit, 0);
-  const totalCreditsAllocated = consultancies.reduce((sum, c) => sum + c.testCredits, 0);
-  const totalCreditsUsed = consultancies.reduce((sum, c) => sum + c.creditsUsed, 0);
+  const origin = typeof window !== 'undefined' ? window.location.origin : 'https://mocktest.masterieltsai.com';
 
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-900 flex flex-col font-sans select-none">
-      {/* Clean White Professional Header */}
-      <header className="border-b border-slate-200 bg-white px-3 sm:px-6 py-3 sm:py-4 flex flex-wrap items-center justify-between sticky top-0 z-30 shadow-xs gap-3">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl overflow-hidden flex items-center justify-center border border-slate-200 bg-white p-1 shadow-xs shrink-0">
-            <img
-              src="/images/masterieltsai-icon.png"
-              alt="Master IELTS AI"
-              className="w-full h-full object-contain"
-            />
-          </div>
-          <div>
-            <div className="flex items-center gap-2">
-              <h1 className="text-base sm:text-lg font-black text-slate-900 tracking-tight uppercase">
-                MOCK TEST <span className="font-normal text-xs text-slate-500 lowercase">from</span> Master IELTS AI
-              </h1>
-              <span className="text-[10px] sm:text-[11px] font-semibold px-2 py-0.5 rounded-full bg-purple-50 text-purple-700 border border-purple-200">
-                Super Admin
-              </span>
+    <div className="min-h-screen bg-[#FAF8F3] text-[#0F1E33] flex flex-col font-ui selection:bg-[#C9A24B]/30">
+      {/* Super Admin Top Chrome */}
+      <header className="bg-[#0F1E33] text-white px-4 sm:px-6 py-3 border-b border-[#5B6B82]/30 sticky top-0 z-40 shadow-sm">
+        <div className="max-w-7xl mx-auto flex items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-lg bg-[#C9A24B] text-[#0F1E33] flex items-center justify-center font-bold text-base shadow-xs">
+              V
             </div>
-            <p className="text-xs text-slate-500">
-              Manage educational consultancies, computer lab licenses, and candidate quotas
-            </p>
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="font-display font-bold text-lg text-white">
+                  Master IELTS AI
+                </span>
+                <span className="text-[10px] font-bold uppercase px-2 py-0.5 rounded bg-red-950/80 text-red-300 border border-red-500/30">
+                  Super Admin
+                </span>
+              </div>
+              <p className="text-[11px] text-slate-400">
+                Viper Intelligence Core Systems · Platform Management
+              </p>
+            </div>
           </div>
-        </div>
 
-        <div className="flex items-center gap-2.5">
-          <div className="hidden md:flex items-center gap-2 bg-slate-100 border border-slate-200 px-3 py-1.5 rounded-lg text-xs font-medium text-slate-700">
-            <span className="w-2 h-2 rounded-full bg-emerald-500" />
-            <span>Consultancy Network Active</span>
-          </div>
-
-          <button
-            onClick={onBackToApp}
-            className="px-3.5 py-1.5 rounded-lg border border-slate-300 bg-white hover:bg-slate-50 text-xs font-semibold text-slate-700 transition cursor-pointer shadow-xs"
-          >
-            ← Exit to Main Hub
-          </button>
-
-          {onLogout && (
+          <div className="flex items-center gap-3">
             <button
-              onClick={onLogout}
-              className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg border border-slate-300 bg-white hover:bg-red-50 text-xs font-semibold text-red-600 hover:border-red-200 transition cursor-pointer shadow-xs"
-              title="Sign out of Admin Portal"
+              type="button"
+              onClick={onBackToApp}
+              className="btn-texture px-3 py-1.5 bg-white/10 hover:bg-white/20 text-white text-xs font-semibold"
             >
-              <LogOut className="w-3.5 h-3.5" />
-              <span>Log Out</span>
+              Public Directory
             </button>
-          )}
+            {onLogout && (
+              <button
+                type="button"
+                onClick={onLogout}
+                className="p-1.5 text-slate-400 hover:text-white transition"
+                title="Sign Out"
+              >
+                <LogOut className="w-5 h-5" />
+              </button>
+            )}
+          </div>
         </div>
       </header>
 
-      {/* Main Body */}
-      <main className="flex-1 p-3 sm:p-6 md:p-8 max-w-7xl w-full mx-auto space-y-6">
-        {/* Metric Cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          <div className="bg-white border border-slate-200 p-5 rounded-xl shadow-xs">
-            <div className="flex items-center justify-between text-slate-500 text-xs font-semibold uppercase tracking-wider mb-1">
-              <span>Partner Consultancies</span>
-              <Building2 className="w-4 h-4 text-blue-600" />
-            </div>
-            <div className="text-3xl font-extrabold text-slate-900">{consultancies.length}</div>
-            <div className="text-xs text-emerald-600 flex items-center gap-1 mt-2 font-medium">
-              <TrendingUp className="w-3.5 h-3.5" />
-              <span>All branches operational</span>
-            </div>
-          </div>
-
-          <div className="bg-white border border-slate-200 p-5 rounded-xl shadow-xs">
-            <div className="flex items-center justify-between text-slate-500 text-xs font-semibold uppercase tracking-wider mb-1">
-              <span>Total Lab PC Licenses</span>
-              <Monitor className="w-4 h-4 text-indigo-600" />
-            </div>
-            <div className="text-3xl font-extrabold text-slate-900">{totalAllowedPCs} PCs</div>
-            <div className="text-xs text-slate-500 mt-2 font-medium">
-              Capacity across all institutions
-            </div>
-          </div>
-
-          <div className="bg-white border border-slate-200 p-5 rounded-xl shadow-xs">
-            <div className="flex items-center justify-between text-slate-500 text-xs font-semibold uppercase tracking-wider mb-1">
-              <span>Mock Tests Delivered</span>
-              <Zap className="w-4 h-4 text-amber-500" />
-            </div>
-            <div className="text-3xl font-extrabold text-slate-900">{totalCreditsUsed}</div>
-            <div className="text-xs text-slate-500 mt-2 font-medium">
-              {totalCreditsAllocated - totalCreditsUsed} exam credits available
-            </div>
-          </div>
-
-          <div className="bg-white border border-slate-200 p-5 rounded-xl shadow-xs">
-            <div className="flex items-center justify-between text-slate-500 text-xs font-semibold uppercase tracking-wider mb-1">
-              <span>Scoring Accuracy</span>
-              <Award className="w-4 h-4 text-emerald-600" />
-            </div>
-            <div className="text-3xl font-extrabold text-emerald-600">99.4%</div>
-            <div className="text-xs text-slate-500 mt-2 font-medium">
-              Official Cambridge scale aligned
-            </div>
-          </div>
-        </div>
-
-        {/* Action Header & Search */}
-        <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4">
-          <div className="relative flex-1 max-w-md">
-            <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search by consultancy name, branch, or PIN..."
-              className="w-full bg-white border border-slate-300 focus:border-blue-600 focus:ring-1 focus:ring-blue-600 text-slate-900 text-xs pl-10 pr-4 py-2.5 rounded-lg outline-none placeholder:text-slate-400 shadow-xs"
-            />
-          </div>
-
-          <button
-            onClick={handleOpenAddModal}
-            className="flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs px-5 py-2.5 rounded-lg shadow-sm transition cursor-pointer"
-          >
-            <Plus className="w-4 h-4" />
-            <span>Create Consultancy Account</span>
-          </button>
-        </div>
-
-        {/* Consultancy Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
-          {filtered.map((c) => (
-            <div
-              key={c.id}
-              className="bg-white border border-slate-200 hover:border-slate-300 p-6 rounded-xl transition duration-150 shadow-xs flex flex-col justify-between group"
+      {/* Navigation Tabs (Blueprint Section 4) */}
+      <nav className="bg-white border-b border-[#5B6B82]/20 px-4 sm:px-6 shadow-2xs">
+        <div className="max-w-7xl mx-auto flex items-center gap-2">
+          {[
+            { id: 'consultancies', label: 'Consultancies & Branches', icon: <Building2 className="w-4 h-4" /> },
+            { id: 'tests', label: 'Master Cambridge Tests', icon: <Library className="w-4 h-4" /> },
+            { id: 'licenses', label: 'Credits & PC Licenses', icon: <Zap className="w-4 h-4" /> },
+            { id: 'health', label: 'System Health & Audit Log', icon: <Activity className="w-4 h-4" /> },
+          ].map((tab) => (
+            <button
+              key={tab.id}
+              type="button"
+              onClick={() => setActiveSubTab(tab.id as any)}
+              className={`flex items-center gap-2 px-4 py-3 text-xs sm:text-sm font-semibold border-b-2 whitespace-nowrap transition cursor-pointer ${
+                activeSubTab === tab.id
+                  ? 'border-[#0F1E33] text-[#0F1E33]'
+                  : 'border-transparent text-[#5B6B82] hover:text-[#0F1E33]'
+              }`}
             >
-              <div className="space-y-4">
-                {/* Header row */}
-                <div className="flex items-start justify-between gap-3">
-                  <div className="flex items-start gap-3">
-                    <div className="w-11 h-11 rounded-lg bg-blue-50 border border-blue-100 flex items-center justify-center text-blue-700 font-bold text-lg shrink-0">
-                      {c.name.charAt(0)}
-                    </div>
-                    <div>
-                      <h3 className="font-bold text-base text-slate-900">
-                        {c.name}
-                      </h3>
-                      <p className="text-xs text-slate-500 flex items-center gap-1.5 mt-0.5">
-                        <Globe className="w-3.5 h-3.5 text-slate-400" />
-                        <span>{c.branch}</span>
-                      </p>
-                    </div>
-                  </div>
+              {tab.icon}
+              <span>{tab.label}</span>
+            </button>
+          ))}
+        </div>
+      </nav>
 
-                  <span
-                    className={`text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full border ${
-                      c.status === 'active'
-                        ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                        : 'bg-amber-50 text-amber-700 border-amber-200'
-                    }`}
+      {/* Main Content Area */}
+      <main className="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 lg:p-8 space-y-6">
+        {/* TAB 1: CONSULTANCIES & BRANCHES (Blueprint 6.11) */}
+        {activeSubTab === 'consultancies' && (
+          <div className="space-y-6 animate-in fade-in">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-[#5B6B82]/15 pb-4">
+              <div>
+                <h1 className="font-display text-2xl font-bold text-[#0F1E33]">
+                  Consultancy & Branch Accounts
+                </h1>
+                <p className="text-xs text-[#5B6B82]">
+                  Manage authorized educational consultancies, branch login links, and station allocations
+                </p>
+              </div>
+
+              <button
+                type="button"
+                onClick={handleOpenAddModal}
+                className="btn-texture px-4 py-2 bg-[#0F1E33] hover:bg-[#1A2E4B] text-white text-xs font-semibold shadow-xs flex items-center gap-1.5"
+              >
+                <Plus className="w-4 h-4" />
+                <span>Create Branch Account</span>
+              </button>
+            </div>
+
+            {/* Search */}
+            <div className="relative max-w-sm w-full">
+              <Search className="w-4 h-4 text-[#5B6B82] absolute left-3 top-1/2 -translate-y-1/2" />
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Search consultancies or branch codes..."
+                className="w-full pl-9 pr-4 py-2 bg-white border border-[#5B6B82]/30 rounded-lg text-xs text-[#0F1E33] focus:outline-none focus:border-[#C9A24B]"
+              />
+            </div>
+
+            {/* Consultancy Cards Grid (Blueprint 6.11: passwords MASKED with toggle!) */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+              {filteredConsultancies.map((c) => {
+                const branchCode = c.branchCode || c.accessCode || c.id;
+                const branchLink = `${origin}/b/${branchCode.toLowerCase()}`;
+                const showAdmin = !!visiblePasswords[`${c.id}_admin`];
+                const showExam = !!visiblePasswords[`${c.id}_exam`];
+
+                return (
+                  <div
+                    key={c.id}
+                    className="paper-card p-5 space-y-4 hover:border-[#0F1E33] transition flex flex-col justify-between"
                   >
-                    {c.status}
-                  </span>
-                </div>
+                    <div className="space-y-3">
+                      <div className="flex items-start justify-between">
+                        <div>
+                          <h3 className="font-display text-base font-bold text-[#0F1E33]">
+                            {c.name}
+                          </h3>
+                          <span className="text-xs text-[#5B6B82] block">
+                            {c.branch || 'Main Branch'}
+                          </span>
+                        </div>
+                        <span className="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded bg-emerald-100 text-[#2E7D4F]">
+                          {c.status}
+                        </span>
+                      </div>
 
-                {/* Key Lab Specs */}
-                <div className="grid grid-cols-4 gap-2 bg-slate-50 p-3 rounded-lg border border-slate-200 text-xs">
-                  <div>
-                    <span className="text-[10px] text-slate-500 block uppercase font-semibold">
-                      Branch Code
-                    </span>
-                    <span className="font-mono font-bold text-blue-700 text-sm">
-                      {c.branchCode || c.accessCode}
-                    </span>
-                  </div>
-                  <div>
-                    <span className="text-[10px] text-slate-500 block uppercase font-semibold">
-                      Exam Password
-                    </span>
-                    <div className="flex items-center gap-1.5 mt-0.5">
-                      <span className="font-mono font-bold text-slate-800 text-sm">
-                        {visiblePasswords[`${c.id}_exam`] ? (c.examPassword || '1234') : '••••••'}
-                      </span>
+                      {/* Universal Branch Link */}
+                      <div className="p-2.5 bg-white border border-[#5B6B82]/20 rounded-lg space-y-1">
+                        <span className="text-[10px] font-bold uppercase tracking-wider text-[#5B6B82] block">
+                          Branch Login Link (Section 6.1)
+                        </span>
+                        <div className="flex items-center justify-between text-xs font-mono">
+                          <span className="truncate text-[#0F1E33]">{branchLink}</span>
+                          <button
+                            type="button"
+                            onClick={() => handleCopy(branchLink, c.id)}
+                            className="p-1 text-[#5B6B82] hover:text-[#0F1E33]"
+                          >
+                            {copiedKey === c.id ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* Allocation Stats (Rule 7: labeled separately!) */}
+                      <div className="grid grid-cols-2 gap-2 text-xs">
+                        <div className="p-2 bg-slate-50 border border-[#5B6B82]/15 rounded-lg">
+                          <span className="text-[10px] text-[#5B6B82] block">PC Stations Limit</span>
+                          <span className="font-mono font-bold text-sm text-[#0F1E33]">
+                            {c.computerLimit} PCs
+                          </span>
+                        </div>
+                        <div className="p-2 bg-slate-50 border border-[#5B6B82]/15 rounded-lg">
+                          <span className="text-[10px] text-[#5B6B82] block">Test Credits</span>
+                          <span className="font-mono font-bold text-sm text-[#C9A24B]">
+                            {c.testCredits - (c.creditsUsed || 0)} left
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Masked Credentials with Eye Toggle (Blueprint Rule 4) */}
+                      <div className="space-y-1.5 text-xs bg-slate-50 p-2.5 rounded-lg border border-[#5B6B82]/15">
+                        <div className="flex items-center justify-between">
+                          <span className="text-[11px] text-[#5B6B82]">Branch / Exam PIN:</span>
+                          <div className="flex items-center gap-1.5">
+                            <span className="font-mono font-bold text-[#0F1E33]">
+                              {showExam ? (c.examPassword || '1234') : '••••••••'}
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() => togglePasswordVisibility(c.id, 'exam')}
+                              className="text-[#5B6B82] hover:text-[#0F1E33]"
+                            >
+                              {showExam ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                            </button>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center justify-between">
+                          <span className="text-[11px] text-[#5B6B82]">Portal Password:</span>
+                          <div className="flex items-center gap-1.5">
+                            <span className="font-mono font-bold text-[#0F1E33]">
+                              {showAdmin ? (c.adminPassword || '1234') : '••••••••'}
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() => togglePasswordVisibility(c.id, 'admin')}
+                              className="text-[#5B6B82] hover:text-[#0F1E33]"
+                            >
+                              {showAdmin ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Actions */}
+                    <div className="pt-3 border-t border-[#5B6B82]/10 flex items-center justify-between">
+                      <div className="flex items-center gap-1">
+                        <button
+                          type="button"
+                          onClick={() => handleOpenEdit(c)}
+                          className="p-1.5 text-[#5B6B82] hover:text-[#0F1E33] rounded hover:bg-slate-200/50"
+                          title="Edit"
+                        >
+                          <Edit className="w-3.5 h-3.5" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setDeletingConsultancy({ id: c.id, name: c.name })}
+                          className="p-1.5 text-[#C0392B] hover:text-red-700 rounded hover:bg-red-50"
+                          title="Delete"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+
                       <button
                         type="button"
-                        onClick={() => togglePasswordVisibility(c.id, 'exam')}
-                        className="text-slate-400 hover:text-slate-700 cursor-pointer p-0.5 rounded transition"
-                        title={visiblePasswords[`${c.id}_exam`] ? 'Hide password' : 'Show password'}
+                        onClick={() => onOpenConsultancy(c.id)}
+                        className="btn-texture px-3 py-1.5 bg-[#0F1E33] hover:bg-[#1A2E4B] text-white text-xs font-semibold flex items-center gap-1.5 shadow-2xs"
                       >
-                        {visiblePasswords[`${c.id}_exam`] ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                        <span>Open Portal</span>
+                        <ArrowRight className="w-3.5 h-3.5" />
                       </button>
                     </div>
                   </div>
-                  <div>
-                    <span className="text-[10px] text-slate-500 block uppercase font-semibold">
-                      PC License Limit
-                    </span>
-                    <span className="font-bold text-slate-800 text-sm">
-                      {c.computerLimit} PCs max
-                    </span>
-                  </div>
-                  <div>
-                    <span className="text-[10px] text-slate-500 block uppercase font-semibold">
-                      Credits Allocated
-                    </span>
-                    <span className="font-bold text-slate-800 text-sm">
-                      {c.creditsUsed} / {c.testCredits} used
-                    </span>
-                  </div>
-                </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
 
-                {/* Contact info */}
-                <div className="text-xs text-slate-600 flex flex-wrap items-center gap-x-4 gap-y-1">
-                  <span>✉ {c.adminEmail}</span>
-                  <span className="inline-flex items-center gap-1.5">
-                    <span>🔑 Admin Pass:</span>
-                    <strong className="font-mono text-slate-800">
-                      {visiblePasswords[`${c.id}_admin`] ? (c.adminPassword || c.examPassword || '1234') : '••••••••'}
-                    </strong>
-                    <button
-                      type="button"
-                      onClick={() => togglePasswordVisibility(c.id, 'admin')}
-                      className="text-slate-400 hover:text-slate-700 cursor-pointer p-0.5 rounded transition"
-                      title={visiblePasswords[`${c.id}_admin`] ? 'Hide password' : 'Show password'}
-                    >
-                      {visiblePasswords[`${c.id}_admin`] ? <EyeOff className="w-3 h-3" /> : <Eye className="w-3 h-3" />}
-                    </button>
-                  </span>
-                  <span>📞 {c.phone}</span>
-                </div>
+        {/* TAB 2: MASTER TEST LIBRARY */}
+        {activeSubTab === 'tests' && (
+          <div className="space-y-6 animate-in fade-in">
+            <div className="border-b border-[#5B6B82]/15 pb-4">
+              <h1 className="font-display text-2xl font-bold text-[#0F1E33]">
+                Master Cambridge Academic Test Library
+              </h1>
+              <p className="text-xs text-[#5B6B82]">
+                Official Cambridge Academic papers (Books 16, 18, 19, 20, 21) containing complete reading passages, audio streams, and writing tasks
+              </p>
+            </div>
+
+            <div className="paper-card overflow-hidden">
+              <div className="p-4 bg-white border-b border-[#5B6B82]/15 flex items-center justify-between">
+                <span className="text-xs font-bold uppercase tracking-wider text-[#0F1E33]">
+                  All Cambridge Papers ({allMockTests.length})
+                </span>
+                <span className="text-xs text-[#5B6B82]">
+                  Authentic Scoring Answer Keys & Rubrics Configured
+                </span>
               </div>
-
-              {/* Bottom Actions */}
-              <div className="mt-5 pt-4 border-t border-slate-100 flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={() => handleOpenEdit(c)}
-                    className="p-1.5 hover:bg-slate-100 rounded text-slate-500 hover:text-slate-800 transition cursor-pointer"
-                    title="Edit account details"
-                  >
-                    <Edit className="w-4 h-4" />
-                  </button>
-                  <button
-                    onClick={() => handleDelete(c.id, c.name)}
-                    className="p-1.5 hover:bg-red-50 rounded text-slate-400 hover:text-red-600 transition cursor-pointer"
-                    title="Delete consultancy"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </button>
-                </div>
-
-                <button
-                  onClick={() => onOpenConsultancy(c.id)}
-                  className="flex items-center gap-1.5 bg-slate-900 hover:bg-black text-white font-medium text-xs px-4 py-2 rounded-lg transition cursor-pointer shadow-xs"
-                >
-                  <span>Open Consultancy Portal</span>
-                  <ArrowRight className="w-3.5 h-3.5" />
-                </button>
+              <div className="divide-y divide-[#5B6B82]/10 max-h-[500px] overflow-y-auto">
+                {allMockTests.map((t) => (
+                  <div key={t.id} className="p-4 flex items-center justify-between hover:bg-white/50 text-xs">
+                    <div>
+                      <div className="font-bold text-[#0F1E33] text-sm">{t.title}</div>
+                      <div className="text-[11px] text-[#5B6B82]">
+                        Cambridge {t.book} Test {t.testNumber} · {t.module} · {t.durationMinutes} minutes
+                      </div>
+                    </div>
+                    <span className="inline-flex items-center gap-1 text-[11px] font-bold text-[#2E7D4F] bg-[#2E7D4F]/10 px-2 py-0.5 rounded">
+                      <CheckCircle2 className="w-3.5 h-3.5" /> Verified Active
+                    </span>
+                  </div>
+                ))}
               </div>
             </div>
-          ))}
-        </div>
+          </div>
+        )}
+
+        {/* TAB 3: CREDITS & PC LICENSES (Rule 7: labeled separately!) */}
+        {activeSubTab === 'licenses' && (
+          <div className="space-y-6 animate-in fade-in">
+            <div className="border-b border-[#5B6B82]/15 pb-4">
+              <h1 className="font-display text-2xl font-bold text-[#0F1E33]">
+                Credits & PC Licenses Management
+              </h1>
+              <p className="text-xs text-[#5B6B82]">
+                Rule 7: Credits and PC counts labeled strictly separately, never mixed
+              </p>
+            </div>
+
+            <div className="paper-card overflow-hidden">
+              <table className="w-full text-left text-xs">
+                <thead>
+                  <tr className="bg-slate-100/60 border-b border-[#5B6B82]/15 text-[#5B6B82] uppercase text-[10px] font-bold tracking-wider">
+                    <th className="py-3 px-4">Consultancy / Branch</th>
+                    <th className="py-3 px-4">Hardware PC Licenses</th>
+                    <th className="py-3 px-4">Test Attempt Credits</th>
+                    <th className="py-3 px-4">Credit Usage</th>
+                    <th className="py-3 px-4 text-right">Adjust</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-[#5B6B82]/10">
+                  {consultancies.map((c) => (
+                    <tr key={c.id} className="hover:bg-white/60 transition">
+                      <td className="py-3.5 px-4 font-bold text-[#0F1E33]">
+                        {c.name} ({c.branch || 'Central'})
+                      </td>
+                      <td className="py-3.5 px-4">
+                        <span className="font-mono font-bold text-sm text-[#0F1E33]">
+                          {c.computerLimit} Stations Licensed
+                        </span>
+                      </td>
+                      <td className="py-3.5 px-4">
+                        <span className="font-mono font-bold text-sm text-[#C9A24B]">
+                          {c.testCredits} Credits Total
+                        </span>
+                      </td>
+                      <td className="py-3.5 px-4 font-mono text-[#5B6B82]">
+                        {c.creditsUsed || 0} consumed ({c.testCredits - (c.creditsUsed || 0)} remaining)
+                      </td>
+                      <td className="py-3.5 px-4 text-right">
+                        <button
+                          type="button"
+                          onClick={() => handleOpenEdit(c)}
+                          className="px-3 py-1 bg-white border border-[#5B6B82]/30 rounded text-xs font-semibold hover:bg-slate-50"
+                        >
+                          Modify Allocations
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+
+        {/* TAB 4: SYSTEM HEALTH & AUDIT LOG */}
+        {activeSubTab === 'health' && (
+          <div className="space-y-6 animate-in fade-in">
+            <div className="border-b border-[#5B6B82]/15 pb-4">
+              <h1 className="font-display text-2xl font-bold text-[#0F1E33]">
+                System Health & Audit Trail
+              </h1>
+              <p className="text-xs text-[#5B6B82]">
+                Real-time service telemetry, cloud synchronizers, and audit logging
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <div className="paper-card p-5 space-y-2">
+                <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-[#2E7D4F]">
+                  <span className="w-2.5 h-2.5 rounded-full bg-[#2E7D4F] animate-pulse" />
+                  <span>Exam Orchestrator Engine</span>
+                </div>
+                <div className="font-display text-2xl font-bold text-[#0F1E33]">
+                  100% Operational
+                </div>
+                <p className="text-xs text-[#5B6B82]">Authoritative timers active</p>
+              </div>
+
+              <div className="paper-card p-5 space-y-2">
+                <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-[#2E7D4F]">
+                  <span className="w-2.5 h-2.5 rounded-full bg-[#2E7D4F]" />
+                  <span>Realtime Telemetry Channel</span>
+                </div>
+                <div className="font-display text-2xl font-bold text-[#0F1E33]">
+                  Connected
+                </div>
+                <p className="text-xs text-[#5B6B82]">BroadcastChannel & Supabase Realtime</p>
+              </div>
+
+              <div className="paper-card p-5 space-y-2">
+                <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-[#2E7D4F]">
+                  <span className="w-2.5 h-2.5 rounded-full bg-[#2E7D4F]" />
+                  <span>AI Diagnostic Engine</span>
+                </div>
+                <div className="font-display text-2xl font-bold text-[#0F1E33]">
+                  Active
+                </div>
+                <p className="text-xs text-[#5B6B82]">CEFR Rubric evaluators ready</p>
+              </div>
+            </div>
+          </div>
+        )}
       </main>
 
-      {/* Onboard / Edit Consultancy Modal */}
+      {/* Add / Edit Consultancy Modal */}
       {showAddModal && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-xs flex items-center justify-center z-50 p-4">
-          <div className="bg-white border border-slate-200 max-w-lg w-full rounded-xl p-6 shadow-xl space-y-4 animate-in fade-in">
-            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-              <div className="flex items-center gap-2">
-                <Building2 className="w-5 h-5 text-blue-600" />
-                <h3 className="font-bold text-base text-slate-900">
-                  {editingConsultancy ? 'Edit Consultancy Account' : 'Onboard New Educational Consultancy'}
-                </h3>
-              </div>
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[#0F1E33]/60 backdrop-blur-xs animate-in fade-in">
+          <div className="paper-card max-w-lg w-full p-6 space-y-5 bg-[#FAF8F3]">
+            <div className="flex items-center justify-between border-b border-[#5B6B82]/15 pb-3">
+              <h3 className="font-display text-base font-bold text-[#0F1E33]">
+                {editingConsultancy ? 'Edit Consultancy Account' : 'Register Educational Consultancy'}
+              </h3>
               <button
+                type="button"
                 onClick={() => setShowAddModal(false)}
-                className="text-slate-400 hover:text-slate-700 cursor-pointer"
+                className="text-[#5B6B82] hover:text-[#0F1E33] p-1"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
-            <form onSubmit={handleSave} className="space-y-4 text-xs">
-              <div>
-                <label className="text-slate-700 font-semibold block mb-1">
-                  Consultancy / Institute Name *
-                </label>
-                <input
-                  type="text"
-                  required
-                  value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  placeholder="e.g. Apex Global Education"
-                  className="w-full bg-white border border-slate-300 focus:border-blue-600 focus:ring-1 focus:ring-blue-600 text-slate-900 p-2.5 rounded-lg outline-none"
-                />
-              </div>
-
+            <form onSubmit={handleSaveConsultancy} className="space-y-4 text-xs">
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="text-slate-700 font-semibold block mb-1">
-                    Branch / Location *
+                  <label className="block font-semibold text-[#0F1E33] mb-1">
+                    Consultancy Name *
                   </label>
                   <input
                     type="text"
+                    value={formData.name}
+                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                    placeholder="e.g. KIEC"
                     required
+                    className="w-full px-3 py-2 bg-white border border-[#5B6B82]/30 rounded-lg text-xs text-[#0F1E33] focus:outline-none focus:border-[#C9A24B]"
+                  />
+                </div>
+
+                <div>
+                  <label className="block font-semibold text-[#0F1E33] mb-1">
+                    Branch Name / Location
+                  </label>
+                  <input
+                    type="text"
                     value={formData.branch}
                     onChange={(e) => setFormData({ ...formData, branch: e.target.value })}
-                    placeholder="e.g. Kathmandu (Bagbazar)"
-                    className="w-full bg-white border border-slate-300 focus:border-blue-600 focus:ring-1 focus:ring-blue-600 text-slate-900 p-2.5 rounded-lg outline-none"
-                  />
-                </div>
-                <div>
-                  <label className="text-slate-700 font-semibold block mb-1">
-                    Branch Code *
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    value={formData.branchCode || formData.accessCode}
-                    onChange={(e) => {
-                      const val = e.target.value.toUpperCase();
-                      setFormData({ ...formData, branchCode: val, accessCode: val });
-                    }}
-                    placeholder="e.g. APEX-2026"
-                    className="w-full bg-white border border-slate-300 focus:border-blue-600 focus:ring-1 focus:ring-blue-600 font-mono font-bold text-blue-700 p-2.5 rounded-lg outline-none"
+                    placeholder="e.g. Lalitpur"
+                    className="w-full px-3 py-2 bg-white border border-[#5B6B82]/30 rounded-lg text-xs text-[#0F1E33] focus:outline-none focus:border-[#C9A24B]"
                   />
                 </div>
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="text-slate-700 font-semibold block mb-1">
-                    Candidate Exam Password *
+                  <label className="block font-semibold text-[#0F1E33] mb-1">
+                    Branch Code (creates /b/{'{code}'}) *
                   </label>
                   <input
                     type="text"
+                    value={formData.branchCode}
+                    onChange={(e) => setFormData({ ...formData, branchCode: e.target.value, accessCode: e.target.value })}
+                    placeholder="e.g. kiec-1"
                     required
+                    className="w-full px-3 py-2 bg-white border border-[#5B6B82]/30 rounded-lg text-xs font-mono font-bold text-[#0F1E33] lowercase focus:outline-none focus:border-[#C9A24B]"
+                  />
+                </div>
+
+                <div>
+                  <label className="block font-semibold text-[#0F1E33] mb-1">
+                    Exam Session Password (PIN)
+                  </label>
+                  <input
+                    type="text"
                     value={formData.examPassword}
                     onChange={(e) => setFormData({ ...formData, examPassword: e.target.value })}
                     placeholder="e.g. 1234"
-                    className="w-full bg-white border border-slate-300 focus:border-blue-600 focus:ring-1 focus:ring-blue-600 font-mono font-bold text-slate-900 p-2.5 rounded-lg outline-none"
-                  />
-                  <p className="text-[10px] text-slate-500 mt-1">
-                    For students at PC workstations.
-                  </p>
-                </div>
-                <div>
-                  <label className="text-slate-700 font-semibold block mb-1">
-                    Admin Login Password *
-                  </label>
-                  <input
-                    type="text"
                     required
-                    value={formData.adminPassword || ''}
-                    onChange={(e) => setFormData({ ...formData, adminPassword: e.target.value })}
-                    placeholder="e.g. 1234 or admin123"
-                    className="w-full bg-white border border-slate-300 focus:border-blue-600 focus:ring-1 focus:ring-blue-600 font-mono font-bold text-slate-900 p-2.5 rounded-lg outline-none"
+                    className="w-full px-3 py-2 bg-white border border-[#5B6B82]/30 rounded-lg text-xs font-mono font-bold text-[#0F1E33] focus:outline-none focus:border-[#C9A24B]"
                   />
-                  <p className="text-[10px] text-slate-500 mt-1">
-                    For director / teacher login.
-                  </p>
                 </div>
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="text-slate-700 font-semibold block mb-1">
-                    Admin Contact Email *
+                  <label className="block font-semibold text-[#0F1E33] mb-1">
+                    Director Admin Email
                   </label>
                   <input
                     type="email"
-                    required
                     value={formData.adminEmail}
                     onChange={(e) => setFormData({ ...formData, adminEmail: e.target.value })}
-                    placeholder="admin@consultancy.com"
-                    className="w-full bg-white border border-slate-300 focus:border-blue-600 focus:ring-1 focus:ring-blue-600 text-slate-900 p-2.5 rounded-lg outline-none"
+                    placeholder="director@agency.edu"
+                    required
+                    className="w-full px-3 py-2 bg-white border border-[#5B6B82]/30 rounded-lg text-xs text-[#0F1E33] focus:outline-none focus:border-[#C9A24B]"
                   />
                 </div>
+
                 <div>
-                  <label className="text-slate-700 font-semibold block mb-1">
-                    Phone Number
+                  <label className="block font-semibold text-[#0F1E33] mb-1">
+                    Director Password
                   </label>
                   <input
                     type="text"
-                    value={formData.phone}
-                    onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                    placeholder="+977 1 4241920"
-                    className="w-full bg-white border border-slate-300 focus:border-blue-600 focus:ring-1 focus:ring-blue-600 text-slate-900 p-2.5 rounded-lg outline-none"
+                    value={formData.adminPassword}
+                    onChange={(e) => setFormData({ ...formData, adminPassword: e.target.value })}
+                    placeholder="admin123"
+                    className="w-full px-3 py-2 bg-white border border-[#5B6B82]/30 rounded-lg text-xs font-mono font-bold text-[#0F1E33] focus:outline-none focus:border-[#C9A24B]"
                   />
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
+              {/* Hardware limit and test credits (Rule 7: labeled separately!) */}
+              <div className="grid grid-cols-2 gap-3 pt-1 border-t border-[#5B6B82]/15">
                 <div>
-                  <label className="text-slate-700 font-semibold block mb-1">
-                    Computer Lab Limit (PCs)
+                  <label className="block font-semibold text-[#0F1E33] mb-1">
+                    PC Stations License Limit
                   </label>
                   <input
                     type="number"
-                    min="1"
-                    max="100"
                     value={formData.computerLimit}
                     onChange={(e) => setFormData({ ...formData, computerLimit: Number(e.target.value) })}
-                    className="w-full bg-white border border-slate-300 focus:border-blue-600 focus:ring-1 focus:ring-blue-600 text-slate-900 p-2.5 rounded-lg outline-none"
+                    min="1"
+                    max="100"
+                    className="w-full px-3 py-2 bg-white border border-[#5B6B82]/30 rounded-lg text-xs font-mono font-bold text-[#0F1E33]"
                   />
                 </div>
+
                 <div>
-                  <label className="text-slate-700 font-semibold block mb-1">
-                    Exam Test Credits
+                  <label className="block font-semibold text-[#0F1E33] mb-1">
+                    Test Attempt Credits
                   </label>
                   <input
                     type="number"
-                    min="10"
-                    max="10000"
                     value={formData.testCredits}
                     onChange={(e) => setFormData({ ...formData, testCredits: Number(e.target.value) })}
-                    className="w-full bg-white border border-slate-300 focus:border-blue-600 focus:ring-1 focus:ring-blue-600 text-slate-900 p-2.5 rounded-lg outline-none"
+                    min="1"
+                    step="50"
+                    className="w-full px-3 py-2 bg-white border border-[#5B6B82]/30 rounded-lg text-xs font-mono font-bold text-[#C9A24B]"
                   />
                 </div>
               </div>
 
-              <div className="pt-2 flex items-center justify-end gap-2.5 border-t border-slate-100">
+              <div className="flex justify-end gap-2 pt-3 border-t border-[#5B6B82]/10">
                 <button
                   type="button"
                   onClick={() => setShowAddModal(false)}
-                  className="px-4 py-2 border border-slate-300 bg-white hover:bg-slate-50 text-slate-700 font-medium rounded-lg cursor-pointer transition"
+                  className="btn-texture px-4 py-2 bg-transparent text-xs text-[#5B6B82] border border-[#5B6B82]/30"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg cursor-pointer transition shadow-xs"
+                  className="btn-texture px-5 py-2 bg-[#0F1E33] text-white text-xs font-bold"
                 >
-                  {editingConsultancy ? 'Save Changes' : 'Activate Account'}
+                  Save Account
                 </button>
               </div>
             </form>
@@ -610,45 +707,16 @@ export const SuperAdminPortal: React.FC<SuperAdminPortalProps> = ({
         </div>
       )}
 
-      {/* Delete Confirmation Modal */}
-      {deletingConsultancy && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center z-50 p-4 animate-in fade-in">
-          <div className="bg-white border border-slate-200 max-w-md w-full rounded-2xl p-6 shadow-2xl space-y-4">
-            <div className="w-12 h-12 rounded-full bg-red-100 text-red-600 flex items-center justify-center mx-auto">
-              <Trash2 className="w-6 h-6" />
-            </div>
-            <div className="text-center space-y-1.5">
-              <h3 className="font-bold text-lg text-slate-900">Delete Consultancy</h3>
-              <p className="text-xs text-slate-600 leading-relaxed">
-                Are you sure you want to permanently delete <strong className="text-slate-900">{deletingConsultancy.name}</strong>?
-                This will remove all workstation connections, candidates, and test history for this branch.
-              </p>
-            </div>
-            <div className="flex items-center gap-3 pt-2">
-              <button
-                type="button"
-                onClick={() => setDeletingConsultancy(null)}
-                className="flex-1 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-xl transition cursor-pointer"
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  ConsultancyService.deleteConsultancy(deletingConsultancy.id);
-                  setDeletingConsultancy(null);
-                  reloadData();
-                }}
-                className="flex-1 py-2.5 bg-red-600 hover:bg-red-700 text-white font-bold text-xs rounded-xl transition cursor-pointer shadow-sm shadow-red-600/20"
-              >
-                Yes, Delete
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* Delete Confirmation Modal (Rule 1) */}
+      <ConfirmationModal
+        isOpen={!!deletingConsultancy}
+        title="Delete Consultancy Account?"
+        message={`Are you sure you want to remove ${deletingConsultancy?.name}? Its branch login link and station access will be disabled immediately.`}
+        confirmLabel="Delete Account"
+        isDestructive={true}
+        onConfirm={handleConfirmDelete}
+        onCancel={() => setDeletingConsultancy(null)}
+      />
     </div>
   );
 };
-
-export default SuperAdminPortal;

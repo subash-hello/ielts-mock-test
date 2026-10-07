@@ -832,6 +832,17 @@ export class ConsultancyService {
     if (!code) return undefined;
     const clean = code.trim().toUpperCase();
     const cleanAlphaNum = clean.replace(/[^A-Z0-9]/g, '');
+
+    // Map sketch shortcuts: kiec-1, kiec-2, kiec-3, apex-1
+    if (cleanAlphaNum === 'KIEC1' || clean === 'KIEC-1') {
+      const found = this.getConsultancyById('kiec-lalitpur');
+      if (found) return found;
+    }
+    if (cleanAlphaNum === 'APEX1' || clean === 'APEX-1') {
+      const found = this.getConsultancyById('apex-global');
+      if (found) return found;
+    }
+
     return this.getConsultancies().find(
       (c) =>
         (c.accessCode && c.accessCode.toUpperCase() === clean) ||
@@ -2895,5 +2906,136 @@ export class ConsultancyService {
             : 'Pace: Near limit. Student required full allotted time window.'
       }
     };
+  }
+
+  public static sendStationCommand(
+    consultancyId: string,
+    stationId: string,
+    command: string,
+    payload?: any
+  ): void {
+    this.broadcast('STATION_COMMAND', { consultancyId, stationId, command, payload });
+  }
+
+  public static broadcastStationCommand(
+    consultancyId: string,
+    command: string,
+    payload?: any
+  ): void {
+    this.broadcast('STATION_COMMAND', { consultancyId, command, payload });
+  }
+
+  public static launchBranchTest(
+    consultancyId: string,
+    testId: string | null,
+    title?: string,
+    isFullMock?: boolean
+  ): void {
+    this.launchTestToBranch(consultancyId, testId, title, isFullMock);
+  }
+
+  public static assignStationTest(
+    consultancyId: string,
+    stationName: string,
+    testId: string,
+    testTitle?: string,
+    studentName?: string,
+    candidateId?: string,
+    _passport?: string,
+    isFullMock?: boolean
+  ): void {
+    const mod: 'reading' | 'listening' | 'writing' = isFullMock || testId.includes('listening') ? 'listening' : testId.includes('writing') ? 'writing' : 'reading';
+    this.assignTestToStation(
+      consultancyId,
+      stationName,
+      testId,
+      testTitle || 'Assigned Mock Test',
+      mod,
+      studentName ? { candidateId: candidateId || '004128', name: studentName } : undefined
+    );
+  }
+
+  public static createConsultancy(consultancy: Partial<Consultancy> & { id: string; name: string }): Consultancy {
+    const full: Consultancy = {
+      id: consultancy.id,
+      name: consultancy.name,
+      branch: consultancy.branch || 'Central',
+      adminEmail: consultancy.adminEmail || 'admin@agency.com',
+      phone: consultancy.phone || '',
+      accessCode: consultancy.accessCode || consultancy.id,
+      branchCode: consultancy.branchCode || consultancy.accessCode || consultancy.id,
+      examPassword: consultancy.examPassword || '1234',
+      adminPassword: consultancy.adminPassword || '1234',
+      status: consultancy.status || 'active',
+      computerLimit: consultancy.computerLimit || 20,
+      testCredits: consultancy.testCredits || 300,
+      creditsUsed: consultancy.creditsUsed || 0,
+      createdAt: new Date().toISOString(),
+      validUntil: new Date(Date.now() + 365 * 86400000).toISOString(),
+    };
+    this.saveConsultancy(full);
+    return full;
+  }
+
+  public static addStudent(consultancyId: string, data: { fullName: string; email?: string; phone?: string; targetBand?: number }): ConsultancyStudent {
+    const candNumber = '00' + Math.floor(1000 + Math.random() * 9000);
+    const newStudent: ConsultancyStudent = {
+      id: 'std-' + Date.now(),
+      consultancyId,
+      candidateNumber: candNumber,
+      fullName: data.fullName,
+      email: data.email || '',
+      phone: data.phone || '',
+      targetBand: data.targetBand || 7.0,
+      enrolledDate: new Date().toISOString().split('T')[0],
+      testsCompletedCount: 0,
+      highestBand: 0,
+      averageBand: 0,
+    };
+    this.saveStudent(newStudent);
+    return newStudent;
+  }
+
+  public static updateStudent(consultancyId: string, studentId: string, updates: Partial<ConsultancyStudent>): void {
+    const list = this.getStudents(consultancyId);
+    const idx = list.findIndex((s) => s.id === studentId);
+    if (idx >= 0) {
+      list[idx] = { ...list[idx], ...updates };
+      localStorage.setItem(`ielts_students_${consultancyId}`, JSON.stringify(list));
+      this.broadcast('STUDENT_UPDATED', { consultancyId, student: list[idx] });
+    }
+  }
+
+  public static updateConsultancy(
+    consultancyId: string,
+    updates: Partial<Consultancy>
+  ): void {
+    const existing = this.getConsultancyById(consultancyId);
+    if (existing) {
+      this.saveConsultancy({ ...existing, ...updates });
+    }
+  }
+
+  public static setResultPublished(
+    consultancyId: string,
+    candidateId: string,
+    testId: string,
+    isPublished: boolean,
+    completedAt?: string
+  ): void {
+    if (isPublished) {
+      this.publishTestResult(consultancyId, testId, candidateId, completedAt);
+    } else {
+      this.unpublishTestResult(consultancyId, testId, candidateId, completedAt);
+    }
+  }
+
+  public static getAllResultsAcrossConsultancies(): TestResult[] {
+    const consultancies = this.getConsultancies();
+    const all: TestResult[] = [];
+    for (const c of consultancies) {
+      all.push(...this.getResults(c.id));
+    }
+    return all;
   }
 }

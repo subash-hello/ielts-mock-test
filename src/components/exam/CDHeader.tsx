@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Clock, Volume2, HelpCircle, ArrowLeft } from 'lucide-react';
+import { Volume2, HelpCircle, ArrowLeft, Moon, Sun } from 'lucide-react';
 import type { ExamSettings, IELTSMockTest } from '../../types/ielts';
 
 interface CDHeaderProps {
@@ -32,197 +32,182 @@ export const CDHeader: React.FC<CDHeaderProps> = ({
   const minutes = Math.floor(remainingSeconds / 60);
   const seconds = remainingSeconds % 60;
   const timeFormatted = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
-  const isUrgent = remainingSeconds <= 600; // Last 10 minutes
+
+  // Blueprint 6.5: Under 5 minutes turns amber; under 1 minute pulses gently. Never alarming red mid-exam!
+  const isUnder5Min = remainingSeconds <= 300;
+  const isUnder1Min = remainingSeconds <= 60;
+
+  const isDarkMode = settings.contrast === 'inverted';
+
+  const toggleDarkMode = () => {
+    onUpdateSettings({ contrast: isDarkMode ? 'standard' : 'inverted' });
+  };
 
   return (
     <>
-      <header className="bg-[#f0f0f0] border-b border-[#cfcfcf] px-2.5 sm:px-4 py-1.5 sm:py-2 flex items-center justify-between text-xs select-none cd-ielts-font shadow-sm z-30 gap-2">
-        {/* Left: Test Details */}
-        <div className="flex items-center gap-1.5 sm:gap-3 shrink-0">
+      <header className="bg-[#FAF8F3] border-b border-[#5B6B82]/20 px-3 sm:px-6 py-2.5 flex items-center justify-between text-xs select-none shadow-2xs z-30 gap-3">
+        {/* Left: Thin Gold Ring Timer + Numerals (Blueprint 6.5: top-left, always visible) */}
+        <div className="flex items-center gap-3">
           <button
             onClick={onExitTest}
-            className="p-1 sm:p-1.5 hover:bg-slate-200 rounded text-slate-700 transition"
-            title="Return to Selection Hub"
+            className="p-1 hover:bg-slate-200/60 rounded text-[#5B6B82] hover:text-[#0F1E33] transition"
+            title="Exit Test"
           >
             <ArrowLeft className="w-4 h-4" />
           </button>
-          <div className="flex items-center gap-2">
-            <div className="flex items-center gap-1.5 pr-2 border-r border-slate-300">
-              <img src="/images/masterieltsai-icon.png" alt="MasterIELTS AI" className="w-4 h-4 sm:w-5 sm:h-5 object-contain" />
-              <span className="font-extrabold text-xs tracking-tight text-slate-900 hidden xl:inline">MOCK TEST <span className="text-[10px] text-slate-500 font-normal">from Master IELTS AI</span></span>
-            </div>
-            <span className="font-bold text-slate-900 text-xs sm:text-sm whitespace-nowrap">
-              <span className="hidden sm:inline">IELTS Academic </span>{test.module === 'reading' ? 'Reading' : test.module === 'writing' ? 'Writing' : 'Listening'}
+
+          <div className="flex items-center gap-2 px-3 py-1 bg-white border border-[#5B6B82]/20 rounded-lg shadow-2xs">
+            {/* Thin gold ring indicator */}
+            <div
+              className={`w-3 h-3 rounded-full border-2 ${
+                isUnder1Min
+                  ? 'border-amber-600 bg-amber-500/20 animate-ping'
+                  : isUnder5Min
+                  ? 'border-amber-500 bg-amber-500/20'
+                  : 'border-[#C9A24B] bg-[#C9A24B]/10'
+              }`}
+            />
+            <span
+              className={`font-mono font-bold text-xs sm:text-sm ${
+                isUnder1Min
+                  ? 'text-amber-700 animate-pulse font-black'
+                  : isUnder5Min
+                  ? 'text-amber-600'
+                  : 'text-[#0F1E33]'
+              }`}
+            >
+              {timeFormatted} remaining
             </span>
-            <span className="text-slate-400 hidden md:inline">|</span>
-            <span className="text-slate-700 font-medium hidden md:inline">
-              Candidate: <strong>{candidateName || 'Candidate'} ({candidateId || '001428'})</strong>
+          </div>
+
+          <div className="hidden md:flex items-center gap-2 text-[#5B6B82] border-l border-[#5B6B82]/20 pl-3">
+            <span className="font-semibold text-[#0F1E33] capitalize">
+              {test.module}
             </span>
-            <span className="text-slate-400 hidden sm:inline">|</span>
-            <span className="text-slate-600 hidden sm:inline">
-              {test.title}
-            </span>
+            <span>·</span>
+            <span>Cambridge {test.book} Test {test.testNumber}</span>
           </div>
         </div>
 
-        {/* Center: Live Countdown Clock */}
-        <div className="flex items-center gap-1.5 sm:gap-2 bg-white px-2.5 sm:px-3 py-1 rounded border border-slate-300 shadow-inner shrink-0">
-          <Clock className={`w-3.5 h-3.5 ${isUrgent ? 'text-red-600 animate-pulse' : 'text-slate-500'}`} />
-          <span
-            className={`font-mono font-bold text-xs sm:text-sm ${
-              isUrgent ? 'text-red-600 font-black' : 'text-slate-900'
-            }`}
-          >
-            {settings.showTimer || isUrgent ? (
-              <>
-                <span>{timeFormatted}</span>
-                <span className="hidden sm:inline"> remaining</span>
-              </>
-            ) : (
-              'Hidden'
-            )}
-          </span>
-          {!isUrgent && (
-            <button
-              onClick={() => onUpdateSettings({ showTimer: !settings.showTimer })}
-              className="text-[10px] sm:text-[11px] text-blue-700 hover:text-blue-900 underline ml-0.5 sm:ml-1 cursor-pointer font-medium"
-            >
-              {settings.showTimer ? 'Hide' : 'Show'}
-            </button>
+        {/* Center: Candidate Info */}
+        <div className="hidden lg:flex items-center gap-2 text-xs text-[#5B6B82]">
+          <span>Candidate:</span>
+          <strong className="text-[#0F1E33] font-bold">
+            {candidateName || 'Candidate'}
+          </strong>
+          {candidateId && (
+            <span className="font-mono text-[11px] text-[#5B6B82]">
+              (#{candidateId})
+            </span>
           )}
         </div>
 
-        {/* Right: Audio Volume (for Listening) & Accessibility Tools */}
-        <div className="flex items-center gap-3">
+        {/* Right: Audio Volume (Listening), Dark Exam Mode Toggle, Text Size */}
+        <div className="flex items-center gap-2.5">
           {/* Audio volume slider if listening */}
           {test.module === 'listening' && onVolumeChange && (
-            <div className="hidden sm:flex items-center gap-1.5 bg-white px-2 py-1 rounded border border-slate-300">
-              <Volume2 className="w-3.5 h-3.5 text-slate-600" />
+            <div className="flex items-center gap-1.5 bg-white px-2 py-1 rounded-lg border border-[#5B6B82]/20">
+              <Volume2 className="w-3.5 h-3.5 text-[#5B6B82]" />
               <input
                 type="range"
                 min="0"
                 max="100"
                 value={audioVolume}
                 onChange={(e) => onVolumeChange(Number(e.target.value))}
-                className="w-16 h-1 accent-red-600 cursor-pointer"
+                className="w-16 h-1 accent-[#C9A24B] cursor-pointer"
                 title={`Volume: ${audioVolume}%`}
               />
             </div>
           )}
 
           {/* Text Size Switcher */}
-          <div className="hidden sm:flex items-center gap-1 bg-white border border-slate-300 rounded px-1.5 py-0.5">
-            <span className="text-[11px] text-slate-500 mr-0.5">Text:</span>
+          <div className="flex items-center bg-white border border-[#5B6B82]/20 rounded-lg p-0.5 text-xs">
             <button
               onClick={() => onUpdateSettings({ fontSize: 'normal' })}
-              className={`px-1.5 py-0.5 font-bold rounded cursor-pointer transition ${
-                settings.fontSize === 'normal' ? 'bg-slate-200 text-slate-900' : 'text-slate-600 hover:bg-slate-100'
+              className={`px-2 py-0.5 font-bold rounded transition ${
+                settings.fontSize === 'normal'
+                  ? 'bg-[#0F1E33] text-white'
+                  : 'text-[#5B6B82] hover:text-[#0F1E33]'
               }`}
-              title="Standard Font Size"
+              title="Standard Font"
             >
               A
             </button>
             <button
               onClick={() => onUpdateSettings({ fontSize: 'large' })}
-              className={`px-1.5 py-0.5 font-bold text-sm rounded cursor-pointer transition ${
-                settings.fontSize === 'large' ? 'bg-slate-200 text-slate-900' : 'text-slate-600 hover:bg-slate-100'
+              className={`px-2 py-0.5 font-bold text-sm rounded transition ${
+                settings.fontSize === 'large'
+                  ? 'bg-[#0F1E33] text-white'
+                  : 'text-[#5B6B82] hover:text-[#0F1E33]'
               }`}
-              title="Large Font Size"
+              title="Large Font"
             >
               A+
             </button>
           </div>
 
-          {/* Contrast Mode Switcher (Official CD-IELTS Display Options) */}
-          <div className="hidden sm:flex items-center gap-1 bg-white border border-slate-300 rounded px-1.5 py-0.5">
-            <span className="text-[11px] text-slate-500 mr-0.5">Contrast:</span>
-            <button
-              onClick={() => onUpdateSettings({ contrast: 'standard' })}
-              className={`px-1.5 py-0.5 text-xs font-semibold rounded cursor-pointer transition ${
-                settings.contrast === 'standard'
-                  ? 'bg-slate-900 text-white font-bold'
-                  : 'text-slate-600 hover:bg-slate-100'
-              }`}
-              title="Standard: Black on White"
-            >
-              Standard
-            </button>
-            <button
-              onClick={() => onUpdateSettings({ contrast: 'inverted' })}
-              className={`px-1.5 py-0.5 text-xs font-semibold rounded cursor-pointer transition ${
-                settings.contrast === 'inverted'
-                  ? 'bg-slate-900 text-white font-bold'
-                  : 'text-slate-600 hover:bg-slate-100'
-              }`}
-              title="Inverted: White on Dark"
-            >
-              Inverted
-            </button>
-            <button
-              onClick={() => onUpdateSettings({ contrast: 'yellow-on-black' })}
-              className={`px-1.5 py-0.5 text-xs font-semibold rounded cursor-pointer transition ${
-                settings.contrast === 'yellow-on-black'
-                  ? 'bg-black text-yellow-400 font-bold border border-yellow-500'
-                  : 'text-slate-600 hover:bg-slate-100'
-              }`}
-              title="High Contrast: Yellow on Black"
-            >
-              Yellow/Black
-            </button>
-          </div>
+          {/* Dark Exam Mode Toggle (Blueprint 5.2 & 6.5) */}
+          <button
+            type="button"
+            onClick={toggleDarkMode}
+            className={`p-1.5 rounded-lg border transition ${
+              isDarkMode
+                ? 'bg-[#0F1E33] text-[#C9A24B] border-[#C9A24B]/40'
+                : 'bg-white text-[#5B6B82] border-[#5B6B82]/20 hover:text-[#0F1E33]'
+            }`}
+            title={isDarkMode ? 'Switch to Exam Calm (Light)' : 'Switch to Dark Exam Mode'}
+          >
+            {isDarkMode ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+          </button>
 
           {/* Help Button */}
           <button
             onClick={() => setShowHelpModal(true)}
-            className="flex items-center gap-1 px-2.5 py-1 bg-white hover:bg-slate-100 border border-slate-300 rounded font-semibold text-slate-700 transition cursor-pointer"
+            className="p-1.5 rounded-lg bg-white border border-[#5B6B82]/20 text-[#5B6B82] hover:text-[#0F1E33]"
+            title="Examination Instructions"
           >
-            <HelpCircle className="w-3.5 h-3.5 text-slate-500" />
-            <span>Help</span>
+            <HelpCircle className="w-4 h-4" />
           </button>
         </div>
       </header>
 
-      {/* Help Modal */}
+      {/* Help Instructions Modal */}
       {showHelpModal && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-xs flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl max-w-lg w-full p-6 shadow-2xl border border-slate-200 text-slate-800 cd-ielts-font space-y-4">
-            <div className="flex items-center justify-between border-b border-slate-200 pb-3">
-              <h3 className="font-bold text-base text-slate-900">Official CD-IELTS Examination Help</h3>
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[#0F1E33]/60 backdrop-blur-xs animate-in fade-in">
+          <div className="paper-card max-w-md w-full p-6 space-y-4 bg-[#FAF8F3]">
+            <div className="flex items-center justify-between border-b border-[#5B6B82]/15 pb-3">
+              <h3 className="font-display text-base font-bold text-[#0F1E33]">
+                Examination Guidelines
+              </h3>
               <button
                 onClick={() => setShowHelpModal(false)}
-                className="text-slate-400 hover:text-slate-600 text-lg font-bold cursor-pointer"
+                className="text-[#5B6B82] hover:text-[#0F1E33] p-1"
               >
                 ✕
               </button>
             </div>
 
-            <div className="space-y-3 text-xs leading-relaxed text-slate-600">
+            <div className="space-y-2.5 text-xs text-[#5B6B82] leading-relaxed">
               <p>
-                <strong>Dropdown Menus & Summary Completion:</strong> For questions with word bank options, click the inline dropdown menu inside each gap or click the option card to insert your answer. You can also toggle between direct typing and dropdown selection.
+                • <strong>Authoritative Timer:</strong> The timer runs from the examination server and cannot be paused.
               </p>
               <p>
-                <strong>Text Highlighting & Sticky Notes:</strong> Select any text in the reading passage to highlight it in yellow or attach a personal note. Click any highlighted text to edit notes or clear the highlight.
+                • <strong>Auto-Saving:</strong> Answers save automatically locally and sync in real-time.
               </p>
               <p>
-                <strong>Question Navigation:</strong> Use the Passage / Part tabs and question number buttons at the bottom of the screen (1–40) to jump directly to any question. Answered questions show a solid bottom indicator.
+                • <strong>Navigation:</strong> Click any question number on the palette at the bottom to navigate.
               </p>
               <p>
-                <strong>Reviewing Questions:</strong> Check the <em>Review</em> box to flag questions you want to return to later. An amber flag badge appears on the button.
-              </p>
-              <p>
-                <strong>Word Limit Rules:</strong> For gap-fill tasks, strictly adhere to the limit (e.g. NO MORE THAN TWO WORDS). A real-time warning will alert you if your response exceeds the permitted word count.
-              </p>
-              <p>
-                <strong>Accessibility Themes:</strong> Switch between Standard, Inverted, and Yellow-on-Black display themes using the Contrast options in the top header.
+                • <strong>Review Flag:</strong> Toggle the review flag to mark questions you wish to double-check.
               </p>
             </div>
 
-            <div className="pt-2 flex justify-end">
+            <div className="flex justify-end pt-2">
               <button
                 onClick={() => setShowHelpModal(false)}
-                className="px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white rounded-lg text-xs font-bold transition cursor-pointer"
+                className="btn-texture px-4 py-2 bg-[#0F1E33] text-white text-xs font-bold"
               >
-                Close Help
+                Close & Continue Test
               </button>
             </div>
           </div>

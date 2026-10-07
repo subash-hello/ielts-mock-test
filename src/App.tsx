@@ -1,55 +1,95 @@
 import React, { useState, useEffect, useRef } from 'react';
-import type { IELTSMockTest, CandidateAnswers, ReviewStatus, ExamSettings, TestResult, FullMockTest, WritingSubmission } from './types/ielts';
-import type { AdminUser, CandidateSession } from './types/consultancy';
-import { LandingPage } from './components/landing/LandingPage';
+import type {
+  IELTSMockTest,
+  CandidateAnswers,
+  ReviewStatus,
+  ExamSettings,
+  TestResult,
+  FullMockTest,
+  WritingSubmission
+} from './types/ielts';
+import type {
+  CandidateSession
+} from './types/consultancy';
+import { ConsultancyService } from './services/consultancyService';
+import { calculateBandScore, evaluateTestAnswers } from './utils/scoring';
+import { saveTestResultToSupabase, fetchMockTestsFromSupabase } from './lib/supabase';
+import { allMockTests, allFullMockTests } from './data/mockTests';
+
+// Kiosk & Student Flow Components (Blueprint Screen 6.1 - 6.5)
+import { DirectoryLandingView } from './components/landing/DirectoryLandingView';
+import { BranchLoginView } from './components/kiosk/BranchLoginView';
+import { StudentNameView } from './components/kiosk/StudentNameView';
+import { TestSelectionView } from './components/kiosk/TestSelectionView';
+import { ConfirmationStartView } from './components/kiosk/ConfirmationStartView';
+import { SubmissionConfirmedView } from './components/exam/SubmissionConfirmedView';
+
+// Exam Screen Components
 import { CDHeader } from './components/exam/CDHeader';
 import { ReadingExamView } from './components/exam/ReadingExamView';
 import { ListeningExamView } from './components/exam/ListeningExamView';
 import { WritingExamView } from './components/exam/WritingExamView';
 import { QuestionPalette } from './components/exam/QuestionPalette';
-import { ResultReport } from './components/results/ResultReport';
+
+// Consultancy Portal Components (Blueprint Screen 6.6 - 6.10, Section 7)
+import { ConsultancyLayout, type ConsultancySubTab } from './components/consultancy/ConsultancyLayout';
+import { DashboardView } from './components/consultancy/DashboardView';
+import { LaunchConsoleView } from './components/consultancy/LaunchConsoleView';
+import { LiveMonitorView } from './components/consultancy/LiveMonitorView';
+import { CandidatesView } from './components/consultancy/CandidatesView';
+import { ResultsView } from './components/consultancy/ResultsView';
+import { AIReportsView } from './components/consultancy/AIReportsView';
+import { TestLibraryView } from './components/consultancy/TestLibraryView';
+import { PcsView } from './components/consultancy/PcsView';
+import { SettingsView } from './components/consultancy/SettingsView';
+
+// Super Admin & Public Lookup (Blueprint Screen 6.11 - 6.12)
 import { SuperAdminPortal } from './components/admin/SuperAdminPortal';
-import { ConsultancyPortal } from './components/admin/ConsultancyPortal';
-import { StudentTerminalView } from './components/terminal/StudentTerminalView';
-import { UnifiedAuthView } from './components/auth/UnifiedAuthView';
-import { SubmissionConfirmedView } from './components/exam/SubmissionConfirmedView';
-import { CandidateResultLookupModal } from './components/results/CandidateResultLookupModal';
-import { ConsultancyService } from './services/consultancyService';
-import { calculateBandScore, evaluateTestAnswers } from './utils/scoring';
-import { saveTestResultToSupabase, fetchMockTestsFromSupabase } from './lib/supabase';
-import { allMockTests } from './data/mockTests';
-import { Pause, CheckCircle2, Clock, ArrowRight, BookOpen, PenTool } from 'lucide-react';
+import { PublicResultLookupView } from './components/results/PublicResultLookupView';
+
+import { Pause, CheckCircle2, Clock, MessageSquare } from 'lucide-react';
 
 export const App: React.FC = () => {
-  // Candidate session state
-  const [candidateSession, setCandidateSession] = useState<CandidateSession | null>(() =>
+  // Navigation & Screen State matching Blueprint Sitemap
+  type AppRoute =
+    | 'landing'
+    | 'branch-login'
+    | 'kiosk-student'
+    | 'kiosk-test'
+    | 'kiosk-confirm'
+    | 'kiosk-exam'
+    | 'kiosk-done'
+    | 'consultancy'
+    | 'super-admin'
+    | 'result-lookup';
+
+  const [activeRoute, setActiveRoute] = useState<AppRoute>('landing');
+  const [currentBranchCode, setCurrentBranchCode] = useState<string>('kiec-1');
+  const [directPcStation, setDirectPcStation] = useState<string | undefined>(undefined);
+  const [consultancySubTab, setConsultancySubTab] = useState<ConsultancySubTab>('dashboard');
+
+  // Candidate Session
+  const [, setCandidateSession] = useState<CandidateSession | null>(() =>
     ConsultancyService.getCurrentCandidateSession()
   );
 
-  // Admin session state
-  const [adminUser, setAdminUser] = useState<AdminUser | null>(() =>
-    ConsultancyService.getCurrentAdmin()
-  );
-
-  const [authMessage, setAuthMessage] = useState<string | null>(null);
-  const [initialAuthTab, setInitialAuthTab] = useState<'candidate' | 'admin'>('candidate');
-
-  const [activeScreen, setActiveScreen] = useState<
-    'landing' | 'exam' | 'submission-confirmed' | 'results' | 'super-admin' | 'consultancy' | 'terminal' | 'auth'
-  >(() => {
+  // Active Station Name
+  const [terminalStationName, setTerminalStationName] = useState<string>(() => {
     if (typeof window !== 'undefined') {
       const p = new URLSearchParams(window.location.search);
-      const m = p.get('mode');
-      const st = p.get('station') || p.get('st') || p.get('pc');
-      if (m === 'terminal' || m === 'lab' || m === 'kiosk' || st) return 'terminal';
+      const urlStation = p.get('station') || p.get('st') || p.get('pc');
+      if (urlStation) {
+        const clean = urlStation.trim().toUpperCase();
+        const formatted = clean.startsWith('PC-') ? clean : `PC-${clean.replace(/^PC/i, '')}`;
+        return formatted;
+      }
+      const saved = localStorage.getItem('ielts_terminal_pc');
+      if (saved) return saved;
     }
-    return 'landing';
+    return 'PC-01';
   });
 
-  // Candidate ID lookup modal state (to check published results)
-  const [isLookupModalOpen, setIsLookupModalOpen] = useState<boolean>(false);
-  const [lookupInitialCandidateId, setLookupInitialCandidateId] = useState<string>('');
-
+  // Selected Consultancy / Branch
   const [selectedConsultancyId, setSelectedConsultancyId] = useState<string>(() => {
     if (typeof window !== 'undefined') {
       const p = new URLSearchParams(window.location.search);
@@ -62,28 +102,10 @@ export const App: React.FC = () => {
       }
     }
     const saved = ConsultancyService.getCurrentCandidateSession();
-    return saved?.consultancyId || 'apex-global';
+    return saved?.consultancyId || 'kiec-lalitpur';
   });
 
-  const [terminalStationName, setTerminalStationName] = useState<string>(() => {
-    if (typeof window !== 'undefined') {
-      const p = new URLSearchParams(window.location.search);
-      const urlStation = p.get('station') || p.get('st') || p.get('pc');
-      if (urlStation) {
-        const clean = urlStation.trim().toUpperCase();
-        const formatted = clean.startsWith('PC-') ? clean : `PC-${clean.replace(/^PC/i, '')}`;
-        sessionStorage.setItem('ielts_terminal_pc', formatted);
-        return formatted;
-      }
-      const sessionPc = sessionStorage.getItem('ielts_terminal_pc');
-      if (sessionPc) return sessionPc;
-      const savedPc = localStorage.getItem('ielts_terminal_pc');
-      if (savedPc) return savedPc;
-    }
-    const saved = ConsultancyService.getCurrentCandidateSession();
-    return saved?.stationName || (typeof window !== 'undefined' && (sessionStorage.getItem('ielts_terminal_pc') || localStorage.getItem('ielts_terminal_pc'))) || 'PC-01';
-  });
-
+  // Candidate info
   const [activeCandidateInfo, setActiveCandidateInfo] = useState<{
     name: string;
     candidateId: string;
@@ -102,10 +124,12 @@ export const App: React.FC = () => {
     };
   });
 
-  const [isExamPausedByTeacher, setIsExamPausedByTeacher] = useState<boolean>(false);
-
+  // Test catalog & current test
   const [tests, setTests] = useState<IELTSMockTest[]>(allMockTests);
   const [currentTest, setCurrentTest] = useState<IELTSMockTest | null>(null);
+  const [selectedFullMock, setSelectedFullMock] = useState<FullMockTest | undefined>(undefined);
+
+  // Exam runtime state
   const [currentQuestion, setCurrentQuestion] = useState<number>(1);
   const [activeSectionIndex, setActiveSectionIndex] = useState<number>(0);
   const [answers, setAnswers] = useState<CandidateAnswers>({});
@@ -117,9 +141,12 @@ export const App: React.FC = () => {
     contrast: 'standard',
     showTimer: true
   });
+  const [isExamPausedByTeacher, setIsExamPausedByTeacher] = useState<boolean>(false);
+  const [invigilatorMessageBanner, setInvigilatorMessageBanner] = useState<string | null>(null);
 
+  // Active result & past results
   const [activeResult, setActiveResult] = useState<TestResult | null>(null);
-  const [pastResults, setPastResults] = useState<TestResult[]>(() => {
+  const [, setPastResults] = useState<TestResult[]>(() => {
     try {
       const saved = localStorage.getItem('ielts_mock_past_results');
       return saved ? JSON.parse(saved) : [];
@@ -128,7 +155,7 @@ export const App: React.FC = () => {
     }
   });
 
-  // Full Mock Test Sequence state (Listening -> 60s Break -> Reading -> 60s Break -> Writing -> Combined Result)
+  // Full Mock Test sequence
   const [activeFullMock, setActiveFullMock] = useState<{
     fullMock: FullMockTest;
     currentStep: 'listening' | 'reading' | 'writing';
@@ -138,9 +165,9 @@ export const App: React.FC = () => {
     overallBand?: number;
   } | null>(null);
   const [showFullMockIntermission, setShowFullMockIntermission] = useState<boolean>(false);
-  const [intermissionCountdown, setIntermissionCountdown] = useState<number>(60);
+  const [intermissionCountdown, setIntermissionCountdown] = useState<number>(10); // Blueprint: 10-second breather screen
 
-  // Keep ref to answers and remainingSeconds for callbacks
+  // References for live closures
   const answersRef = useRef(answers);
   answersRef.current = answers;
   const remainingSecondsRef = useRef(remainingSeconds);
@@ -148,103 +175,91 @@ export const App: React.FC = () => {
   const currentTestRef = useRef(currentTest);
   currentTestRef.current = currentTest;
 
-  // URL deep link routing on initial page load (e.g. ?mode=admin, ?mode=consultancy, ?mode=terminal&station=PC-04)
-  useEffect(() => {
-    try {
-      const params = new URLSearchParams(window.location.search);
-      const mode = params.get('mode');
-      const cid = params.get('consultancy') || params.get('cid');
-      const station = params.get('station') || params.get('st') || params.get('pc');
-      const branch = params.get('branch') || params.get('access') || params.get('code');
-
-      // Resolve target consultancy
-      let targetCid = cid;
-      if (!targetCid && branch) {
-        const found = ConsultancyService.getConsultancyByBranchCode(branch);
-        if (found) targetCid = found.id;
-      }
-      if (targetCid) {
-        setSelectedConsultancyId(targetCid);
-        let cObj = ConsultancyService.getConsultancyById(targetCid);
-        if (cObj) {
-          localStorage.setItem('ielts_terminal_branch', cObj.branchCode || cObj.accessCode);
-        }
-      }
-
-      // Resolve and auto-register station identifier
-      if (station) {
-        const cleanSt = station.trim().toUpperCase();
-        const formattedStation = cleanSt.startsWith('PC-')
-          ? cleanSt
-          : `PC-${cleanSt.replace(/^PC/i, '')}`;
-        setTerminalStationName(formattedStation);
-        sessionStorage.setItem('ielts_terminal_pc', formattedStation);
-        localStorage.setItem('ielts_terminal_pc', formattedStation);
-        if (targetCid) {
-          ConsultancyService.addStation(targetCid, formattedStation);
-        }
-      }
-
-      const loggedAdmin = ConsultancyService.getCurrentAdmin();
-
-      if (mode === 'admin' || mode === 'super-admin') {
-        if (loggedAdmin?.role === 'super_admin') {
-          setActiveScreen('super-admin');
-        } else {
-          setInitialAuthTab('admin');
-          setAuthMessage('Super Administrator sign in required.');
-          setActiveScreen('auth');
-        }
-      } else if (mode === 'consultancy') {
-        if (loggedAdmin) {
-          if (loggedAdmin.consultancyId) {
-            setSelectedConsultancyId(loggedAdmin.consultancyId);
-          }
-          setActiveScreen('consultancy');
-        } else {
-          setInitialAuthTab('admin');
-          setAuthMessage('Consultancy Director sign in required.');
-          setActiveScreen('auth');
-        }
-      } else if (mode === 'terminal' || mode === 'lab' || mode === 'kiosk' || station) {
-        // Direct seamless access to the student terminal kiosk
-        setActiveScreen('terminal');
-      }
-    } catch (e) {
-      console.error('URL parse error:', e);
+  // Navigation function that updates history and state
+  const navigateTo = (path: string) => {
+    if (typeof window !== 'undefined') {
+      window.history.pushState(null, '', path);
+      parseUrlRoute();
     }
+  };
+
+  // URL route parser matching Blueprint sitemap
+  const parseUrlRoute = () => {
+    if (typeof window === 'undefined') return;
+    const pathname = window.location.pathname.toLowerCase();
+    const params = new URLSearchParams(window.location.search);
+
+    // Support deep query links
+    const mode = params.get('mode');
+    const branchParam = params.get('branch') || params.get('access') || params.get('code');
+    const stationParam = params.get('station') || params.get('st') || params.get('pc');
+
+    if (stationParam) {
+      const clean = stationParam.trim().toUpperCase();
+      const formatted = clean.startsWith('PC-') ? clean : `PC-${clean.replace(/^PC/i, '')}`;
+      setTerminalStationName(formatted);
+      localStorage.setItem('ielts_terminal_pc', formatted);
+    }
+
+    if (pathname === '/result' || pathname.startsWith('/result')) {
+      setActiveRoute('result-lookup');
+    } else if (pathname.startsWith('/admin') || mode === 'admin' || mode === 'super-admin') {
+      setActiveRoute('super-admin');
+    } else if (pathname.startsWith('/consultancy') || mode === 'consultancy') {
+      const parts = pathname.split('/').filter(Boolean);
+      if (parts[1]) {
+        const sub = parts[1] as ConsultancySubTab;
+        setConsultancySubTab(sub);
+      }
+      setActiveRoute('consultancy');
+    } else if (pathname.startsWith('/b/')) {
+      // Branch URL: /b/{branch-code} or /b/{branch-code}/{pc-id}
+      const parts = pathname.replace(/^\/b\//, '').split('/').filter(Boolean);
+      const bCode = parts[0] || 'kiec-1';
+      setCurrentBranchCode(bCode);
+
+      const found = ConsultancyService.getConsultancyByBranchCode(bCode);
+      if (found) {
+        setSelectedConsultancyId(found.id);
+      }
+
+      if (parts[1]) {
+        // Direct station link: /b/kiec-1/pc-04
+        const cleanSt = parts[1].trim().toUpperCase();
+        const formatted = cleanSt.startsWith('PC-') ? cleanSt : `PC-${cleanSt.replace(/^PC/i, '')}`;
+        setDirectPcStation(formatted);
+        setTerminalStationName(formatted);
+        localStorage.setItem('ielts_terminal_pc', formatted);
+      }
+
+      setActiveRoute('branch-login');
+    } else if (pathname === '/kiosk/student') {
+      setActiveRoute('kiosk-student');
+    } else if (pathname === '/kiosk/test') {
+      setActiveRoute('kiosk-test');
+    } else if (pathname === '/kiosk/confirm') {
+      setActiveRoute('kiosk-confirm');
+    } else if (pathname === '/kiosk/exam') {
+      setActiveRoute('kiosk-exam');
+    } else if (pathname === '/kiosk/done') {
+      setActiveRoute('kiosk-done');
+    } else {
+      if (branchParam) {
+        setCurrentBranchCode(branchParam);
+        setActiveRoute('branch-login');
+      } else {
+        setActiveRoute('landing');
+      }
+    }
+  };
+
+  useEffect(() => {
+    parseUrlRoute();
+    window.addEventListener('popstate', parseUrlRoute);
+    return () => window.removeEventListener('popstate', parseUrlRoute);
   }, []);
 
-  // Save past results to localStorage
-  useEffect(() => {
-    try {
-      localStorage.setItem('ielts_mock_past_results', JSON.stringify(pastResults));
-    } catch (e) {
-      console.error('Failed to save past results', e);
-    }
-  }, [pastResults]);
-
-  // Auto-sync workstation results to cloud telemetry on page load and listen for admin station sync requests
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      ConsultancyService.pushLocalResultsToCloud(selectedConsultancyId);
-    }, 1200);
-
-    const unsub = ConsultancyService.subscribe((event: { type: string; payload: any }) => {
-      if (event.type === 'REQUEST_STATION_RESULTS') {
-        const reqCid = event.payload?.consultancyId;
-        const canonical = ConsultancyService.getCanonicalConsultancyId(reqCid || selectedConsultancyId);
-        ConsultancyService.pushLocalResultsToCloud(canonical);
-      }
-    });
-
-    return () => {
-      clearTimeout(timer);
-      unsub();
-    };
-  }, [selectedConsultancyId]);
-
-  // Load mock tests dynamically from Supabase if valid and complete
+  // Fetch mock tests dynamically from Supabase if valid
   useEffect(() => {
     fetchMockTestsFromSupabase().then((data) => {
       if (data && data.length > 0) {
@@ -271,19 +286,29 @@ export const App: React.FC = () => {
     });
   }, []);
 
-  // Keep currentTest up to date if tests array is updated
+  // Synchronize results to telemetry periodically
   useEffect(() => {
-    if (currentTest) {
-      const match = tests.find((t) => t.id === currentTest.id);
-      if (match && match !== currentTest) {
-        setCurrentTest(match);
-      }
-    }
-  }, [tests]);
+    const timer = setTimeout(() => {
+      ConsultancyService.pushLocalResultsToCloud(selectedConsultancyId);
+    }, 1200);
 
-  // Exam Countdown Timer (freezes if invigilator paused test)
+    const unsub = ConsultancyService.subscribe((event: { type: string; payload: any }) => {
+      if (event.type === 'REQUEST_STATION_RESULTS') {
+        const reqCid = event.payload?.consultancyId;
+        const canonical = ConsultancyService.getCanonicalConsultancyId(reqCid || selectedConsultancyId);
+        ConsultancyService.pushLocalResultsToCloud(canonical);
+      }
+    });
+
+    return () => {
+      clearTimeout(timer);
+      unsub();
+    };
+  }, [selectedConsultancyId]);
+
+  // Exam Countdown Timer (Authoritative timer)
   useEffect(() => {
-    if (activeScreen !== 'exam' || !currentTest || isExamPausedByTeacher) return;
+    if (activeRoute !== 'kiosk-exam' || !currentTest || isExamPausedByTeacher) return;
 
     const timer = setInterval(() => {
       setRemainingSeconds((prev) => {
@@ -297,10 +322,10 @@ export const App: React.FC = () => {
     }, 1000);
 
     return () => clearInterval(timer);
-  }, [activeScreen, currentTest, answers, isExamPausedByTeacher]);
+  }, [activeRoute, currentTest, answers, isExamPausedByTeacher]);
 
-  // Advance from Listening to Reading, and Reading to Writing in Full Mock Test
-  const handleProceedToNextSection = () => {
+  // Breather intermission between Full Mock sections (Blueprint: 10-second breather screen)
+  const handleProceedToNextFullMockSection = () => {
     if (!activeFullMock) return;
     setShowFullMockIntermission(false);
 
@@ -314,7 +339,7 @@ export const App: React.FC = () => {
       setRemainingSeconds(readingTest.durationMinutes * 60);
       setActiveFullMock((prev) => (prev ? { ...prev, currentStep: 'reading' } : null));
       setIsExamPausedByTeacher(false);
-      setActiveScreen('exam');
+      setActiveRoute('kiosk-exam');
       return;
     }
 
@@ -328,20 +353,18 @@ export const App: React.FC = () => {
       setRemainingSeconds(writingTest.durationMinutes * 60);
       setActiveFullMock((prev) => (prev ? { ...prev, currentStep: 'writing' } : null));
       setIsExamPausedByTeacher(false);
-      setActiveScreen('exam');
+      setActiveRoute('kiosk-exam');
       return;
     }
   };
 
-  // Full Mock Intermission Countdown Timer (60s break before Reading or Writing)
   useEffect(() => {
     if (!showFullMockIntermission) return;
-
     const timer = setInterval(() => {
       setIntermissionCountdown((prev) => {
         if (prev <= 1) {
           clearInterval(timer);
-          handleProceedToNextSection();
+          handleProceedToNextFullMockSection();
           return 0;
         }
         return prev - 1;
@@ -351,25 +374,24 @@ export const App: React.FC = () => {
     return () => clearInterval(timer);
   }, [showFullMockIntermission, activeFullMock]);
 
-  // Lab invigilator remote command listener
+  // Invigilator remote commands listener (Pause, Resume, Extend Time, Message, Force Submit, End)
   useEffect(() => {
-    if (activeScreen !== 'exam') return;
-
     const unsubscribe = ConsultancyService.subscribe((event) => {
-      const cStation = activeCandidateInfo?.stationName || candidateSession?.stationName;
-      const cId = activeCandidateInfo?.consultancyId || candidateSession?.consultancyId;
+      const cStation = activeCandidateInfo?.stationName || terminalStationName;
+      const cId = activeCandidateInfo?.consultancyId || selectedConsultancyId;
 
       if (event.type === 'BRANCH_TEST_LAUNCHED') {
         const payload = event.payload;
         if (!payload?.testId) {
-          // If branch test was ended by admin for this candidate's consultancy
           if (!payload?.consultancyId || payload.consultancyId === cId) {
-            alert('The examination session has been concluded by the consultancy administrator.');
-            setActiveScreen(cStation ? 'terminal' : 'landing');
+            if (activeRoute === 'kiosk-exam') {
+              alert('The examination session has been concluded by the consultancy invigilator.');
+              setActiveRoute('kiosk-student');
+            }
           }
         }
       } else if (event.type === 'STATION_COMMAND') {
-        const { stationId, stationName, command, consultancyId: cmdCid } = event.payload || {};
+        const { stationId, stationName, command, payload, consultancyId: cmdCid } = event.payload || {};
         const cleanStation = cStation ? ConsultancyService.normalizeStationName(cStation) : '';
 
         const isTargetStation =
@@ -385,26 +407,32 @@ export const App: React.FC = () => {
             setIsExamPausedByTeacher(true);
           } else if (command === 'RESUME_EXAM') {
             setIsExamPausedByTeacher(false);
+          } else if (command === 'EXTEND_TIME') {
+            const addedSecs = (Number(payload) || 5) * 60;
+            setRemainingSeconds((prev) => prev + addedSecs);
+            alert(`Your remaining exam time has been extended by +${Number(payload) || 5} minutes by the invigilator.`);
+          } else if (command === 'BROADCAST_MESSAGE') {
+            setInvigilatorMessageBanner(String(payload || ''));
           } else if (command === 'FORCE_SUBMIT') {
             finishExam();
           } else if (command === 'RESET_STATION' || command === 'END_TEST') {
             alert('Your examination session was concluded by the consultancy invigilator.');
-            setActiveScreen(cStation ? 'terminal' : 'landing');
+            setActiveRoute('kiosk-student');
           }
         }
       }
     });
 
     return () => unsubscribe();
-  }, [activeScreen, activeCandidateInfo, candidateSession]);
+  }, [activeRoute, activeCandidateInfo, terminalStationName, selectedConsultancyId]);
 
-  // Active exam live telemetry heartbeat to Consultancy Lab Monitor
+  // Active exam live telemetry heartbeat
   useEffect(() => {
     if (
-      activeScreen !== 'exam' ||
+      activeRoute !== 'kiosk-exam' ||
       !currentTest ||
-      !activeCandidateInfo?.consultancyId ||
-      !activeCandidateInfo?.stationName
+      !selectedConsultancyId ||
+      !terminalStationName
     ) {
       return;
     }
@@ -415,21 +443,21 @@ export const App: React.FC = () => {
 
     const sendHeartbeat = () => {
       ConsultancyService.updateStationHeartbeat(
-        activeCandidateInfo.consultancyId!,
-        activeCandidateInfo.stationName!,
+        selectedConsultancyId,
+        terminalStationName,
         {
           status: isExamPausedByTeacher ? 'paused' : 'in_progress',
           currentQuestion,
-          totalQuestions: 40,
+          totalQuestions: currentTest.module === 'writing' ? 2 : 40,
           answeredCount,
           remainingSeconds,
           assignedTestId: currentTest.id,
           testTitle: currentTest.title,
           module: currentTest.module,
           currentCandidate: {
-            candidateId: activeCandidateInfo.candidateId,
-            name: activeCandidateInfo.name,
-            targetBand: activeCandidateInfo.targetBand
+            candidateId: activeCandidateInfo?.candidateId || '004128',
+            name: activeCandidateInfo?.name || 'Candidate',
+            targetBand: activeCandidateInfo?.targetBand
           }
         }
       );
@@ -437,104 +465,20 @@ export const App: React.FC = () => {
 
     sendHeartbeat();
     const interval = setInterval(sendHeartbeat, 3500);
-
     return () => clearInterval(interval);
   }, [
-    activeScreen,
+    activeRoute,
     currentTest,
     activeCandidateInfo,
+    selectedConsultancyId,
+    terminalStationName,
     currentQuestion,
     answers,
     remainingSeconds,
     isExamPausedByTeacher
   ]);
 
-  // Start a new test
-  const startTest = (
-    test: IELTSMockTest,
-    candidate?: {
-      name: string;
-      candidateId: string;
-      targetBand?: number;
-      stationName?: string;
-      consultancyId?: string;
-      consultancyName?: string;
-      phone?: string;
-      email?: string;
-    },
-    fullMock?: FullMockTest
-  ) => {
-    if (fullMock) {
-      setActiveFullMock({
-        fullMock,
-        currentStep: fullMock.listeningTest.id === test.id ? 'listening' : fullMock.writingTest?.id === test.id ? 'writing' : 'reading'
-      });
-    } else {
-      setActiveFullMock(null);
-    }
-    setShowFullMockIntermission(false);
-
-    if (candidate) {
-      const targetCid = candidate.consultancyId || selectedConsultancyId || 'apex-global';
-      const consultancyObj = ConsultancyService.getConsultancyById(targetCid);
-      const stName = candidate.stationName || (typeof window !== 'undefined' ? sessionStorage.getItem('ielts_terminal_pc') : null) || terminalStationName || 'PC-01';
-      setTerminalStationName(stName);
-      if (typeof window !== 'undefined') {
-        sessionStorage.setItem('ielts_terminal_pc', stName);
-      }
-      const sess: CandidateSession = {
-        stationName: stName,
-        branchCode: consultancyObj?.branchCode || consultancyObj?.accessCode || targetCid,
-        consultancyId: targetCid,
-        consultancyName: candidate.consultancyName || consultancyObj?.name || 'IELTS Partner',
-        candidateName: candidate.name,
-        candidateId: candidate.candidateId,
-        targetBand: candidate.targetBand || 0,
-        loggedInAt: new Date().toISOString()
-      };
-      ConsultancyService.setCurrentCandidateSession(sess);
-      setCandidateSession(sess);
-      setSelectedConsultancyId(targetCid);
-      setActiveCandidateInfo({
-        name: candidate.name,
-        candidateId: candidate.candidateId,
-        targetBand: candidate.targetBand,
-        stationName: stName,
-        consultancyId: targetCid
-      });
-    } else if (candidateSession) {
-      const stName = candidateSession.stationName || (typeof window !== 'undefined' ? sessionStorage.getItem('ielts_terminal_pc') : null) || terminalStationName || 'PC-01';
-      setActiveCandidateInfo({
-        name: candidateSession.candidateName,
-        candidateId: candidateSession.candidateId,
-        targetBand: candidateSession.targetBand,
-        stationName: stName,
-        consultancyId: candidateSession.consultancyId
-      });
-    } else {
-      const fallbackName = localStorage.getItem('ielts_candidate_name') || 'Candidate';
-      const fallbackId = '00' + Math.floor(1000 + Math.random() * 9000);
-      const stName = (typeof window !== 'undefined' ? sessionStorage.getItem('ielts_terminal_pc') : null) || terminalStationName || 'PC-01';
-      setActiveCandidateInfo({
-        name: fallbackName,
-        candidateId: fallbackId,
-        targetBand: 0,
-        stationName: stName,
-        consultancyId: selectedConsultancyId || 'apex-global'
-      });
-    }
-
-    setCurrentTest(test);
-    setCurrentQuestion(1);
-    setActiveSectionIndex(0);
-    setAnswers({});
-    setReviewStatus({});
-    setRemainingSeconds(test.durationMinutes * 60);
-    setIsExamPausedByTeacher(false);
-    setActiveScreen('exam');
-  };
-
-  // Update answer for a specific question
+  // Answer handler
   const handleAnswerChange = (qNum: number, value: string | string[]) => {
     setAnswers((prev) => ({
       ...prev,
@@ -542,7 +486,6 @@ export const App: React.FC = () => {
     }));
   };
 
-  // Toggle review flag
   const handleToggleReview = (qNum: number) => {
     setReviewStatus((prev) => ({
       ...prev,
@@ -550,7 +493,6 @@ export const App: React.FC = () => {
     }));
   };
 
-  // Switch question and automatically change active section tab
   const handleSelectQuestion = (qNum: number) => {
     setCurrentQuestion(qNum);
     if (!currentTest) return;
@@ -567,7 +509,6 @@ export const App: React.FC = () => {
     }
   };
 
-  // Select section tab and jump to its first question
   const handleSelectSection = (index: number) => {
     setActiveSectionIndex(index);
     if (!currentTest) return;
@@ -581,7 +522,31 @@ export const App: React.FC = () => {
     }
   };
 
-  // Calculate score and finalize test
+  // Start exam execution
+  const startExamExecution = (testToRun: IELTSMockTest, fullMock?: FullMockTest) => {
+    setCurrentTest(testToRun);
+    setSelectedFullMock(fullMock);
+
+    if (fullMock) {
+      setActiveFullMock({
+        fullMock,
+        currentStep: fullMock.listeningTest.id === testToRun.id ? 'listening' : 'reading'
+      });
+    } else {
+      setActiveFullMock(null);
+    }
+    setShowFullMockIntermission(false);
+
+    setCurrentQuestion(1);
+    setActiveSectionIndex(0);
+    setAnswers({});
+    setReviewStatus({});
+    setRemainingSeconds(testToRun.durationMinutes * 60);
+    setIsExamPausedByTeacher(false);
+    setActiveRoute('kiosk-exam');
+  };
+
+  // Finalize exam and calculate scores
   const finishExam = (writingSub?: WritingSubmission) => {
     const activeTest = currentTestRef.current;
     if (!activeTest) return;
@@ -600,29 +565,10 @@ export const App: React.FC = () => {
     const bandScore = isWriting ? (writingSub?.overallWritingBand || 0) : calculateBandScore(activeTest.module, correctCount);
     const timeTaken = activeTest.durationMinutes * 60 - curRemaining;
 
-    const studentName =
-      activeCandidateInfo?.name?.trim() ||
-      candidateSession?.candidateName?.trim() ||
-      localStorage.getItem('ielts_candidate_name')?.trim() ||
-      'Candidate';
-    const candId =
-      activeCandidateInfo?.candidateId ||
-      candidateSession?.candidateId ||
-      '00' + Math.floor(1000 + Math.random() * 9000);
-    const cid =
-      activeCandidateInfo?.consultancyId ||
-      candidateSession?.consultancyId ||
-      selectedConsultancyId ||
-      'apex-global';
+    const studentName = activeCandidateInfo?.name || 'Candidate';
+    const candId = activeCandidateInfo?.candidateId || '00' + Math.floor(1000 + Math.random() * 9000);
+    const cid = selectedConsultancyId || 'kiec-lalitpur';
     const consultancy = ConsultancyService.getConsultancyById(cid);
-    const consultancyName = consultancy?.name || candidateSession?.consultancyName || 'IELTS Partner';
-
-    const resolvedStation =
-      activeCandidateInfo?.stationName ||
-      candidateSession?.stationName ||
-      (typeof window !== 'undefined' ? (sessionStorage.getItem('ielts_terminal_pc') || localStorage.getItem('ielts_terminal_pc')) : null) ||
-      terminalStationName ||
-      '';
 
     const newResult: TestResult = {
       testId: activeTest.id,
@@ -637,10 +583,10 @@ export const App: React.FC = () => {
       answers: curAnswers,
       candidateName: studentName,
       candidateId: candId,
-      stationName: resolvedStation,
+      stationName: terminalStationName,
       consultancyId: cid,
-      consultancyName: consultancyName,
-      targetBand: activeCandidateInfo?.targetBand ?? candidateSession?.targetBand ?? 0,
+      consultancyName: consultancy?.name || 'Educational Consultancy Lab',
+      targetBand: activeCandidateInfo?.targetBand ?? 0,
       isPublished: false,
       writingSubmission: writingSub
     };
@@ -649,18 +595,8 @@ export const App: React.FC = () => {
     setPastResults((prev) => [newResult, ...prev.filter((p) => p.testId !== newResult.testId)]);
     saveTestResultToSupabase(newResult);
 
-    // 1. Record in student's consultancy results directory (unreleased until admin publishes)
     ConsultancyService.saveTestResult(cid, newResult);
-
-    // 2. Record student statistics & update registry in consultancy
-    ConsultancyService.recordStudentTestResult(
-      cid,
-      candId,
-      newResult,
-      studentName
-    );
-
-    // 3. Save AI diagnostic report in consultancy archive
+    ConsultancyService.recordStudentTestResult(cid, candId, newResult, studentName);
     ConsultancyService.saveReport(cid, {
       studentName,
       candidateId: candId,
@@ -677,66 +613,54 @@ export const App: React.FC = () => {
       isPublished: false
     });
 
-    // 4. If candidate took test in a consultancy lab station, update station
-    const stationToUpdate = resolvedStation || activeCandidateInfo?.stationName;
-    if (stationToUpdate) {
-      ConsultancyService.updateStationHeartbeat(
-        cid,
-        stationToUpdate,
-        {
-          status: 'submitted',
-          remainingSeconds: 0,
-          answeredCount: Object.keys(curAnswers).length,
-          assignedTestId: activeTest.id,
-          testTitle: activeTest.title,
-          module: activeTest.module,
-          currentCandidate: {
-            candidateId: candId,
-            name: studentName,
-            targetBand: activeCandidateInfo?.targetBand ?? candidateSession?.targetBand ?? 0
-          }
-        }
-      );
-    }
+    ConsultancyService.updateStationHeartbeat(cid, terminalStationName, {
+      status: 'submitted',
+      remainingSeconds: 0,
+      answeredCount: Object.keys(curAnswers).length,
+      assignedTestId: activeTest.id,
+      testTitle: activeTest.title,
+      module: activeTest.module,
+      currentCandidate: {
+        candidateId: candId,
+        name: studentName,
+        targetBand: activeCandidateInfo?.targetBand ?? 0
+      }
+    });
 
-    // Check if candidate is running a Full Mock Test and finished Listening (Section 1)
+    // Check Full Mock transitions
     if (activeFullMock && activeFullMock.currentStep === 'listening') {
       setActiveFullMock((prev) => (prev ? { ...prev, listeningResult: newResult } : null));
       setShowFullMockIntermission(true);
-      setIntermissionCountdown(60);
-      return; // Transition to 60s intermission before Section 2 (Reading)
+      setIntermissionCountdown(10);
+      return;
     }
 
-    // If candidate finished Reading (Section 2) of Full Mock Test
     if (activeFullMock && activeFullMock.currentStep === 'reading') {
       if (activeFullMock.fullMock.writingTest) {
         setActiveFullMock((prev) => (prev ? { ...prev, readingResult: newResult } : null));
         setShowFullMockIntermission(true);
-        setIntermissionCountdown(60);
-        return; // Transition to 60s intermission before Section 3 (Writing)
+        setIntermissionCountdown(10);
+        return;
       }
       const listResult = activeFullMock.listeningResult;
       const listBand = listResult ? listResult.bandScore : newResult.bandScore;
       const readBand = newResult.bandScore;
-      const rawAvg = (listBand + readBand) / 2;
-      const overallBand = Math.round(rawAvg * 2) / 2;
+      const overallBand = Math.round(((listBand + readBand) / 2) * 2) / 2;
       setActiveFullMock((prev) => (prev ? { ...prev, readingResult: newResult, overallBand } : null));
     }
 
-    // If candidate finished Writing (Section 3) of Full Mock Test
     if (activeFullMock && activeFullMock.currentStep === 'writing') {
       const listResult = activeFullMock.listeningResult;
       const readResult = activeFullMock.readingResult;
       const listBand = listResult ? listResult.bandScore : 0;
       const readBand = readResult ? readResult.bandScore : 0;
       const writBand = newResult.bandScore || 0;
-      const rawAvg = writBand > 0 ? (listBand + readBand + writBand) / 3 : (listBand + readBand) / 2;
-      const overallBand = Math.round(rawAvg * 2) / 2;
+      const overallBand = Math.round(((listBand + readBand + writBand) / 3) * 2) / 2;
       setActiveFullMock((prev) => (prev ? { ...prev, writingResult: newResult, overallBand } : null));
     }
 
-    // Official IELTS protocol: Band score is withheld at the terminal and sent to consultancy admin portal
-    setActiveScreen('submission-confirmed');
+    // Route to submission confirmation receipt (Blueprint 6.5 Done)
+    setActiveRoute('kiosk-done');
   };
 
   const handleWritingSubmit = (submission: { task1Essay: string; task1WordCount: number; task2Essay: string; task2WordCount: number }) => {
@@ -749,260 +673,162 @@ export const App: React.FC = () => {
     finishExam(writingSub);
   };
 
-  // Open Candidate ID result verification modal
-  const handleOpenLookup = (initialId?: string) => {
-    // Only prefill when an explicit initial ID was requested (e.g. from submission receipt)
-    const defaultId = initialId || '';
-    setLookupInitialCandidateId(defaultId);
-    setIsLookupModalOpen(true);
-  };
-
-  // Callback when a published result is selected in lookup modal
-  const handleViewPublishedResult = (result: TestResult) => {
-    setActiveResult(result);
-    const foundTest = tests.find((t) => t.id === result.testId) || currentTest;
-    if (foundTest) {
-      setCurrentTest(foundTest);
-    }
-    setActiveScreen('results');
-  };
-
-  // Candidate login callback
-  const handleCandidateLogin = (session: CandidateSession) => {
-    setCandidateSession(session);
-    setTerminalStationName(session.stationName);
-    setSelectedConsultancyId(session.consultancyId);
-    setActiveCandidateInfo({
-      name: session.candidateName,
-      candidateId: session.candidateId,
-      targetBand: session.targetBand,
-      stationName: session.stationName,
-      consultancyId: session.consultancyId
-    });
-    setAuthMessage(null);
-    setActiveScreen('terminal');
-  };
-
-  // Admin login callback
-  const handleAdminLogin = (user: AdminUser) => {
-    setAdminUser(user);
-    setAuthMessage(null);
-    if (user.role === 'super_admin') {
-      setActiveScreen('super-admin');
-    } else {
-      if (user.consultancyId) {
-        setSelectedConsultancyId(user.consultancyId);
-      }
-      setActiveScreen('consultancy');
-    }
-  };
-
-  // Master logout handler
+  // Master Logout (Rule 10: Clear shared-PC prior session data)
   const handleLogout = () => {
     ConsultancyService.logoutCandidate();
     ConsultancyService.logoutAdmin();
     setCandidateSession(null);
-    setAdminUser(null);
     setActiveCandidateInfo(null);
-    setAuthMessage('You have been signed out successfully.');
-    setInitialAuthTab('candidate');
-    setActiveScreen('auth');
+    navigateTo('/');
   };
 
+  const activeConsultancy = ConsultancyService.getConsultancyById(selectedConsultancyId) ||
+    ConsultancyService.getConsultancies()[0];
+
   return (
-    <div className="min-h-screen bg-slate-50 flex flex-col">
-      {/* SCREEN 1: OFFICIAL AUTHENTICATION GATE (CANDIDATE & ADMIN) */}
-      {activeScreen === 'auth' && (
-        <UnifiedAuthView
-          initialTab={initialAuthTab}
-          initialBranchCode=""
-          initialPcNumber={terminalStationName || 'PC-01'}
-          onCandidateLogin={handleCandidateLogin}
-          onAdminLogin={handleAdminLogin}
-          onBackToHub={() => setActiveScreen('landing')}
-          authMessage={authMessage}
+    <div className="min-h-screen bg-[#FAF8F3] text-[#0F1E33] flex flex-col font-ui selection:bg-[#C9A24B]/30">
+      {/* 1. PUBLIC DIRECTORY / LANDING (Blueprint Sitemap: /) */}
+      {activeRoute === 'landing' && (
+        <DirectoryLandingView
+          onSelectBranch={(code) => {
+            setCurrentBranchCode(code);
+            navigateTo(`/b/${code}`);
+          }}
+          onOpenResultLookup={() => navigateTo('/result')}
+          onOpenSuperAdmin={() => navigateTo('/admin')}
+          onOpenConsultancyPortal={(cid) => {
+            if (cid) setSelectedConsultancyId(cid);
+            navigateTo('/consultancy/dashboard');
+          }}
         />
       )}
 
-      {/* SCREEN 2: AUTHENTICATED CANDIDATE & TEST CATALOG HUB */}
-      {activeScreen === 'landing' && (
-        <LandingPage
-          tests={tests}
-          onStartTest={(test, candidate, fullMock) => {
-            startTest(test, candidate, fullMock);
-          }}
-          pastResults={pastResults}
-          onViewResults={(res) => {
-            if (res.isPublished === false) {
-              handleOpenLookup(res.candidateId);
-              return;
-            }
-            setActiveResult(res);
-            const foundTest = tests.find((t) => t.id === res.testId) || currentTest;
-            if (foundTest) {
-              setCurrentTest(foundTest);
-            }
-            setActiveScreen('results');
-          }}
-          onOpenResultLookup={() => handleOpenLookup()}
-          onOpenSuperAdmin={() => {
-            if (adminUser?.role === 'super_admin') {
-              setActiveScreen('super-admin');
-            } else {
-              setInitialAuthTab('admin');
-              setAuthMessage('Super Administrator sign in required.');
-              setActiveScreen('auth');
-            }
-          }}
-          onOpenConsultancy={() => {
-            if (adminUser) {
-              if (adminUser.consultancyId) {
-                setSelectedConsultancyId(adminUser.consultancyId);
-              }
-              setActiveScreen('consultancy');
-            } else {
-              setInitialAuthTab('admin');
-              setAuthMessage('Consultancy Director sign in required.');
-              setActiveScreen('auth');
-            }
-          }}
-          onOpenTerminal={() => {
-            setActiveScreen('terminal');
-          }}
-          candidateSession={candidateSession}
-          adminUser={adminUser}
-          onLogout={handleLogout}
-        />
-      )}
-
-      {/* SCREEN 3: SUPER ADMIN PORTAL */}
-      {activeScreen === 'super-admin' && (
-        <SuperAdminPortal
-          onBackToApp={() => setActiveScreen('landing')}
-          onOpenConsultancy={(cid) => {
-            setSelectedConsultancyId(cid);
-            setActiveScreen('consultancy');
-          }}
-          onLogout={handleLogout}
-        />
-      )}
-
-      {/* SCREEN 4: CONSULTANCY ADMIN & LAB INVIGILATOR PORTAL */}
-      {activeScreen === 'consultancy' && (
-        <ConsultancyPortal
-          consultancyId={selectedConsultancyId}
-          tests={tests}
-          onBackToHub={() => setActiveScreen('landing')}
-          onOpenTerminal={(stName) => {
+      {/* 2. BRANCH LOGIN (Blueprint Screen 6.1: /b/{branch-code}) */}
+      {activeRoute === 'branch-login' && (
+        <BranchLoginView
+          branchCode={currentBranchCode}
+          initialStationId={directPcStation}
+          onEnterStudentKiosk={(consultancy, stName) => {
+            setSelectedConsultancyId(consultancy.id);
             setTerminalStationName(stName);
-            setActiveScreen('terminal');
+            setActiveRoute('kiosk-student');
           }}
-          onLogout={handleLogout}
+          onEnterInvigilator={(consultancy) => {
+            setSelectedConsultancyId(consultancy.id);
+            setConsultancySubTab('dashboard');
+            setActiveRoute('consultancy');
+          }}
+          onBackToDirectory={() => navigateTo('/')}
         />
       )}
 
-      {/* SCREEN 5: STUDENT COMPUTER TERMINAL KIOSK */}
-      {activeScreen === 'terminal' && (
-        <StudentTerminalView
-          initialStationName={terminalStationName}
-          initialConsultancyId={selectedConsultancyId}
-          tests={tests}
-          onStartExam={(test, candidate, fullMock) => {
-            const cleanStation = candidate.stationName || terminalStationName || 'PC-01';
-            const cleanCid = candidate.consultancyId || selectedConsultancyId || 'apex-global';
-            setTerminalStationName(cleanStation);
-            if (typeof window !== 'undefined') {
-              sessionStorage.setItem('ielts_terminal_pc', cleanStation);
-              localStorage.setItem('ielts_terminal_pc', cleanStation);
-            }
-            setSelectedConsultancyId(cleanCid);
-            const cObj = ConsultancyService.getConsultancyById(cleanCid);
-            const sess: CandidateSession = {
-              stationName: cleanStation,
-              branchCode: cObj?.branchCode || cObj?.accessCode || 'APEX-2026',
-              consultancyId: cleanCid,
-              consultancyName: cObj?.name || 'Educational Consultancy Lab',
-              candidateName: candidate.name,
-              candidateId: candidate.candidateId,
-              targetBand: candidate.targetBand || 0,
-              loggedInAt: new Date().toISOString()
-            };
-            ConsultancyService.setCurrentCandidateSession(sess);
-            setCandidateSession(sess);
+      {/* 3. STUDENT NAME ENTRY (Blueprint Screen 6.2: /kiosk/student) */}
+      {activeRoute === 'kiosk-student' && (
+        <StudentNameView
+          stationName={terminalStationName}
+          consultancyName={activeConsultancy.name}
+          consultancyId={activeConsultancy.id}
+          onContinue={(candidate) => {
             setActiveCandidateInfo({
               name: candidate.name,
               candidateId: candidate.candidateId,
               targetBand: candidate.targetBand,
-              stationName: cleanStation,
-              consultancyId: cleanCid
+              stationName: terminalStationName,
+              consultancyId: activeConsultancy.id
             });
-            startTest(test, { ...candidate, stationName: cleanStation, targetBand: candidate.targetBand || 0 }, fullMock);
-          }}
-          onExitTerminal={() => {
-            try {
-              localStorage.removeItem('ielts_terminal_pass');
-              localStorage.removeItem('ielts_candidate_session');
-            } catch {}
-            if (!candidateSession && !adminUser) {
-              setActiveScreen('auth');
+
+            // Blueprint 6.3: "If the invigilator pre-assigned a specific test to this student, the screen skips straight to confirmation — the student doesn't choose."
+            const activeLaunch = ConsultancyService.getActiveLaunchedTest(activeConsultancy.id);
+            const stationObj = ConsultancyService.getStations(activeConsultancy.id).find((s) => s.name === terminalStationName);
+            const assignedTestId = stationObj?.assignedTestId || activeLaunch?.testId;
+
+            if (assignedTestId) {
+              const matchedTest = tests.find((t) => t.id === assignedTestId) || tests[0];
+              const isFull = stationObj?.isFullMock || activeLaunch?.isFullMock || assignedTestId.endsWith('-full');
+              const matchedFull = isFull ? allFullMockTests.find((fm) => fm.id === assignedTestId || fm.book === matchedTest.book) : undefined;
+              setCurrentTest(matchedTest);
+              setSelectedFullMock(matchedFull);
+              setActiveRoute('kiosk-confirm');
             } else {
-              setActiveScreen('landing');
+              setActiveRoute('kiosk-test');
             }
           }}
-          onOpenLookup={() => handleOpenLookup()}
+          onSwitchStationOrReset={() => {
+            setActiveRoute('branch-login');
+          }}
         />
       )}
 
-      {/* SCREEN 5.5: SUBMISSION CONFIRMED / RESULT WITHHELD RECEIPT */}
-      {activeScreen === 'submission-confirmed' && activeResult && currentTest && (
-        <SubmissionConfirmedView
-          candidateInfo={{
-            name: activeResult.candidateName || activeCandidateInfo?.name || 'Candidate',
-            candidateId: activeResult.candidateId || activeCandidateInfo?.candidateId || '000000',
-            stationName: activeCandidateInfo?.stationName || terminalStationName || 'PC-01',
-            consultancyName: activeResult.consultancyName || 'Apex Global Education'
+      {/* 4. TEST SELECTION (Blueprint Screen 6.3: /kiosk/test) */}
+      {activeRoute === 'kiosk-test' && (
+        <TestSelectionView
+          availableTests={tests}
+          studentName={activeCandidateInfo?.name || 'Candidate'}
+          stationName={terminalStationName}
+          onSelectTest={(test, fullMock) => {
+            setCurrentTest(test);
+            setSelectedFullMock(fullMock);
+            setActiveRoute('kiosk-confirm');
           }}
+          onBack={() => setActiveRoute('kiosk-student')}
+        />
+      )}
+
+      {/* 5. CONFIRMATION + START (Blueprint Screen 6.4: /kiosk/confirm) */}
+      {activeRoute === 'kiosk-confirm' && currentTest && (
+        <ConfirmationStartView
+          studentName={activeCandidateInfo?.name || 'Candidate'}
           test={currentTest}
-          fullMockTitle={activeFullMock?.fullMock?.title}
-          submittedResult={activeResult}
-          onOpenLookup={() => handleOpenLookup(activeResult.candidateId)}
-          onReturnToTerminalOrHub={() => {
-            setActiveFullMock(null);
-            if (activeCandidateInfo?.stationName) {
-              setActiveScreen('terminal');
-            } else {
-              setActiveScreen('landing');
-            }
+          fullMock={selectedFullMock}
+          stationName={terminalStationName}
+          onStart={() => {
+            startExamExecution(currentTest, selectedFullMock);
           }}
+          onBack={() => setActiveRoute('kiosk-test')}
         />
       )}
 
-      {/* SCREEN 6: OFFICIAL CD-IELTS EXAMINATION SIMULATOR */}
-      {activeScreen === 'exam' && currentTest && (
-        <div className={`h-screen flex flex-col overflow-hidden bg-white select-none contrast-${settings.contrast} relative`}>
+      {/* 6. EXAM SCREEN (Blueprint Screen 6.5: /kiosk/exam) */}
+      {activeRoute === 'kiosk-exam' && currentTest && (
+        <div className={`h-screen flex flex-col overflow-hidden bg-white select-none ${settings.contrast === 'inverted' ? 'dark-exam-mode' : 'bg-exam-calm'} relative`}>
+          {/* Invigilator Message Banner */}
+          {invigilatorMessageBanner && (
+            <div className="fixed top-12 left-1/2 -translate-x-1/2 z-50 bg-[#0F1E33] text-white px-5 py-3 rounded-xl shadow-2xl border border-[#C9A24B] flex items-center gap-3 animate-in fade-in">
+              <MessageSquare className="w-4 h-4 text-[#C9A24B]" />
+              <span className="text-xs font-semibold">
+                Notice from Invigilator: <strong>{invigilatorMessageBanner}</strong>
+              </span>
+              <button
+                onClick={() => setInvigilatorMessageBanner(null)}
+                className="text-slate-400 hover:text-white ml-2 text-xs"
+              >
+                ✕
+              </button>
+            </div>
+          )}
+
           {/* Invigilator Pause Overlay */}
           {isExamPausedByTeacher && (
-            <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-xs z-50 flex flex-col items-center justify-center p-6 text-center text-slate-900 space-y-4 animate-in fade-in">
-              <div className="bg-white border border-slate-200 p-8 rounded-2xl shadow-xl max-w-md w-full space-y-4 flex flex-col items-center">
-                <div className="w-14 h-14 rounded-full bg-amber-50 border border-amber-200 flex items-center justify-center shadow-xs">
-                  <Pause className="w-7 h-7 text-amber-600" />
+            <div className="absolute inset-0 bg-[#0F1E33]/70 backdrop-blur-xs z-50 flex flex-col items-center justify-center p-6 text-center space-y-4 animate-in fade-in">
+              <div className="paper-card p-8 max-w-md w-full space-y-4 flex flex-col items-center bg-[#FAF8F3]">
+                <div className="w-14 h-14 rounded-full bg-amber-100 text-amber-700 flex items-center justify-center">
+                  <Pause className="w-7 h-7" />
                 </div>
-                <div className="space-y-1">
-                  <h2 className="text-xl font-bold tracking-tight text-slate-900">
-                    Examination Paused by Invigilator
-                  </h2>
-                  <p className="text-xs text-slate-600 leading-relaxed">
-                    Your test countdown timer and audio playback are temporarily paused. Please remain seated at your desk until the invigilator resumes the session.
-                  </p>
-                </div>
-                <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-slate-100 border border-slate-200 text-xs font-mono text-slate-700">
-                  <span className="w-2 h-2 rounded-full bg-emerald-500" />
-                  <span>Station: {activeCandidateInfo?.stationName || 'Lab Terminal'} • Live Synchronized</span>
+                <h2 className="font-display text-xl font-bold text-[#0F1E33]">
+                  Examination Paused by Invigilator
+                </h2>
+                <p className="text-xs text-[#5B6B82] leading-relaxed">
+                  Your countdown timer is paused. Please remain seated at your desk until the invigilator resumes the session.
+                </p>
+                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-slate-100 text-xs font-mono font-bold text-[#0F1E33]">
+                  <span className="w-2 h-2 rounded-full bg-[#2E7D4F]" />
+                  <span>Station: {terminalStationName} · Synchronized</span>
                 </div>
               </div>
             </div>
           )}
 
+          {/* CD Header */}
           <CDHeader
             test={currentTest}
             remainingSeconds={remainingSeconds}
@@ -1010,25 +836,17 @@ export const App: React.FC = () => {
             onUpdateSettings={(newSet) => setSettings((prev) => ({ ...prev, ...newSet }))}
             onExitTest={() => {
               if (window.confirm('Return to previous screen? Your current exam session will be interrupted.')) {
-                if (activeCandidateInfo?.stationName && activeCandidateInfo?.consultancyId) {
-                  ConsultancyService.resetStation(activeCandidateInfo.consultancyId, activeCandidateInfo.stationName);
-                  setActiveScreen('terminal');
-                } else {
-                  setActiveScreen('landing');
-                }
+                setActiveRoute('kiosk-student');
               }
             }}
             audioVolume={audioVolume}
             onVolumeChange={setAudioVolume}
-            candidateName={activeCandidateInfo?.name || candidateSession?.candidateName}
-            candidateId={activeCandidateInfo?.candidateId || candidateSession?.candidateId}
-            consultancyName={
-              ConsultancyService.getConsultancyById(activeCandidateInfo?.consultancyId || candidateSession?.consultancyId || selectedConsultancyId)?.name ||
-              candidateSession?.consultancyName
-            }
+            candidateName={activeCandidateInfo?.name}
+            candidateId={activeCandidateInfo?.candidateId}
+            consultancyName={activeConsultancy.name}
           />
 
-          {/* Exam View based on module: reading, listening, or writing */}
+          {/* Module-Specific Exam Views */}
           {currentTest.module === 'writing' ? (
             <WritingExamView
               test={currentTest}
@@ -1062,7 +880,7 @@ export const App: React.FC = () => {
                 />
               )}
 
-              {/* 40 Question Palette & Navigation */}
+              {/* 40 Question Palette */}
               <QuestionPalette
                 currentQuestion={currentQuestion}
                 totalQuestions={40}
@@ -1080,130 +898,199 @@ export const App: React.FC = () => {
         </div>
       )}
 
-      {/* FULL MOCK EXAM INTERMISSION MODAL (Real IELTS 60s transition from Listening to Reading, and Reading to Writing) */}
+      {/* FULL MOCK INTERMISSION (Blueprint: 10-second breather screen) */}
       {showFullMockIntermission && activeFullMock && (
-        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl border border-slate-200 shadow-2xl max-w-lg w-full p-6 sm:p-8 space-y-5 text-center animate-in fade-in">
-            <div className="w-16 h-16 rounded-2xl bg-emerald-50 border border-emerald-200 flex items-center justify-center mx-auto shadow-xs">
-              <CheckCircle2 className="w-8 h-8 text-emerald-600" />
+        <div className="fixed inset-0 bg-[#0F1E33]/70 backdrop-blur-xs z-50 flex items-center justify-center p-4">
+          <div className="paper-card max-w-md w-full p-6 sm:p-8 space-y-5 text-center bg-[#FAF8F3] animate-in fade-in">
+            <div className="w-14 h-14 rounded-2xl bg-emerald-100 text-[#2E7D4F] flex items-center justify-center mx-auto">
+              <CheckCircle2 className="w-8 h-8" />
             </div>
 
-            <div className="space-y-1.5">
-              <span className="text-[11px] uppercase tracking-wider font-extrabold text-emerald-700 bg-emerald-100 px-3 py-1 rounded-full inline-block">
-                {activeFullMock.currentStep === 'listening'
-                  ? `Section 1 of ${activeFullMock.fullMock.writingTest ? '3' : '2'} Complete`
-                  : 'Section 2 of 3 Complete'}
-              </span>
-              <h2 className="text-xl sm:text-2xl font-black text-slate-900">
-                {activeFullMock.currentStep === 'listening'
-                  ? 'Listening Test Submitted!'
-                  : 'Academic Reading Test Submitted!'}
+            <div className="space-y-1">
+              <h2 className="font-display text-xl font-bold text-[#0F1E33]">
+                Section Complete!
               </h2>
-              <p className="text-xs text-slate-600 leading-relaxed">
-                {activeFullMock.currentStep === 'listening'
-                  ? 'Your 40 listening responses have been recorded. In official Computer-Delivered IELTS, candidates have a 1-minute transition window before the Academic Reading Test begins.'
-                  : 'Your 40 reading responses have been recorded. In official Computer-Delivered IELTS, candidates have a 1-minute transition window before the Academic Writing Test begins.'}
+              <p className="text-xs text-[#5B6B82]">
+                10-second transition window before the next official exam section.
               </p>
             </div>
 
-            {/* Step Progress Visualizer */}
-            <div className="grid grid-cols-2 gap-3 p-3.5 bg-slate-50 border border-slate-200 rounded-xl text-xs">
-              <div className="text-left bg-white p-2.5 rounded-lg border border-slate-200">
-                <span className="text-[10px] text-emerald-700 font-bold uppercase block flex items-center gap-1">
-                  <CheckCircle2 className="w-3 h-3 text-emerald-600" /> Completed
-                </span>
-                <span className="font-bold text-slate-900 block mt-0.5">
-                  {activeFullMock.currentStep === 'listening' ? 'Listening Test' : 'Academic Reading'}
-                </span>
-                <span className="text-slate-500 text-[11px]">40 Questions</span>
-              </div>
-              <div className="text-left bg-indigo-50/50 p-2.5 rounded-lg border border-indigo-200">
-                <span className="text-[10px] text-indigo-700 font-bold uppercase block flex items-center gap-1">
-                  {activeFullMock.currentStep === 'listening' ? (
-                    <BookOpen className="w-3 h-3 text-indigo-600" />
-                  ) : (
-                    <PenTool className="w-3 h-3 text-violet-600" />
-                  )}
-                  <span>Next Section</span>
-                </span>
-                <span className="font-bold text-slate-900 block mt-0.5">
-                  {activeFullMock.currentStep === 'listening' ? 'Academic Reading' : 'Academic Writing'}
-                </span>
-                <span className="text-slate-500 text-[11px]">
-                  {activeFullMock.currentStep === 'listening' ? '60 Mins • 40 Questions' : '60 Mins • 2 Tasks (Task 1 & 2)'}
-                </span>
-              </div>
+            <div className="text-xs font-mono font-bold text-[#0F1E33] flex items-center justify-center gap-1.5">
+              <Clock className="w-4 h-4 text-[#C9A24B] animate-pulse" />
+              <span>Starting in {intermissionCountdown}s...</span>
             </div>
 
-            {/* Countdown notice */}
-            <div className="text-xs font-semibold text-slate-600 flex items-center justify-center gap-2">
-              <Clock className="w-4 h-4 text-indigo-600 animate-pulse" />
-              <span>
-                Starting automatically in <strong className="text-indigo-700 font-mono text-sm">{intermissionCountdown}s</strong>
-              </span>
-            </div>
-
-            {/* Immediate Action Button */}
             <button
-              onClick={handleProceedToNextSection}
-              className="w-full py-3.5 bg-blue-600 hover:bg-blue-700 text-white font-bold text-sm rounded-xl transition cursor-pointer shadow-md flex items-center justify-center gap-2"
+              onClick={handleProceedToNextFullMockSection}
+              className="btn-texture w-full min-h-[48px] bg-[#0F1E33] hover:bg-[#1A2E4B] text-white text-xs font-bold"
             >
-              <span>
-                {activeFullMock.currentStep === 'listening'
-                  ? 'Begin Academic Reading Test Now'
-                  : 'Begin Academic Writing Test Now'}
-              </span>
-              <ArrowRight className="w-4 h-4" />
+              Begin Next Section Now →
             </button>
           </div>
         </div>
       )}
 
-      {/* SCREEN 7: DIAGNOSTIC RESULTS REPORT */}
-      {activeScreen === 'results' && activeResult && currentTest && (
-        <ResultReport
-          test={currentTest}
-          result={activeResult}
-          fullMockDetails={
-            activeFullMock && activeFullMock.listeningResult && activeFullMock.readingResult
-              ? {
-                  fullMockTitle: activeFullMock.fullMock.title,
-                  overallBand: activeFullMock.overallBand || 7.5,
-                  listeningResult: activeFullMock.listeningResult,
-                  readingResult: activeFullMock.readingResult,
-                  writingResult: activeFullMock.writingResult,
-                  listeningTest: activeFullMock.fullMock.listeningTest,
-                  readingTest: activeFullMock.fullMock.readingTest,
-                  writingTest: activeFullMock.fullMock.writingTest
-                }
-              : undefined
-          }
-          onReturnHub={() => {
-            setActiveFullMock(null);
-            if (activeCandidateInfo?.stationName) {
-              setActiveScreen('terminal');
-            } else {
-              setActiveScreen('landing');
-            }
+      {/* 7. SUBMISSION CONFIRMED RECEIPT (Blueprint Screen 6.5 Done) */}
+      {activeRoute === 'kiosk-done' && activeResult && currentTest && (
+        <SubmissionConfirmedView
+          candidateInfo={{
+            name: activeResult.candidateName || 'Candidate',
+            candidateId: activeResult.candidateId || '004128',
+            stationName: terminalStationName,
+            consultancyName: activeConsultancy.name
           }}
-          onRetakeTest={() => {
-            if (activeFullMock) {
-              startTest(activeFullMock.fullMock.listeningTest, undefined, activeFullMock.fullMock);
-            } else {
-              startTest(currentTest);
-            }
+          test={currentTest}
+          fullMockTitle={selectedFullMock?.title}
+          submittedResult={activeResult}
+          onOpenLookup={() => navigateTo('/result')}
+          onReturnToTerminalOrHub={() => {
+            setActiveFullMock(null);
+            setActiveRoute('kiosk-student');
           }}
         />
       )}
 
-      {/* CANDIDATE RESULT LOOKUP & VERIFICATION MODAL */}
-      <CandidateResultLookupModal
-        isOpen={isLookupModalOpen}
-        onClose={() => setIsLookupModalOpen(false)}
-        initialCandidateId={lookupInitialCandidateId}
-        consultancyId={selectedConsultancyId}
-        onViewResult={handleViewPublishedResult}
-      />
+      {/* 8. CONSULTANCY PORTAL (Blueprint Screen 6.6 - 6.10: /consultancy/*) */}
+      {activeRoute === 'consultancy' && (
+        <ConsultancyLayout
+          consultancy={activeConsultancy}
+          activeTab={consultancySubTab}
+          onTabChange={(tab) => {
+            setConsultancySubTab(tab);
+            navigateTo(`/consultancy/${tab}`);
+          }}
+          onQuickLaunchClick={() => {
+            setConsultancySubTab('launch');
+            navigateTo('/consultancy/launch');
+          }}
+          onLogout={handleLogout}
+        >
+          {consultancySubTab === 'dashboard' && (
+            <DashboardView
+              consultancy={activeConsultancy}
+              stations={ConsultancyService.getStations(activeConsultancy.id)}
+              results={ConsultancyService.getResults(activeConsultancy.id)}
+              onOpenLaunchModeA={() => {
+                setConsultancySubTab('launch');
+                navigateTo('/consultancy/launch');
+              }}
+              onOpenLaunchModeB={() => {
+                setConsultancySubTab('launch');
+                navigateTo('/consultancy/launch');
+              }}
+              onOpenPrintQRs={() => {
+                setConsultancySubTab('pcs');
+                navigateTo('/consultancy/pcs');
+              }}
+              onOpenPairNewPC={() => {
+                setConsultancySubTab('pcs');
+                navigateTo('/consultancy/pcs');
+              }}
+              onRefresh={() => setTests([...tests])}
+            />
+          )}
+
+          {consultancySubTab === 'launch' && (
+            <LaunchConsoleView
+              consultancy={activeConsultancy}
+              stations={ConsultancyService.getStations(activeConsultancy.id)}
+              students={ConsultancyService.getStudents(activeConsultancy.id)}
+              tests={tests}
+              onSessionLaunched={() => {
+                setConsultancySubTab('monitor');
+                navigateTo('/consultancy/monitor');
+              }}
+              onSessionEnded={() => {
+                setConsultancySubTab('dashboard');
+                navigateTo('/consultancy/dashboard');
+              }}
+            />
+          )}
+
+          {consultancySubTab === 'monitor' && (
+            <LiveMonitorView
+              consultancy={activeConsultancy}
+              stations={ConsultancyService.getStations(activeConsultancy.id)}
+              onRefresh={() => setTests([...tests])}
+            />
+          )}
+
+          {consultancySubTab === 'candidates' && (
+            <CandidatesView
+              consultancy={activeConsultancy}
+              students={ConsultancyService.getStudents(activeConsultancy.id)}
+              onOpenAssignTest={() => {
+                setConsultancySubTab('launch');
+                navigateTo('/consultancy/launch');
+              }}
+              onRefresh={() => setTests([...tests])}
+            />
+          )}
+
+          {consultancySubTab === 'results' && (
+            <ResultsView
+              consultancy={activeConsultancy}
+              results={ConsultancyService.getResults(activeConsultancy.id)}
+              onOpenAIDiagnostic={() => {
+                setConsultancySubTab('reports');
+                navigateTo('/consultancy/reports');
+              }}
+              onRefresh={() => setTests([...tests])}
+            />
+          )}
+
+          {consultancySubTab === 'reports' && (
+            <AIReportsView
+              consultancy={activeConsultancy}
+              reports={ConsultancyService.getReports(activeConsultancy.id)}
+              onRefresh={() => setTests([...tests])}
+            />
+          )}
+
+          {consultancySubTab === 'tests' && (
+            <TestLibraryView
+              consultancy={activeConsultancy}
+              tests={tests}
+              onRefresh={() => setTests([...tests])}
+            />
+          )}
+
+          {consultancySubTab === 'pcs' && (
+            <PcsView
+              consultancy={activeConsultancy}
+              stations={ConsultancyService.getStations(activeConsultancy.id)}
+              onRefresh={() => setTests([...tests])}
+            />
+          )}
+
+          {consultancySubTab === 'settings' && (
+            <SettingsView
+              consultancy={activeConsultancy}
+              onRefresh={() => setTests([...tests])}
+            />
+          )}
+        </ConsultancyLayout>
+      )}
+
+      {/* 9. SUPER ADMIN PORTAL (Blueprint Screen 6.11: /admin) */}
+      {activeRoute === 'super-admin' && (
+        <SuperAdminPortal
+          onBackToApp={() => navigateTo('/')}
+          onOpenConsultancy={(cid) => {
+            setSelectedConsultancyId(cid);
+            setConsultancySubTab('dashboard');
+            setActiveRoute('consultancy');
+          }}
+          onLogout={handleLogout}
+        />
+      )}
+
+      {/* 10. PUBLIC RESULT LOOKUP (Blueprint Screen 6.12: /result) */}
+      {activeRoute === 'result-lookup' && (
+        <PublicResultLookupView
+          onBackToHub={() => navigateTo('/')}
+        />
+      )}
     </div>
   );
 };
