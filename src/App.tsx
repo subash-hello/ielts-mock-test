@@ -72,6 +72,7 @@ export const App: React.FC = () => {
   const [launchMode, setLaunchMode] = useState<'modeA' | 'modeB'>('modeA');
   const [assigningCandidate, setAssigningCandidate] = useState<ConsultancyStudent | null>(null);
   const [showExitExamModal, setShowExitExamModal] = useState<boolean>(false);
+  const [resultsFilter, setResultsFilter] = useState<'all' | 'published' | 'submitted' | 'writing_pending'>('all');
 
   // Candidate Session
   const [, setCandidateSession] = useState<CandidateSession | null>(() =>
@@ -1310,6 +1311,11 @@ export const App: React.FC = () => {
                 setConsultancySubTab('pcs');
                 navigateTo('/consultancy/pcs');
               }}
+              onNavigateToResults={(filter) => {
+                if (filter) setResultsFilter(filter);
+                setConsultancySubTab('results');
+                navigateTo('/consultancy/results');
+              }}
               onRefresh={() => setTests([...tests])}
             />
           )}
@@ -1359,6 +1365,7 @@ export const App: React.FC = () => {
             <ResultsView
               consultancy={activeConsultancy}
               results={ConsultancyService.getResults(activeConsultancy.id)}
+              initialFilter={resultsFilter}
               onOpenAIDiagnostic={() => {
                 setConsultancySubTab('reports');
                 navigateTo('/consultancy/reports');

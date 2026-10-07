@@ -2830,7 +2830,10 @@ export class ConsultancyService {
     const cand = station.currentCandidate;
     const testId = options?.testId || station.assignedTestId || 'cambridge-16-test-1-reading';
     const mod = options?.module || station.module || (testId.includes('writing') ? 'writing' : testId.includes('listening') ? 'listening' : 'reading');
-    const band = options?.bandScore !== undefined ? options.bandScore : (cand.targetBand && cand.targetBand >= 4.0 ? cand.targetBand : 7.0);
+    const isWritingModule = mod === 'writing';
+    const finalBand = isWritingModule
+      ? (options?.bandScore !== undefined ? options.bandScore : 0)
+      : (options?.bandScore !== undefined ? options.bandScore : (cand.targetBand && cand.targetBand >= 4.0 ? cand.targetBand : 7.0));
 
     const bookMatch = testId.match(/cambridge-(\d+)-test-(\d+)/);
     const book = bookMatch ? parseInt(bookMatch[1], 10) : 16;
@@ -2843,9 +2846,9 @@ export class ConsultancyService {
       book,
       testNumber: testNum,
       module: mod,
-      totalQuestions: mod === 'writing' ? 2 : 40,
-      correctCount: mod === 'writing' ? 0 : Math.round((band / 9) * 40),
-      bandScore: band,
+      totalQuestions: isWritingModule ? 2 : 40,
+      correctCount: isWritingModule ? 0 : Math.round((finalBand / 9) * 40),
+      bandScore: finalBand,
       timeTakenSeconds: mod === 'reading' || mod === 'writing' ? 3540 : 1980,
       completedAt: new Date().toISOString(),
       answers: {},
@@ -2856,14 +2859,12 @@ export class ConsultancyService {
       consultancyName: consultancy?.name || 'Educational Consultancy Lab',
       targetBand: cand.targetBand || 0,
       isPublished: false,
-      writingSubmission: mod === 'writing' ? {
-        task1Essay: 'Candidate submitted essay on lab station ' + station.name,
-        task1WordCount: 165,
-        task2Essay: 'Candidate submitted essay on lab station ' + station.name,
-        task2WordCount: 275,
-        task1Band: band,
-        task2Band: band,
-        overallWritingBand: band
+      writingSubmission: isWritingModule ? {
+        task1Essay: 'Candidate submitted Task 1 response on lab station ' + station.name + ':\n\nThe chart illustrates international student admissions across key institutions from 2015 to 2024. Overall, engineering and computing programs exhibited the most prominent upward trajectory.',
+        task1WordCount: 168,
+        task2Essay: 'Candidate submitted Task 2 response on lab station ' + station.name + ':\n\nSome argue that digital automation diminishes interpersonal skills, whereas others contend that it streamlines international collaboration. In my view, while reliance on technology introduces communication challenges, structured implementation enhances educational productivity.',
+        task2WordCount: 276
+        // Bands remain undefined until manual evaluation by examiner
       } : undefined
     };
 
@@ -2883,13 +2884,21 @@ export class ConsultancyService {
       overallWritingBand: number;
       adminFeedback?: string;
       reviewedBy?: string;
-    }
-  ): void {
-    const list = this.getResults(consultancyId);
-    let updated = false;
+    },
+    publishImmediately: boolean = false
+  ): TestResult | null {
+    const canonical = this.getCanonicalConsultancyId(consultancyId);
+    const aliases = this.getConsultancyAliases(consultancyId);
+    const list = this.getResults(canonical);
+    let updatedResult: TestResult | null = null;
+    const now = new Date().toISOString();
 
     for (const item of list) {
-      if (item.testId === testId && item.candidateId === candidateId && item.completedAt === completedAt) {
+      const matchTest = item.testId === testId;
+      const matchCand = !candidateId || item.candidateId === candidateId;
+      const matchTime = !completedAt || item.completedAt === completedAt;
+
+      if (matchTest && matchCand && matchTime) {
         if (!item.writingSubmission) {
           item.writingSubmission = {
             task1Essay: '',
@@ -2903,16 +2912,112 @@ export class ConsultancyService {
         item.writingSubmission.overallWritingBand = evaluation.overallWritingBand;
         item.writingSubmission.adminFeedback = evaluation.adminFeedback;
         item.writingSubmission.reviewedBy = evaluation.reviewedBy || 'Academic Admin';
-        item.writingSubmission.reviewedAt = new Date().toISOString();
+        item.writingSubmission.reviewedAt = now;
         item.bandScore = evaluation.overallWritingBand;
-        updated = true;
+
+        if (publishImmediately) {
+          item.isPublished = true;
+          item.publishedAt = now;
+        }
+
+        updatedResult = item;
+        break;
       }
     }
 
-    if (updated) {
-      localStorage.setItem(`ielts_results_${consultancyId}`, JSON.stringify(list));
-      this.broadcast('RESULT_UPDATED', { consultancyId, testId, candidateId });
+    if (updatedResult) {
+      // 1. Save updated results across all branch aliases
+      const serialized = JSON.stringify(list);
+      for (const key of aliases) {
+        localStorage.setItem(`ielts_results_${key}`, serialized);
+      }
+
+      // 2. Update global past results if present
+      try {
+        const rawPast = localStorage.getItem('ielts_mock_past_results');
+        if (rawPast) {
+          const pastList: TestResult[] = JSON.parse(rawPast);
+          const pIdx = pastList.findIndex((r) =>
+            r.testId === testId &&
+            (!candidateId || r.candidateId === candidateId) &&
+            (!completedAt || r.completedAt === completedAt)
+          );
+          if (pIdx >= 0) {
+            pastList[pIdx] = { ...pastList[pIdx], ...updatedResult };
+            localStorage.setItem('ielts_mock_past_results', JSON.stringify(pastList));
+          }
+        }
+      } catch {}
+
+      // 3. Update candidate student statistics
+      if (candidateId) {
+        try {
+          const students = this.getStudents(canonical);
+          const std = students.find((s) => s.candidateNumber === candidateId || s.id === candidateId);
+          if (std) {
+            const candResults = list.filter((r) => r.candidateId === candidateId);
+            const scoredBands = candResults.map((r) => r.bandScore || 0).filter((b) => b > 0);
+            if (scoredBands.length > 0) {
+              std.highestBand = Math.max(...scoredBands);
+              std.averageBand = Number((scoredBands.reduce((a, b) => a + b, 0) / scoredBands.length).toFixed(1));
+            } else {
+              std.highestBand = evaluation.overallWritingBand;
+              std.averageBand = evaluation.overallWritingBand;
+            }
+            std.latestResultId = testId;
+            const stdSerialized = JSON.stringify(students);
+            for (const key of aliases) {
+              localStorage.setItem(`ielts_students_${key}`, stdSerialized);
+            }
+            this.broadcast('STUDENT_UPDATED', {
+              consultancyId: canonical,
+              candidateNumber: candidateId,
+              student: std
+            });
+          }
+        } catch {}
+      }
+
+      // 4. Update AI report archive if present
+      try {
+        const reports = this.getReports(canonical);
+        const rIdx = reports.findIndex(
+          (rep) => rep.testId === testId && (!candidateId || rep.candidateId === candidateId) && (!completedAt || rep.completedAt === completedAt)
+        );
+        if (rIdx >= 0) {
+          reports[rIdx].bandScore = evaluation.overallWritingBand;
+          if (publishImmediately) {
+            reports[rIdx].isPublished = true;
+          }
+          const repSerialized = JSON.stringify(reports);
+          for (const key of aliases) {
+            localStorage.setItem(`ielts_reports_${key}`, repSerialized);
+          }
+          this.broadcast('REPORT_UPDATED', {
+            consultancyId: canonical,
+            report: reports[rIdx]
+          });
+        }
+      } catch {}
+
+      // 5. Broadcast events for live views
+      this.broadcast('RESULT_UPDATED', {
+        consultancyId: canonical,
+        testId,
+        candidateId,
+        result: updatedResult
+      });
+
+      if (publishImmediately) {
+        this.broadcast('RESULT_PUBLISHED', {
+          consultancyId: canonical,
+          testId,
+          candidateId
+        });
+      }
     }
+
+    return updatedResult;
   }
 
   // Look up candidate results by Candidate Name OR Candidate Number

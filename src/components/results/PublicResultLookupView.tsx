@@ -5,7 +5,8 @@ import {
   Clock,
   Sparkles,
   ArrowLeft,
-  AlertCircle
+  AlertCircle,
+  PenTool
 } from 'lucide-react';
 import { ConsultancyService } from '../../services/consultancyService';
 import type { TestResult } from '../../types/ielts';
@@ -171,6 +172,11 @@ export const PublicResultLookupView: React.FC<PublicResultLookupViewProps> = ({
                             <CheckCircle2 className="w-3.5 h-3.5" />
                             <span>Official Score Published</span>
                           </span>
+                        ) : res.module === 'writing' || !!res.writingSubmission ? (
+                          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-100 text-amber-900 text-xs font-semibold">
+                            <PenTool className="w-3.5 h-3.5 text-amber-600" />
+                            <span>Submitted · Awaiting Examiner Evaluation</span>
+                          </span>
                         ) : (
                           <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-100 text-amber-800 text-xs font-semibold">
                             <Clock className="w-3.5 h-3.5" />
@@ -207,7 +213,9 @@ export const PublicResultLookupView: React.FC<PublicResultLookupViewProps> = ({
                               Raw Score
                             </span>
                             <span className="font-mono font-bold text-sm text-[#2E7D4F]">
-                              {res.module === 'writing' ? 'Examiner' : `${res.correctCount} / ${res.totalQuestions}`}
+                              {res.module === 'writing'
+                                ? `T1: ${res.writingSubmission?.task1WordCount || 0}w · T2: ${res.writingSubmission?.task2WordCount || 0}w`
+                                : `${res.correctCount} / ${res.totalQuestions}`}
                             </span>
                           </div>
 
@@ -220,6 +228,32 @@ export const PublicResultLookupView: React.FC<PublicResultLookupViewProps> = ({
                             </span>
                           </div>
                         </div>
+
+                        {/* Writing Submissions Breakdown (if writing) */}
+                        {res.writingSubmission && (
+                          <div className="p-3.5 bg-slate-50 border border-slate-200 rounded-xl text-xs space-y-2">
+                            <div className="flex flex-wrap items-center gap-4">
+                              <span className="font-semibold text-slate-700">
+                                Task 1 Band: <strong className="font-mono text-emerald-800 font-bold">{res.writingSubmission.task1Band?.toFixed(1) ?? '—'}</strong> ({res.writingSubmission.task1WordCount} words)
+                              </span>
+                              <span className="text-slate-300">•</span>
+                              <span className="font-semibold text-slate-700">
+                                Task 2 Band: <strong className="font-mono text-emerald-800 font-bold">{res.writingSubmission.task2Band?.toFixed(1) ?? '—'}</strong> ({res.writingSubmission.task2WordCount} words)
+                              </span>
+                            </div>
+                            {res.writingSubmission.adminFeedback && (
+                              <div className="pt-2 border-t border-slate-200">
+                                <span className="font-bold text-slate-900 block mb-0.5">Examiner Rubric Remarks:</span>
+                                <p className="italic text-slate-700 leading-relaxed">"{res.writingSubmission.adminFeedback}"</p>
+                                {res.writingSubmission.reviewedBy && (
+                                  <span className="text-[10px] text-slate-400 mt-1 block">
+                                    Evaluated by: {res.writingSubmission.reviewedBy}
+                                  </span>
+                                )}
+                              </div>
+                            )}
+                          </div>
+                        )}
 
                         <div className="p-3.5 bg-white border border-[#5B6B82]/15 rounded-xl text-xs space-y-1">
                           <div className="flex items-center justify-between">
@@ -245,14 +279,29 @@ export const PublicResultLookupView: React.FC<PublicResultLookupViewProps> = ({
                       </div>
                     ) : (
                       /* Pending release explanation */
-                      <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl text-xs text-[#5B6B82] space-y-2">
-                        <p>
-                          Your exam responses for <strong className="text-[#0F1E33]">{testTitle}</strong> were submitted on <span className="font-mono text-[#0F1E33]">{dateStr}</span>.
-                        </p>
-                        <p>
-                          Under official examination lab guidelines, the score will be made visible on this portal once your consultancy invigilator verifies and publishes the session.
-                        </p>
-                      </div>
+                      res.module === 'writing' || !!res.writingSubmission ? (
+                        <div className="p-4 bg-amber-50/80 border border-amber-200 rounded-xl text-xs text-amber-950 space-y-2">
+                          <div className="flex items-center gap-2 font-bold text-amber-900">
+                            <PenTool className="w-4 h-4 text-amber-600" />
+                            <span>Writing Module Manual Grading in Progress</span>
+                          </div>
+                          <p>
+                            Your Writing responses for <strong className="text-[#0F1E33]">{testTitle}</strong> (Task 1: {res.writingSubmission?.task1WordCount || 0} words, Task 2: {res.writingSubmission?.task2WordCount || 0} words) were recorded on <span className="font-mono text-[#0F1E33]">{dateStr}</span> and transmitted to your Test Centre Administrator.
+                          </p>
+                          <p className="text-[11px] text-amber-800">
+                            Certified IELTS examiners evaluate Writing responses manually against authentic band descriptor rubrics. Your official scorecard will appear here as soon as marking is finalized and published.
+                          </p>
+                        </div>
+                      ) : (
+                        <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl text-xs text-[#5B6B82] space-y-2">
+                          <p>
+                            Your exam responses for <strong className="text-[#0F1E33]">{testTitle}</strong> were submitted on <span className="font-mono text-[#0F1E33]">{dateStr}</span>.
+                          </p>
+                          <p>
+                            Under official examination lab guidelines, the score will be made visible on this portal once your consultancy invigilator verifies and publishes the session.
+                          </p>
+                        </div>
+                      )
                     )}
                   </div>
                 );

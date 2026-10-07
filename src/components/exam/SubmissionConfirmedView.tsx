@@ -152,11 +152,21 @@ export const SubmissionConfirmedView: React.FC<SubmissionConfirmedViewProps> = (
               <div className="flex items-center gap-2">
                 <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse" />
                 <h3 className="font-bold text-amber-950 text-xs uppercase tracking-wide">
-                  Official IELTS Band Score Release Protocol
+                  {test.module === 'writing'
+                    ? 'Writing Module · Human Examiner Evaluation Required'
+                    : 'Official IELTS Band Score Release Protocol'}
                 </h3>
               </div>
               <p className="text-xs text-amber-900 leading-relaxed">
-                Per official Computer-Delivered IELTS standards, band scores are withheld at the student station screen. Once your consultancy invigilator verifies and publishes results, you can look up your score using your Candidate ID (<strong className="font-mono">#{candidateInfo.candidateId}</strong>).
+                {test.module === 'writing' ? (
+                  <>
+                    Your Task 1 and Task 2 essays have been transmitted directly to your Test Centre Administrator for manual assessment against certified IELTS rubrics (Task Achievement, Coherence &amp; Cohesion, Lexical Resource, Grammatical Accuracy). Once evaluated and published, you can look up your official Band Score using your Candidate ID (<strong className="font-mono">#{candidateInfo.candidateId}</strong>).
+                  </>
+                ) : (
+                  <>
+                    Per official Computer-Delivered IELTS standards, band scores are withheld at the student station screen. Once your consultancy invigilator verifies and publishes results, you can look up your score using your Candidate ID (<strong className="font-mono">#{candidateInfo.candidateId}</strong>).
+                  </>
+                )}
               </p>
             </div>
 

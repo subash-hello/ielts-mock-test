@@ -5,7 +5,8 @@ import {
   AlertTriangle,
   CheckCircle2,
   X,
-  Radio
+  Radio,
+  PenTool
 } from 'lucide-react';
 import type { Consultancy, LabStation } from '../../types/consultancy';
 import { ConsultancyService } from '../../services/consultancyService';
@@ -171,9 +172,16 @@ export const LiveMonitorView: React.FC<LiveMonitorViewProps> = ({
                     Paused
                   </span>
                 ) : st.status === 'submitted' ? (
-                  <span className="inline-flex items-center gap-1 text-[11px] font-mono font-bold text-cyan-400 bg-cyan-950/60 border border-cyan-500/30 px-2 py-0.5 rounded">
-                    Submitted
-                  </span>
+                  st.module === 'writing' || st.assignedTestId?.includes('writing') ? (
+                    <span className="inline-flex items-center gap-1 text-[11px] font-mono font-bold text-amber-300 bg-amber-950/80 border border-amber-500/40 px-2 py-0.5 rounded">
+                      <PenTool className="w-2.5 h-2.5 text-amber-400" />
+                      <span>Writing Submitted</span>
+                    </span>
+                  ) : (
+                    <span className="inline-flex items-center gap-1 text-[11px] font-mono font-bold text-cyan-400 bg-cyan-950/60 border border-cyan-500/30 px-2 py-0.5 rounded">
+                      Submitted
+                    </span>
+                  )
                 ) : (
                   <span className="text-[11px] font-mono text-slate-400">Idle</span>
                 )}
@@ -206,17 +214,31 @@ export const LiveMonitorView: React.FC<LiveMonitorViewProps> = ({
               )}
 
               {isEarlySubmit && (
-                <div className="p-2 rounded bg-cyan-950/60 border border-cyan-500/40 text-[11px] text-cyan-300 flex items-center justify-between gap-1.5">
-                  <div className="flex items-center gap-1.5">
-                    <CheckCircle2 className="w-3.5 h-3.5 shrink-0" />
-                    <span>Submitted early</span>
+                st.module === 'writing' || st.assignedTestId?.includes('writing') ? (
+                  <div className="p-2 rounded bg-amber-950/70 border border-amber-500/40 text-[11px] text-amber-300 flex items-center justify-between gap-1.5">
+                    <div className="flex items-center gap-1.5">
+                      <PenTool className="w-3.5 h-3.5 shrink-0 text-amber-400" />
+                      <span>Writing submitted · Needs manual grading</span>
+                    </div>
+                    {st.timeSpentSeconds !== undefined && st.timeSpentSeconds > 0 && (
+                      <span className="font-mono font-bold text-white">
+                        ({formatTimeSpent(st.timeSpentSeconds)} taken)
+                      </span>
+                    )}
                   </div>
-                  {st.timeSpentSeconds !== undefined && st.timeSpentSeconds > 0 && (
-                    <span className="font-mono font-bold text-white">
-                      ({formatTimeSpent(st.timeSpentSeconds)} taken)
-                    </span>
-                  )}
-                </div>
+                ) : (
+                  <div className="p-2 rounded bg-cyan-950/60 border border-cyan-500/40 text-[11px] text-cyan-300 flex items-center justify-between gap-1.5">
+                    <div className="flex items-center gap-1.5">
+                      <CheckCircle2 className="w-3.5 h-3.5 shrink-0" />
+                      <span>Submitted early</span>
+                    </div>
+                    {st.timeSpentSeconds !== undefined && st.timeSpentSeconds > 0 && (
+                      <span className="font-mono font-bold text-white">
+                        ({formatTimeSpent(st.timeSpentSeconds)} taken)
+                      </span>
+                    )}
+                  </div>
+                )
               )}
 
               {/* Footer: Time Left & Action Buttons */}

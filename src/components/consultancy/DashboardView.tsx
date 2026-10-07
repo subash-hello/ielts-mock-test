@@ -5,7 +5,8 @@ import {
   QrCode,
   Users,
   Send,
-  X
+  X,
+  PenTool
 } from 'lucide-react';
 import type { Consultancy, LabStation } from '../../types/consultancy';
 import type { TestResult } from '../../types/ielts';
@@ -20,6 +21,7 @@ interface DashboardViewProps {
   onOpenLaunchModeB: () => void;
   onOpenPrintQRs: () => void;
   onOpenPairNewPC: () => void;
+  onNavigateToResults?: (filter?: 'all' | 'published' | 'submitted' | 'writing_pending') => void;
   onRefresh: () => void;
 }
 
@@ -31,6 +33,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   onOpenLaunchModeB,
   onOpenPrintQRs,
   onOpenPairNewPC,
+  onNavigateToResults,
   onRefresh,
 }) => {
   const [selectedStation, setSelectedStation] = useState<LabStation | null>(null);
@@ -65,6 +68,11 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   // Compute Today metrics
   const totalSubmissions = results.length;
   const pendingResults = results.filter((r) => !r.isPublished).length;
+  const isWritingTest = (r: TestResult) => r.module === 'writing' || !!r.writingSubmission;
+  const isUngradedWriting = (r: TestResult) =>
+    isWritingTest(r) && (!r.writingSubmission?.overallWritingBand || r.writingSubmission.overallWritingBand === 0);
+  const pendingWritingResults = results.filter(isUngradedWriting);
+
   const scoredResults = results.filter((r) => r.bandScore > 0);
   const avgBand =
     scoredResults.length > 0
@@ -133,6 +141,38 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
           </button>
         </div>
       </div>
+
+      {/* Pending Writing Evaluation Direct Alert Banner */}
+      {pendingWritingResults.length > 0 && (
+        <div className="p-4 sm:p-5 rounded-2xl bg-amber-50 border-2 border-amber-300 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4 animate-in fade-in">
+          <div className="flex items-start sm:items-center gap-3.5">
+            <div className="w-10 h-10 rounded-xl bg-amber-500 text-white flex items-center justify-center shrink-0 shadow-xs">
+              <PenTool className="w-5 h-5" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="font-display font-bold text-base text-amber-950">
+                  {pendingWritingResults.length} Writing Assessment{pendingWritingResults.length > 1 ? 's' : ''} Awaiting Examiner Evaluation
+                </span>
+                <span className="px-2 py-0.5 text-[10px] font-extrabold uppercase rounded-full bg-amber-200 text-amber-900 animate-pulse">
+                  Action Required
+                </span>
+              </div>
+              <p className="text-xs text-amber-900 mt-0.5">
+                Students have submitted Task 1 &amp; Task 2 essays. Official IELTS band scores must be evaluated and awarded manually by the examiner before publication.
+              </p>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={() => onNavigateToResults?.('writing_pending')}
+            className="btn-texture px-4 py-2 bg-[#0F1E33] hover:bg-[#1A2E4B] text-white text-xs font-bold shrink-0 flex items-center justify-center gap-2 shadow-sm cursor-pointer"
+          >
+            <PenTool className="w-3.5 h-3.5 text-[#C9A24B]" />
+            <span>Grade Writing Now →</span>
+          </button>
+        </div>
+      )}
 
       {/* ZONE 1: LAB STATUS (Blueprint 6.6) */}
       <div className="paper-card p-6 space-y-4">
@@ -257,16 +297,6 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
         <div className="paper-card p-5 space-y-1">
           <span className="text-xs font-bold uppercase tracking-wider text-[#5B6B82]">
-            Sessions Run
-          </span>
-          <div className="font-display text-2xl sm:text-3xl font-bold text-[#0F1E33]">
-            {Math.max(1, Math.ceil(totalSubmissions / 15))}
-          </div>
-          <p className="text-[11px] text-[#5B6B82]">Live batch examination</p>
-        </div>
-
-        <div className="paper-card p-5 space-y-1">
-          <span className="text-xs font-bold uppercase tracking-wider text-[#5B6B82]">
             Submissions
           </span>
           <div className="font-display text-2xl sm:text-3xl font-bold text-[#0F1E33]">
@@ -274,6 +304,32 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
           </div>
           <p className="text-[11px] text-[#5B6B82]">Completed exam papers</p>
         </div>
+
+        <button
+          type="button"
+          onClick={() => onNavigateToResults?.('writing_pending')}
+          className={`paper-card p-5 space-y-1 text-left transition cursor-pointer ${
+            pendingWritingResults.length > 0
+              ? 'border-2 border-amber-400 bg-amber-50/50 hover:bg-amber-100/70 shadow-xs'
+              : 'hover:border-[#C9A24B]'
+          }`}
+          title="Click to view writing submissions awaiting manual grading"
+        >
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-bold uppercase tracking-wider text-amber-900">
+              Pending Writing
+            </span>
+            {pendingWritingResults.length > 0 && (
+              <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse" />
+            )}
+          </div>
+          <div className="font-display text-2xl sm:text-3xl font-bold text-amber-900">
+            {pendingWritingResults.length}
+          </div>
+          <p className="text-[11px] text-amber-800">
+            {pendingWritingResults.length > 0 ? 'Needs manual examiner band' : 'All writing evaluated'}
+          </p>
+        </button>
 
         <div className="paper-card p-5 space-y-1">
           <span className="text-xs font-bold uppercase tracking-wider text-[#5B6B82]">
