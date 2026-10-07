@@ -174,6 +174,27 @@ export const App: React.FC = () => {
   remainingSecondsRef.current = remainingSeconds;
   const currentTestRef = useRef(currentTest);
   currentTestRef.current = currentTest;
+  const examStartTimeRef = useRef<number | null>(null);
+  const timeSpentSecondsRef = useRef<number>(0);
+
+  const syncExamSessionToStorage = (updates: Record<string, any>) => {
+    try {
+      const raw = localStorage.getItem('ielts_active_kiosk_exam_session');
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        localStorage.setItem(
+          'ielts_active_kiosk_exam_session',
+          JSON.stringify({
+            ...parsed,
+            ...updates,
+            lastUpdatedTimestamp: Date.now()
+          })
+        );
+      }
+    } catch {
+      // storage quota or parsing safeguard
+    }
+  };
 
   // Navigation function that updates history and state
   const navigateTo = (path: string) => {
@@ -199,6 +220,67 @@ export const App: React.FC = () => {
       const formatted = clean.startsWith('PC-') ? clean : `PC-${clean.replace(/^PC/i, '')}`;
       setTerminalStationName(formatted);
       localStorage.setItem('ielts_terminal_pc', formatted);
+    }
+
+    // QA-01: Check if an active exam session exists on reload and restore it
+    const savedExamRaw = typeof window !== 'undefined' ? localStorage.getItem('ielts_active_kiosk_exam_session') : null;
+    let hasRestoredActiveExam = false;
+
+    if (
+      savedExamRaw &&
+      !pathname.startsWith('/admin') &&
+      !pathname.startsWith('/consultancy') &&
+      !pathname.startsWith('/result')
+    ) {
+      try {
+        const savedExam = JSON.parse(savedExamRaw);
+        const elapsedSinceLastUpdate = Math.max(
+          0,
+          Math.floor((Date.now() - (savedExam.lastUpdatedTimestamp || Date.now())) / 1000)
+        );
+        const restoredRemaining = Math.max(
+          0,
+          (savedExam.remainingSeconds ?? 3600) - elapsedSinceLastUpdate
+        );
+
+        if (savedExam.test && restoredRemaining > 5) {
+          setCurrentTest(savedExam.test);
+          setSelectedFullMock(savedExam.fullMock);
+          if (savedExam.activeFullMock) {
+            setActiveFullMock(savedExam.activeFullMock);
+          }
+          if (savedExam.candidateInfo) {
+            setActiveCandidateInfo(savedExam.candidateInfo);
+          }
+          if (savedExam.terminalStationName) {
+            setTerminalStationName(savedExam.terminalStationName);
+          }
+          if (savedExam.consultancyId) {
+            setSelectedConsultancyId(savedExam.consultancyId);
+          }
+          if (savedExam.branchCode) {
+            setCurrentBranchCode(savedExam.branchCode);
+          }
+          setCurrentQuestion(savedExam.currentQuestion || 1);
+          setActiveSectionIndex(savedExam.activeSectionIndex || 0);
+          setAnswers(savedExam.answers || {});
+          setReviewStatus(savedExam.reviewStatus || {});
+          setRemainingSeconds(restoredRemaining);
+          timeSpentSecondsRef.current = (savedExam.timeSpentSeconds || 0) + elapsedSinceLastUpdate;
+          examStartTimeRef.current = savedExam.startedAtTimestamp || (Date.now() - timeSpentSecondsRef.current * 1000);
+          setActiveRoute('kiosk-exam');
+          hasRestoredActiveExam = true;
+        } else {
+          localStorage.removeItem('ielts_active_kiosk_exam_session');
+        }
+      } catch (e) {
+        console.warn('Failed to restore active exam session:', e);
+        localStorage.removeItem('ielts_active_kiosk_exam_session');
+      }
+    }
+
+    if (hasRestoredActiveExam) {
+      return;
     }
 
     if (pathname === '/result' || pathname.startsWith('/result')) {
@@ -306,23 +388,31 @@ export const App: React.FC = () => {
     };
   }, [selectedConsultancyId]);
 
-  // Exam Countdown Timer (Authoritative timer)
+  // QA-02: Authoritative Countdown Timer (does not reset on answers keystrokes)
   useEffect(() => {
     if (activeRoute !== 'kiosk-exam' || !currentTest || isExamPausedByTeacher) return;
 
     const timer = setInterval(() => {
+      timeSpentSecondsRef.current += 1;
       setRemainingSeconds((prev) => {
         if (prev <= 1) {
           clearInterval(timer);
           finishExam();
           return 0;
         }
-        return prev - 1;
+        const nextSec = prev - 1;
+        if (nextSec % 5 === 0) {
+          syncExamSessionToStorage({
+            remainingSeconds: nextSec,
+            timeSpentSeconds: timeSpentSecondsRef.current
+          });
+        }
+        return nextSec;
       });
     }, 1000);
 
     return () => clearInterval(timer);
-  }, [activeRoute, currentTest, answers, isExamPausedByTeacher]);
+  }, [activeRoute, currentTest, isExamPausedByTeacher]);
 
   // Breather intermission between Full Mock sections (Blueprint: 10-second breather screen)
   const handleProceedToNextFullMockSection = () => {
@@ -337,9 +427,38 @@ export const App: React.FC = () => {
       setAnswers({});
       setReviewStatus({});
       setRemainingSeconds(readingTest.durationMinutes * 60);
-      setActiveFullMock((prev) => (prev ? { ...prev, currentStep: 'reading' } : null));
+      timeSpentSecondsRef.current = 0;
+      examStartTimeRef.current = Date.now();
+      const updatedFullMock = { ...activeFullMock, currentStep: 'reading' as const };
+      setActiveFullMock(updatedFullMock);
       setIsExamPausedByTeacher(false);
       setActiveRoute('kiosk-exam');
+
+      try {
+        localStorage.setItem(
+          'ielts_active_kiosk_exam_session',
+          JSON.stringify({
+            testId: readingTest.id,
+            test: readingTest,
+            fullMock: activeFullMock.fullMock,
+            candidateInfo: activeCandidateInfo,
+            currentQuestion: 1,
+            activeSectionIndex: 0,
+            answers: {},
+            reviewStatus: {},
+            remainingSeconds: readingTest.durationMinutes * 60,
+            timeSpentSeconds: 0,
+            startedAtTimestamp: Date.now(),
+            lastUpdatedTimestamp: Date.now(),
+            consultancyId: selectedConsultancyId,
+            branchCode: currentBranchCode,
+            terminalStationName,
+            activeFullMock: updatedFullMock
+          })
+        );
+      } catch (e) {
+        console.warn('Failed to update full mock storage:', e);
+      }
       return;
     }
 
@@ -351,9 +470,38 @@ export const App: React.FC = () => {
       setAnswers({});
       setReviewStatus({});
       setRemainingSeconds(writingTest.durationMinutes * 60);
-      setActiveFullMock((prev) => (prev ? { ...prev, currentStep: 'writing' } : null));
+      timeSpentSecondsRef.current = 0;
+      examStartTimeRef.current = Date.now();
+      const updatedFullMock = { ...activeFullMock, currentStep: 'writing' as const };
+      setActiveFullMock(updatedFullMock);
       setIsExamPausedByTeacher(false);
       setActiveRoute('kiosk-exam');
+
+      try {
+        localStorage.setItem(
+          'ielts_active_kiosk_exam_session',
+          JSON.stringify({
+            testId: writingTest.id,
+            test: writingTest,
+            fullMock: activeFullMock.fullMock,
+            candidateInfo: activeCandidateInfo,
+            currentQuestion: 1,
+            activeSectionIndex: 0,
+            answers: {},
+            reviewStatus: {},
+            remainingSeconds: writingTest.durationMinutes * 60,
+            timeSpentSeconds: 0,
+            startedAtTimestamp: Date.now(),
+            lastUpdatedTimestamp: Date.now(),
+            consultancyId: selectedConsultancyId,
+            branchCode: currentBranchCode,
+            terminalStationName,
+            activeFullMock: updatedFullMock
+          })
+        );
+      } catch (e) {
+        console.warn('Failed to update full mock storage:', e);
+      }
       return;
     }
   };
@@ -385,6 +533,7 @@ export const App: React.FC = () => {
         if (!payload?.testId) {
           if (!payload?.consultancyId || payload.consultancyId === cId) {
             if (activeRoute === 'kiosk-exam') {
+              localStorage.removeItem('ielts_active_kiosk_exam_session');
               alert('The examination session has been concluded by the consultancy invigilator.');
               setActiveRoute('kiosk-student');
             }
@@ -409,13 +558,18 @@ export const App: React.FC = () => {
             setIsExamPausedByTeacher(false);
           } else if (command === 'EXTEND_TIME') {
             const addedSecs = (Number(payload) || 5) * 60;
-            setRemainingSeconds((prev) => prev + addedSecs);
+            setRemainingSeconds((prev) => {
+              const nextSec = prev + addedSecs;
+              syncExamSessionToStorage({ remainingSeconds: nextSec });
+              return nextSec;
+            });
             alert(`Your remaining exam time has been extended by +${Number(payload) || 5} minutes by the invigilator.`);
           } else if (command === 'BROADCAST_MESSAGE') {
             setInvigilatorMessageBanner(String(payload || ''));
           } else if (command === 'FORCE_SUBMIT') {
             finishExam();
           } else if (command === 'RESET_STATION' || command === 'END_TEST') {
+            localStorage.removeItem('ielts_active_kiosk_exam_session');
             alert('Your examination session was concluded by the consultancy invigilator.');
             setActiveRoute('kiosk-student');
           }
@@ -480,21 +634,30 @@ export const App: React.FC = () => {
 
   // Answer handler
   const handleAnswerChange = (qNum: number, value: string | string[]) => {
-    setAnswers((prev) => ({
-      ...prev,
-      [qNum]: value
-    }));
+    setAnswers((prev) => {
+      const next = {
+        ...prev,
+        [qNum]: value
+      };
+      syncExamSessionToStorage({ answers: next });
+      return next;
+    });
   };
 
   const handleToggleReview = (qNum: number) => {
-    setReviewStatus((prev) => ({
-      ...prev,
-      [qNum]: !prev[qNum]
-    }));
+    setReviewStatus((prev) => {
+      const next = {
+        ...prev,
+        [qNum]: !prev[qNum]
+      };
+      syncExamSessionToStorage({ reviewStatus: next });
+      return next;
+    });
   };
 
   const handleSelectQuestion = (qNum: number) => {
     setCurrentQuestion(qNum);
+    syncExamSessionToStorage({ currentQuestion: qNum });
     if (!currentTest) return;
 
     if (currentTest.module === 'reading') {
@@ -511,6 +674,7 @@ export const App: React.FC = () => {
 
   const handleSelectSection = (index: number) => {
     setActiveSectionIndex(index);
+    syncExamSessionToStorage({ activeSectionIndex: index });
     if (!currentTest) return;
 
     if (currentTest.module === 'reading') {
@@ -527,14 +691,14 @@ export const App: React.FC = () => {
     setCurrentTest(testToRun);
     setSelectedFullMock(fullMock);
 
-    if (fullMock) {
-      setActiveFullMock({
-        fullMock,
-        currentStep: fullMock.listeningTest.id === testToRun.id ? 'listening' : 'reading'
-      });
-    } else {
-      setActiveFullMock(null);
-    }
+    const initialFullMockState = fullMock
+      ? {
+          fullMock,
+          currentStep: (fullMock.listeningTest.id === testToRun.id ? 'listening' : 'reading') as 'listening' | 'reading' | 'writing'
+        }
+      : null;
+
+    setActiveFullMock(initialFullMockState);
     setShowFullMockIntermission(false);
 
     setCurrentQuestion(1);
@@ -542,8 +706,36 @@ export const App: React.FC = () => {
     setAnswers({});
     setReviewStatus({});
     setRemainingSeconds(testToRun.durationMinutes * 60);
+    timeSpentSecondsRef.current = 0;
+    examStartTimeRef.current = Date.now();
     setIsExamPausedByTeacher(false);
     setActiveRoute('kiosk-exam');
+
+    try {
+      localStorage.setItem(
+        'ielts_active_kiosk_exam_session',
+        JSON.stringify({
+          testId: testToRun.id,
+          test: testToRun,
+          fullMock,
+          candidateInfo: activeCandidateInfo,
+          currentQuestion: 1,
+          activeSectionIndex: 0,
+          answers: {},
+          reviewStatus: {},
+          remainingSeconds: testToRun.durationMinutes * 60,
+          timeSpentSeconds: 0,
+          startedAtTimestamp: Date.now(),
+          lastUpdatedTimestamp: Date.now(),
+          consultancyId: selectedConsultancyId,
+          branchCode: currentBranchCode,
+          terminalStationName,
+          activeFullMock: initialFullMockState
+        })
+      );
+    } catch (e) {
+      console.warn('Failed to save exam session:', e);
+    }
   };
 
   // Finalize exam and calculate scores
@@ -563,7 +755,12 @@ export const App: React.FC = () => {
 
     const totalQuestions = isWriting ? 2 : (allQuestions.length || 40);
     const bandScore = isWriting ? (writingSub?.overallWritingBand || 0) : calculateBandScore(activeTest.module, correctCount);
-    const timeTaken = activeTest.durationMinutes * 60 - curRemaining;
+
+    // QA-02: Authoritative wall-clock time spent calculation
+    const calculatedTimeTaken = timeSpentSecondsRef.current > 0
+      ? timeSpentSecondsRef.current
+      : (activeTest.durationMinutes * 60 - curRemaining);
+    const timeTaken = Math.min(activeTest.durationMinutes * 60, Math.max(1, calculatedTimeTaken));
 
     const studentName = activeCandidateInfo?.name || 'Candidate';
     const candId = activeCandidateInfo?.candidateId || '00' + Math.floor(1000 + Math.random() * 9000);
@@ -578,7 +775,7 @@ export const App: React.FC = () => {
       totalQuestions,
       correctCount,
       bandScore,
-      timeTakenSeconds: Math.max(1, timeTaken),
+      timeTakenSeconds: timeTaken,
       completedAt: new Date().toISOString(),
       answers: curAnswers,
       candidateName: studentName,
@@ -605,7 +802,7 @@ export const App: React.FC = () => {
       bandScore,
       correctCount,
       totalQuestions,
-      timeTakenSeconds: Math.max(1, timeTaken),
+      timeTakenSeconds: timeTaken,
       completedAt: newResult.completedAt,
       consultancyId: cid,
       testId: activeTest.id,
@@ -659,6 +856,9 @@ export const App: React.FC = () => {
       setActiveFullMock((prev) => (prev ? { ...prev, writingResult: newResult, overallBand } : null));
     }
 
+    // Exam completely concluded - clear active session storage
+    localStorage.removeItem('ielts_active_kiosk_exam_session');
+
     // Route to submission confirmation receipt (Blueprint 6.5 Done)
     setActiveRoute('kiosk-done');
   };
@@ -675,6 +875,7 @@ export const App: React.FC = () => {
 
   // Master Logout (Rule 10: Clear shared-PC prior session data)
   const handleLogout = () => {
+    localStorage.removeItem('ielts_active_kiosk_exam_session');
     ConsultancyService.logoutCandidate();
     ConsultancyService.logoutAdmin();
     setCandidateSession(null);
@@ -836,6 +1037,7 @@ export const App: React.FC = () => {
             onUpdateSettings={(newSet) => setSettings((prev) => ({ ...prev, ...newSet }))}
             onExitTest={() => {
               if (window.confirm('Return to previous screen? Your current exam session will be interrupted.')) {
+                localStorage.removeItem('ielts_active_kiosk_exam_session');
                 setActiveRoute('kiosk-student');
               }
             }}

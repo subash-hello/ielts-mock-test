@@ -31,6 +31,14 @@ export const StudentNameView: React.FC<StudentNameViewProps> = ({
     const list = ConsultancyService.getStudents(consultancyId);
     setCandidatesList(list);
 
+    // If station already had an active candidate session, pre-populate to avoid duplicate IDs (QA-01)
+    const currentSession = ConsultancyService.getCurrentCandidateSession();
+    if (currentSession?.candidateName) {
+      setStudentName(currentSession.candidateName);
+      setCandidateId(currentSession.candidateId);
+      if (currentSession.targetBand) setTargetBand(currentSession.targetBand);
+    }
+
     // Focus input automatically
     inputRef.current?.focus();
   }, [consultancyId]);
@@ -65,13 +73,18 @@ export const StudentNameView: React.FC<StudentNameViewProps> = ({
     const finalName = studentName.trim();
     if (!finalName) return;
 
-    // Use selected ID or generate a deterministic or temporary candidate ID
-    const finalId = candidateId || '00' + Math.floor(1000 + Math.random() * 9000);
+    // Check if student already exists in registry to prevent duplicate candidate numbers (QA-01)
+    const existing = candidatesList.find(
+      (c) => c.fullName.trim().toLowerCase() === finalName.toLowerCase()
+    );
+
+    const finalId = candidateId || existing?.candidateNumber || '00' + Math.floor(1000 + Math.random() * 9000);
+    const finalTargetBand = targetBand !== undefined ? targetBand : existing?.targetBand;
 
     onContinue({
       name: finalName,
       candidateId: finalId,
-      targetBand: targetBand,
+      targetBand: finalTargetBand,
     });
   };
 

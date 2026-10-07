@@ -133,11 +133,11 @@ export const PcsView: React.FC<PcsViewProps> = ({
             <span>Per-PC Direct Links</span>
           </div>
           <p className="text-xs text-[#5B6B82]">
-            Zero choices, zero mistakes. Bookmark or set as browser homepage on each PC.
+            Zero choices, zero mistakes. Direct station URL binds PC identity; enter branch PIN once to pair.
           </p>
           <div className="p-2.5 bg-white border border-[#5B6B82]/20 rounded-lg flex items-center justify-between text-xs font-mono">
             <span className="truncate text-[#0F1E33]">{universalUrl}/pc-01</span>
-            <span className="text-[10px] text-[#C9A24B] uppercase font-sans font-bold">Auto-Pair</span>
+            <span className="text-[10px] text-[#C9A24B] uppercase font-sans font-bold">Station Link</span>
           </div>
         </div>
 
@@ -150,7 +150,7 @@ export const PcsView: React.FC<PcsViewProps> = ({
             <span>Printed Desk QRs</span>
           </div>
           <p className="text-xs text-[#5B6B82]">
-            Stick a QR sticker on each desk. Any laptop or replacement PC scans and becomes that station.
+            Stick a QR sticker on each desk. Any laptop scans to bind that station; enter branch PIN once to authenticate.
           </p>
           <button
             type="button"
@@ -229,7 +229,7 @@ export const PcsView: React.FC<PcsViewProps> = ({
                     </td>
 
                     <td className="py-3.5 px-4">
-                      {st.currentCandidate?.name ? (
+                      {st.currentCandidate?.name && (st.status === 'in_progress' || st.status === 'paused') ? (
                         <span className="font-bold text-[#0F1E33]">
                           {st.currentCandidate.name}
                         </span>

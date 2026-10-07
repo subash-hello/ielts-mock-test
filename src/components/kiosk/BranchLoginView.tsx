@@ -199,16 +199,6 @@ export const BranchLoginView: React.FC<BranchLoginViewProps> = ({
             </p>
           </div>
         </div>
-
-        {/* Directory fallback */}
-        <div className="text-center">
-          <button
-            onClick={onBackToDirectory}
-            className="text-xs text-[#5B6B82] hover:text-[#0F1E33] underline underline-offset-4"
-          >
-            ← View all branches
-          </button>
-        </div>
       </div>
 
       {/* First-time Setup Dialog */}

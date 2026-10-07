@@ -233,18 +233,31 @@ export const AIDiagnosticReportModal: React.FC<AIDiagnosticReportModalProps> = (
               <span className="text-[10px] uppercase font-semibold text-slate-500 block">
                 Target Score Gap
               </span>
-              <span
-                className={`text-lg font-extrabold ${
-                  diagnostic.bandGap <= 0 ? 'text-emerald-600' : 'text-amber-600'
-                }`}
-              >
-                {diagnostic.bandGap <= 0
-                  ? 'Target Achieved ✓'
-                  : `-${diagnostic.bandGap} Band to Goal (${diagnostic.targetBand.toFixed(1)})`}
-              </span>
-              <span className="text-xs text-slate-500 block mt-1">
-                Estimated prep time: ~3 to 4 weeks
-              </span>
+              {diagnostic.targetBand && diagnostic.targetBand > 0 ? (
+                <>
+                  <span
+                    className={`text-lg font-extrabold ${
+                      (diagnostic.bandGap ?? 0) <= 0 ? 'text-emerald-600' : 'text-amber-600'
+                    }`}
+                  >
+                    {(diagnostic.bandGap ?? 0) <= 0
+                      ? 'Target Achieved ✓'
+                      : `-${diagnostic.bandGap} Band to Goal (${diagnostic.targetBand.toFixed(1)})`}
+                  </span>
+                  <span className="text-xs text-slate-500 block mt-1">
+                    Estimated prep time: ~3 to 4 weeks
+                  </span>
+                </>
+              ) : (
+                <>
+                  <span className="text-sm font-bold text-slate-600">
+                    Baseline Assessment
+                  </span>
+                  <span className="text-xs text-slate-500 block mt-1">
+                    No target band specified
+                  </span>
+                </>
+              )}
             </div>
           </div>
 

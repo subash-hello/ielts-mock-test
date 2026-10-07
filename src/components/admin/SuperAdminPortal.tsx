@@ -298,7 +298,7 @@ export const SuperAdminPortal: React.FC<SuperAdminPortalProps> = ({
                       {/* Universal Branch Link */}
                       <div className="p-2.5 bg-white border border-[#5B6B82]/20 rounded-lg space-y-1">
                         <span className="text-[10px] font-bold uppercase tracking-wider text-[#5B6B82] block">
-                          Branch Login Link (Section 6.1)
+                          Branch Student Kiosk Link
                         </span>
                         <div className="flex items-center justify-between text-xs font-mono">
                           <span className="truncate text-[#0F1E33]">{branchLink}</span>
@@ -449,7 +449,7 @@ export const SuperAdminPortal: React.FC<SuperAdminPortalProps> = ({
                 Credits & PC Licenses Management
               </h1>
               <p className="text-xs text-[#5B6B82]">
-                Rule 7: Credits and PC counts labeled strictly separately, never mixed
+                Hardware workstation limits and candidate test credits are tracked independently
               </p>
             </div>
 

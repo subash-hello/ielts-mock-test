@@ -2,11 +2,13 @@ import React, { useState } from 'react';
 import {
   Sparkles,
   Search,
-  RotateCcw
+  RotateCcw,
+  Trash2
 } from 'lucide-react';
 import type { Consultancy, SavedAIReport } from '../../types/consultancy';
 import { formatAppTimestamp, formatTimeSpent } from '../../utils/formatters';
 import { AIDiagnosticReportModal } from '../results/AIDiagnosticReportModal';
+import { ConsultancyService } from '../../services/consultancyService';
 
 interface AIReportsViewProps {
   consultancy: Consultancy;
@@ -21,6 +23,19 @@ export const AIReportsView: React.FC<AIReportsViewProps> = ({
 }) => {
   const [search, setSearch] = useState('');
   const [selectedReport, setSelectedReport] = useState<SavedAIReport | null>(null);
+  const [deletingReport, setDeletingReport] = useState<SavedAIReport | null>(null);
+
+  const handleDeleteConfirm = () => {
+    if (!deletingReport) return;
+    ConsultancyService.deleteReport(
+      consultancy.id,
+      deletingReport.testId,
+      deletingReport.candidateId,
+      deletingReport.completedAt
+    );
+    setDeletingReport(null);
+    onRefresh();
+  };
 
   const filtered = reports.filter(
     (r) =>
@@ -121,18 +136,62 @@ export const AIReportsView: React.FC<AIReportsViewProps> = ({
 
                 <div className="pt-3 border-t border-[#5B6B82]/10 flex items-center justify-between">
                   <span className="text-[10px] text-[#5B6B82]">{dateStr}</span>
-                  <button
-                    type="button"
-                    onClick={() => setSelectedReport(rep)}
-                    className="btn-texture px-3 py-1.5 bg-[#0F1E33] hover:bg-[#1A2E4B] text-white text-xs font-semibold flex items-center gap-1.5 shadow-2xs"
-                  >
-                    <Sparkles className="w-3.5 h-3.5 text-[#C9A24B]" />
-                    <span>View Report</span>
-                  </button>
+                  <div className="flex items-center gap-1.5">
+                    <button
+                      type="button"
+                      onClick={() => setDeletingReport(rep)}
+                      className="p-1.5 text-[#C0392B] hover:text-red-700 rounded hover:bg-red-50 border border-transparent hover:border-red-200 transition"
+                      title="Delete Diagnostic Report"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setSelectedReport(rep)}
+                      className="btn-texture px-3 py-1.5 bg-[#0F1E33] hover:bg-[#1A2E4B] text-white text-xs font-semibold flex items-center gap-1.5 shadow-2xs"
+                    >
+                      <Sparkles className="w-3.5 h-3.5 text-[#C9A24B]" />
+                      <span>View Report</span>
+                    </button>
+                  </div>
                 </div>
               </div>
             );
           })}
+        </div>
+      )}
+
+      {/* Delete Confirmation Modal (QA-03) */}
+      {deletingReport && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[#0F1E33]/60 backdrop-blur-xs animate-in fade-in">
+          <div className="paper-card max-w-md w-full p-6 space-y-4 bg-[#FAF8F3]">
+            <h3 className="font-display text-lg font-bold text-[#0F1E33]">
+              Delete Diagnostic Report?
+            </h3>
+            <p className="text-sm text-[#5B6B82] leading-relaxed">
+              Are you sure you want to remove the AI diagnostic report for{' '}
+              <strong className="text-[#0F1E33]">{deletingReport.studentName}</strong> (#{deletingReport.candidateId})?
+            </p>
+            <div className="p-3 bg-slate-100 rounded-lg text-xs font-mono text-[#0F1E33]">
+              {deletingReport.testTitle} · Band {deletingReport.bandScore.toFixed(1)}
+            </div>
+            <div className="flex justify-end gap-2 pt-2">
+              <button
+                type="button"
+                onClick={() => setDeletingReport(null)}
+                className="btn-texture px-4 py-2 bg-transparent text-xs text-[#5B6B82] border border-[#5B6B82]/30"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleDeleteConfirm}
+                className="btn-texture px-5 py-2 bg-[#C0392B] hover:bg-[#A93226] text-white text-xs font-bold"
+              >
+                Delete Report
+              </button>
+            </div>
+          </div>
         </div>
       )}
 

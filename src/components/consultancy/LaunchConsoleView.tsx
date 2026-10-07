@@ -69,7 +69,7 @@ export const LaunchConsoleView: React.FC<LaunchConsoleViewProps> = ({
     const hb = st.lastHeartbeat ? new Date(st.lastHeartbeat).getTime() : 0;
     return Date.now() - hb < 45000;
   });
-  const connectedCount = activeStations.length || stations.length;
+  const connectedCount = activeStations.length;
 
   // Selected test preview in Mode A
   const getSelectedModeATest = (): { test?: IELTSMockTest; fullMock?: FullMockTest; title: string; duration: number } => {
@@ -198,8 +198,8 @@ export const LaunchConsoleView: React.FC<LaunchConsoleViewProps> = ({
             <span className="text-xs font-semibold uppercase tracking-wider text-[#C9A24B]">
               Exam Orchestrator
             </span>
-            <span className="text-[11px] font-mono px-2 py-0.5 rounded bg-emerald-100 text-[#2E7D4F] font-bold">
-              ● {connectedCount} Stations Connected
+            <span className={`text-[11px] font-mono px-2 py-0.5 rounded font-bold ${connectedCount > 0 ? 'bg-emerald-100 text-[#2E7D4F]' : 'bg-slate-200 text-[#5B6B82]'}`}>
+              ● {connectedCount} {connectedCount === 1 ? 'Station' : 'Stations'} Online
             </span>
           </div>
           <h1 className="font-display text-2xl font-bold text-[#0F1E33] mt-0.5">
@@ -541,11 +541,11 @@ export const LaunchConsoleView: React.FC<LaunchConsoleViewProps> = ({
         </div>
       )}
 
-      {/* Confirmation Modal for End Session (Rule 1) */}
+      {/* Confirmation Modal for End Session */}
       <ConfirmationModal
         isOpen={showEndSessionModal}
         title="End Active Examination Session?"
-        message={`End the exam on all ${connectedCount} PCs? Students' current answers will be submitted as-is.`}
+        message={connectedCount > 0 ? `End the exam on all ${connectedCount} active station${connectedCount === 1 ? '' : 's'}? Current exam sessions will be concluded.` : 'Conclude the active laboratory session across all workstations?'}
         confirmLabel="End Session"
         cancelLabel="Keep Working"
         isDestructive={true}

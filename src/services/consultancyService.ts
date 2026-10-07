@@ -103,7 +103,7 @@ const DEFAULT_CONSULTANCIES: Consultancy[] = [
   },
   {
     id: 'kiec-lalitpur',
-    name: 'Kiec lalitpur',
+    name: 'KIEC Lalitpur',
     branch: 'Lalitpur',
     adminEmail: 'kiec@gmail.com',
     phone: '9763876490',
@@ -1733,6 +1733,7 @@ export class ConsultancyService {
             if (st.assignedTestId || st.status === 'assigned' || st.status === 'in_progress' || st.status === 'paused') {
               st.status = 'idle';
               delete st.assignedTestId;
+              delete st.currentCandidate;
               delete st.testTitle;
               delete st.module;
               delete st.isFullMock;
@@ -1917,15 +1918,30 @@ export class ConsultancyService {
     this.broadcast('STUDENT_UPDATED', { consultancyId: canonical, student: cleanStd });
   }
 
-  public static deleteStudent(consultancyId: string, studentId: string): void {
+  public static deleteStudent(consultancyId: string, studentId: string, cascadeDeleteData: boolean = false): void {
     const canonical = this.getCanonicalConsultancyId(consultancyId);
     const aliases = this.getConsultancyAliases(consultancyId);
     const list = this.getStudents(canonical);
+    const targetStudent = list.find((s) => s.id === studentId || s.candidateNumber === studentId);
     const updated = list.filter((s) => s.id !== studentId && s.candidateNumber !== studentId);
     const serialized = JSON.stringify(updated);
     for (const key of aliases) {
       localStorage.setItem(`ielts_students_${key}`, serialized);
     }
+
+    if (cascadeDeleteData && targetStudent) {
+      const candNum = targetStudent.candidateNumber;
+      // Delete results
+      const results = this.getResults(canonical);
+      const remainingResults = results.filter((r) => r.candidateId !== candNum);
+      const resSerialized = JSON.stringify(remainingResults);
+      for (const key of aliases) {
+        localStorage.setItem(`ielts_results_${key}`, resSerialized);
+      }
+      // Delete AI reports (QA-03)
+      this.deleteReportsForStudent(canonical, candNum);
+    }
+
     this.broadcast('STUDENT_UPDATED', { consultancyId: canonical, studentId });
   }
 
@@ -2357,6 +2373,48 @@ export class ConsultancyService {
       }
     } catch {}
 
+    // Also remove matching AI report if present (QA-03)
+    try {
+      const reports = this.getReports(canonical);
+      const filteredReports = reports.filter((rep) => {
+        const matchTest = !testId || rep.testId === testId;
+        const matchCand = !candidateId || rep.candidateId === candidateId;
+        const matchTime = !completedAt || rep.completedAt === completedAt;
+        return !(matchTest && matchCand && matchTime);
+      });
+      const repSerialized = JSON.stringify(filteredReports);
+      for (const key of aliases) {
+        localStorage.setItem(`ielts_reports_${key}`, repSerialized);
+      }
+    } catch {}
+
+    // Recalculate student candidate stats if candidateId is provided (QA-03)
+    if (candidateId) {
+      try {
+        const students = this.getStudents(canonical);
+        const std = students.find((s) => s.candidateNumber === candidateId || s.id === candidateId);
+        if (std) {
+          const remainingForCand = updated.filter((r) => r.candidateId === candidateId);
+          std.testsCompletedCount = remainingForCand.length;
+          if (remainingForCand.length > 0) {
+            const bands = remainingForCand.map((r) => r.bandScore || 0);
+            std.highestBand = Math.max(...bands);
+            std.averageBand = Number((bands.reduce((a, b) => a + b, 0) / bands.length).toFixed(1));
+            std.latestResultId = remainingForCand[0].testId;
+          } else {
+            std.highestBand = 0;
+            std.averageBand = 0;
+            delete std.latestResultId;
+          }
+          const stdSerialized = JSON.stringify(students);
+          for (const key of aliases) {
+            localStorage.setItem(`ielts_students_${key}`, stdSerialized);
+          }
+          this.broadcast('STUDENT_UPDATED', { consultancyId: canonical, candidateId });
+        }
+      } catch {}
+    }
+
     this.broadcast('RESULT_DELETED', { consultancyId: canonical, testId, candidateId, completedAt });
   }
 
@@ -2366,8 +2424,57 @@ export class ConsultancyService {
     const aliases = this.getConsultancyAliases(consultancyId);
     for (const key of aliases) {
       localStorage.setItem(`ielts_results_${key}`, JSON.stringify([]));
+      localStorage.setItem(`ielts_reports_${key}`, JSON.stringify([]));
     }
+    // Also reset candidate statistics
+    try {
+      const students = this.getStudents(canonical);
+      students.forEach((s) => {
+        s.testsCompletedCount = 0;
+        s.highestBand = 0;
+        s.averageBand = 0;
+        delete s.latestResultId;
+      });
+      const stdSerialized = JSON.stringify(students);
+      for (const key of aliases) {
+        localStorage.setItem(`ielts_students_${key}`, stdSerialized);
+      }
+    } catch {}
     this.broadcast('ALL_RESULTS_CLEARED', { consultancyId: canonical });
+  }
+
+  public static deleteReport(
+    consultancyId: string,
+    testId?: string,
+    candidateId?: string,
+    completedAt?: string
+  ): void {
+    const canonical = this.getCanonicalConsultancyId(consultancyId);
+    const aliases = this.getConsultancyAliases(consultancyId);
+    const list = this.getReports(canonical);
+    const updated = list.filter((r) => {
+      const matchTest = !testId || r.testId === testId;
+      const matchCand = !candidateId || r.candidateId === candidateId;
+      const matchTime = !completedAt || r.completedAt === completedAt;
+      return !(matchTest && matchCand && matchTime);
+    });
+    const serialized = JSON.stringify(updated);
+    for (const key of aliases) {
+      localStorage.setItem(`ielts_reports_${key}`, serialized);
+    }
+    this.broadcast('REPORT_DELETED', { consultancyId: canonical, testId, candidateId, completedAt });
+  }
+
+  public static deleteReportsForStudent(consultancyId: string, candidateId: string): void {
+    const canonical = this.getCanonicalConsultancyId(consultancyId);
+    const aliases = this.getConsultancyAliases(consultancyId);
+    const list = this.getReports(canonical);
+    const updated = list.filter((r) => r.candidateId !== candidateId);
+    const serialized = JSON.stringify(updated);
+    for (const key of aliases) {
+      localStorage.setItem(`ielts_reports_${key}`, serialized);
+    }
+    this.broadcast('REPORTS_CLEARED_FOR_STUDENT', { consultancyId: canonical, candidateId });
   }
 
   // --- LAB WORKSTATION TELEMETRY & SUBMISSION SYNC ENGINE ---
@@ -2801,20 +2908,24 @@ export class ConsultancyService {
     customTestTitle?: string
   ): AIDiagnosticReport {
     const band = result.bandScore;
-    const target = 7.5;
-    const bandGap = Number((target - band).toFixed(1));
+    const target = result.targetBand && result.targetBand > 0 ? result.targetBand : null;
+    const bandGap = target !== null ? Number((target - band).toFixed(1)) : null;
     const percent = Math.round((result.correctCount / (result.totalQuestions || 40)) * 100);
 
     const cefr =
       band >= 8.5
         ? 'C2 - Mastery / Native Operational'
-        : band >= 7.5
+        : band >= 7.0
         ? 'C1 - Effective Operational Proficiency'
-        : band >= 6.5
-        ? 'B2 - Independent User (High Proficiency)'
         : band >= 5.5
-        ? 'B2 - Independent User (Threshold)'
-        : 'B1 - Intermediate User';
+        ? 'B2 - Independent User (High Proficiency)'
+        : band >= 4.0
+        ? 'B1 - Intermediate User (Threshold)'
+        : band >= 3.0
+        ? 'A2 - Basic User (Waystage)'
+        : band >= 2.0
+        ? 'A1 - Breakthrough User'
+        : 'Pre-A1 - Non User / Novice';
 
     const timeMins = Math.floor(result.timeTakenSeconds / 60);
     const timeSecs = result.timeTakenSeconds % 60;
@@ -2858,7 +2969,7 @@ export class ConsultancyService {
       advice.push('Focus on maintaining speed under 16 minutes per passage to reserve 8 minutes for proofreading.');
     } else {
       weaknesses.push('Struggles with subtle qualifying vocabulary (e.g. "seldom", "almost exclusively", "tentatively").');
-      weaknesses.push('High latency on Matching Headings — spending over 2.5 minutes per paragraph.');
+      weaknesses.push('Matching Headings and paragraph summary questions require disciplined time allocation.');
       advice.push('Drill True/False/Not Given questions focusing strictly on distinguishing "False" (contradiction) from "Not Given" (absence of proof).');
     }
 

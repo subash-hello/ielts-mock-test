@@ -38,10 +38,11 @@ export const PublicResultLookupView: React.FC<PublicResultLookupViewProps> = ({
     const clean = queryId.trim();
     if (!clean) return;
 
-    // Find results for this candidate ID (both published and unpublished to inform the candidate properly)
+    // Only return officially published results (QA-04: Withdrawn / unpublished records must be completely withheld)
     const all = ConsultancyService.getAllResultsAcrossConsultancies();
     const candidateEntries = all.filter(
       (r: TestResult) =>
+        r.isPublished === true &&
         r.candidateId &&
         r.candidateId.toLowerCase().replace(/[^a-z0-9]/g, '') === clean.toLowerCase().replace(/[^a-z0-9]/g, '')
     );
@@ -130,10 +131,10 @@ export const PublicResultLookupView: React.FC<PublicResultLookupViewProps> = ({
               <div className="paper-card p-8 text-center space-y-3">
                 <AlertCircle className="w-8 h-8 text-[#C9A24B] mx-auto" />
                 <h3 className="font-display text-base font-bold text-[#0F1E33]">
-                  No Record Found
+                  No Published Records Found
                 </h3>
                 <p className="text-xs text-[#5B6B82] max-w-sm mx-auto">
-                  No mock test records match candidate ID <span className="font-mono text-[#0F1E33]">#{candidateId}</span>. Please verify your candidate number with your consultancy invigilator.
+                  No published mock test records match candidate ID <span className="font-mono text-[#0F1E33]">#{candidateId}</span>. If you recently took an exam, results will appear here once officially published by your consultancy invigilator.
                 </p>
               </div>
             ) : (

@@ -89,8 +89,8 @@ export interface AIDiagnosticReport {
   module: 'reading' | 'listening' | 'writing';
   date: string;
   overallBand: number;
-  targetBand: number;
-  bandGap: number;
+  targetBand?: number | null;
+  bandGap?: number | null;
   cefrLevel: string; // e.g. "C1 - Operational Proficiency"
   accuracyPercentage: number;
   timeSpentFormatted: string;

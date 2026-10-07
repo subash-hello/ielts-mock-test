@@ -31,9 +31,9 @@ export const CandidatesView: React.FC<CandidatesViewProps> = ({
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
-  const [targetBand, setTargetBand] = useState<string>('7.0');
+  const [targetBand, setTargetBand] = useState<string>('');
 
-  // Delete modal state (Rule 1 & Rule 5)
+  // Delete modal state
   const [deletingStudent, setDeletingStudent] = useState<ConsultancyStudent | null>(null);
   const [alsoDeleteResults, setAlsoDeleteResults] = useState(true);
 
@@ -48,7 +48,7 @@ export const CandidatesView: React.FC<CandidatesViewProps> = ({
     setName('');
     setEmail('');
     setPhone('');
-    setTargetBand('7.0');
+    setTargetBand('');
     setEditingStudent(null);
     setShowAddModal(true);
   };
@@ -57,7 +57,7 @@ export const CandidatesView: React.FC<CandidatesViewProps> = ({
     setName(cand.fullName);
     setEmail(cand.email || '');
     setPhone(cand.phone || '');
-    setTargetBand(String(cand.targetBand || 7.0));
+    setTargetBand(cand.targetBand && cand.targetBand > 0 ? String(cand.targetBand) : '');
     setEditingStudent(cand);
     setShowAddModal(true);
   };
@@ -72,7 +72,7 @@ export const CandidatesView: React.FC<CandidatesViewProps> = ({
         fullName: name.trim(),
         email: email.trim() || '',
         phone: phone.trim() || '',
-        targetBand: Number(targetBand) || 7.0,
+        targetBand: targetBand ? Number(targetBand) : 0,
       });
     } else {
       // Add student
@@ -80,7 +80,7 @@ export const CandidatesView: React.FC<CandidatesViewProps> = ({
         fullName: name.trim(),
         email: email.trim() || '',
         phone: phone.trim() || '',
-        targetBand: Number(targetBand) || 7.0,
+        targetBand: targetBand ? Number(targetBand) : 0,
       });
     }
 
@@ -91,17 +91,8 @@ export const CandidatesView: React.FC<CandidatesViewProps> = ({
   const handleConfirmDelete = () => {
     if (!deletingStudent) return;
 
-    // Delete candidate
-    ConsultancyService.deleteStudent(consultancy.id, deletingStudent.id);
-
-    // If alsoDeleteResults is selected, remove orphaned results (Rule 5)
-    if (alsoDeleteResults) {
-      const results = ConsultancyService.getResults(consultancy.id);
-      const toRemove = results.filter((r) => r.candidateId === deletingStudent.candidateNumber);
-      toRemove.forEach((r) => {
-        ConsultancyService.deleteTestResult(consultancy.id, r.testId || '', r.candidateId, r.completedAt);
-      });
-    }
+    // Delete candidate with cascade support for results and AI reports (QA-03)
+    ConsultancyService.deleteStudent(consultancy.id, deletingStudent.id, alsoDeleteResults);
 
     setDeletingStudent(null);
     onRefresh();
@@ -124,14 +115,14 @@ export const CandidatesView: React.FC<CandidatesViewProps> = ({
         </div>
 
         <div className="flex items-center gap-2">
-          {/* Rule 6: "Assign test" opens the per-student assignment flow (Section 6.7, Mode B) */}
           <button
             type="button"
             onClick={onOpenAssignTest}
             className="btn-texture px-4 py-2 bg-white hover:bg-slate-50 text-[#0F1E33] border border-[#5B6B82]/30 text-xs font-semibold shadow-2xs flex items-center gap-1.5"
+            title="Open lab-wide or per-student Launch Console (Mode B)"
           >
             <Rocket className="w-3.5 h-3.5 text-[#C9A24B]" />
-            <span>Assign Test</span>
+            <span>Open Launch Console</span>
           </button>
 
           <button
@@ -206,7 +197,7 @@ export const CandidatesView: React.FC<CandidatesViewProps> = ({
                     </td>
                     <td className="py-3.5 px-4 font-mono">
                       <span className="font-bold text-[#2E7D4F]">
-                        {cand.highestBand > 0 ? cand.highestBand : '—'}
+                        {cand.highestBand > 0 ? cand.highestBand.toFixed(1) : '—'}
                       </span>
                       <span className="text-[#5B6B82] ml-1.5">
                         / {cand.averageBand > 0 ? cand.averageBand.toFixed(1) : '—'}
@@ -303,13 +294,14 @@ export const CandidatesView: React.FC<CandidatesViewProps> = ({
 
               <div>
                 <label className="block font-semibold text-[#0F1E33] mb-1">
-                  Target Band
+                  Target Band (Optional)
                 </label>
                 <select
                   value={targetBand}
                   onChange={(e) => setTargetBand(e.target.value)}
                   className="w-full px-3 py-2 bg-white border border-[#5B6B82]/30 rounded-lg text-xs font-mono font-bold focus:outline-none focus:border-[#C9A24B]"
                 >
+                  <option value="">— No Target Band (Optional) —</option>
                   <option value="6.0">Band 6.0</option>
                   <option value="6.5">Band 6.5</option>
                   <option value="7.0">Band 7.0</option>
@@ -340,7 +332,7 @@ export const CandidatesView: React.FC<CandidatesViewProps> = ({
         </div>
       )}
 
-      {/* Delete Candidate Confirmation Modal (Rule 1 & Rule 5: offers "Also remove associated test results?") */}
+      {/* Delete Candidate Confirmation Modal */}
       {deletingStudent && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[#0F1E33]/60 backdrop-blur-xs animate-in fade-in">
           <div className="paper-card max-w-md w-full p-6 space-y-4 bg-[#FAF8F3]">
@@ -359,10 +351,10 @@ export const CandidatesView: React.FC<CandidatesViewProps> = ({
                   onChange={(e) => setAlsoDeleteResults(e.target.checked)}
                   className="w-4 h-4 accent-[#0F1E33]"
                 />
-                <span>Also remove all historical test results for this student?</span>
+                <span>Also remove all historical test results and AI reports for this student?</span>
               </label>
               <p className="text-[11px] text-amber-800 pl-6">
-                Recommended to avoid orphan records in results table (Rule 5).
+                Recommended to maintain clean records and remove unlinked historical tests.
               </p>
             </div>
 
