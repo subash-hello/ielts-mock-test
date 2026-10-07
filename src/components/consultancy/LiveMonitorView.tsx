@@ -59,6 +59,26 @@ export const LiveMonitorView: React.FC<LiveMonitorViewProps> = ({
     setTimeout(() => setSentNotice(false), 2500);
   };
 
+  React.useEffect(() => {
+    const unsub = ConsultancyService.subscribe((event) => {
+      if (
+        event.type === 'STATION_UPDATED' ||
+        event.type === 'STATION_HEARTBEAT' ||
+        event.type === 'STUDENT_UPDATED' ||
+        event.type === 'RESULT_DELETED' ||
+        event.type === 'RESULT_ADDED'
+      ) {
+        onRefresh();
+      }
+    });
+    return () => unsub();
+  }, [onRefresh]);
+
+  const handleResetStation = (st: LabStation) => {
+    ConsultancyService.resetStation(consultancy.id, st.name);
+    onRefresh();
+  };
+
   const handleForceSubmit = (st: LabStation) => {
     if (window.confirm(`Force submit exam on ${st.name} for ${st.currentCandidate?.name || 'Candidate'}? Answers will be scored as-is.`)) {
       ConsultancyService.sendStationCommand(consultancy.id, st.id, 'FORCE_SUBMIT');
@@ -221,22 +241,35 @@ export const LiveMonitorView: React.FC<LiveMonitorViewProps> = ({
                   >
                     <MessageSquare className="w-4 h-4" />
                   </button>
-                  <button
-                    type="button"
-                    onClick={() => handleExtendTime(st, 5)}
-                    className="px-2 py-1 rounded bg-slate-800 hover:bg-slate-700 text-[#C9A24B] font-mono text-[11px] font-bold transition"
-                    title="+5 minutes"
-                  >
-                    +5m
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => handleForceSubmit(st)}
-                    className="px-2 py-1 rounded bg-red-950/60 hover:bg-red-900/80 text-red-300 text-[11px] font-bold transition"
-                    title="Force Submit"
-                  >
-                    Submit
-                  </button>
+                  {st.status === 'submitted' ? (
+                    <button
+                      type="button"
+                      onClick={() => handleResetStation(st)}
+                      className="px-2 py-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white font-mono text-[11px] font-semibold transition"
+                      title="Clear station to idle"
+                    >
+                      Clear
+                    </button>
+                  ) : (
+                    <>
+                      <button
+                        type="button"
+                        onClick={() => handleExtendTime(st, 5)}
+                        className="px-2 py-1 rounded bg-slate-800 hover:bg-slate-700 text-[#C9A24B] font-mono text-[11px] font-bold transition"
+                        title="+5 minutes"
+                      >
+                        +5m
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleForceSubmit(st)}
+                        className="px-2 py-1 rounded bg-red-950/60 hover:bg-red-900/80 text-red-300 text-[11px] font-bold transition"
+                        title="Force Submit"
+                      >
+                        Submit
+                      </button>
+                    </>
+                  )}
                 </div>
               </div>
             </div>

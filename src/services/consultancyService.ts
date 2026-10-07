@@ -1317,6 +1317,40 @@ export class ConsultancyService {
             currentQuestion: 1
           };
         }
+
+        // Auto-reconcile submitted stations: if the candidate and their results were deleted, return station to idle
+        if (st.status === 'submitted' && st.currentCandidate?.candidateId) {
+          try {
+            const rawStd = typeof window !== 'undefined' ? localStorage.getItem(`ielts_students_${canonical}`) : null;
+            const rawRes = typeof window !== 'undefined' ? localStorage.getItem(`ielts_results_${canonical}`) : null;
+            const stdList: ConsultancyStudent[] = rawStd ? JSON.parse(rawStd) : [];
+            const resList: TestResult[] = rawRes ? JSON.parse(rawRes) : [];
+            const candId = st.currentCandidate.candidateId;
+            const candName = (st.currentCandidate.name || '').trim().toLowerCase();
+
+            const hasStudent = stdList.some(
+              (s) => s.candidateNumber === candId || (candName && s.fullName.trim().toLowerCase() === candName)
+            );
+            const hasResult = resList.some(
+              (r) => r.candidateId === candId || (candName && (r.candidateName || '').trim().toLowerCase() === candName)
+            );
+
+            if (!hasStudent && !hasResult) {
+              return {
+                ...st,
+                status: 'idle' as const,
+                currentCandidate: undefined,
+                assignedTestId: undefined,
+                testTitle: undefined,
+                module: undefined,
+                timeSpentSeconds: undefined,
+                remainingSeconds: undefined,
+                answeredCount: 0,
+                currentQuestion: 1
+              };
+            }
+          } catch {}
+        }
         return st;
       });
     }
@@ -1880,7 +1914,11 @@ export class ConsultancyService {
       delete list[existingIdx].answeredCount;
       delete list[existingIdx].remainingSeconds;
 
-      localStorage.setItem(`ielts_stations_${consultancyId}`, JSON.stringify(list));
+      const aliases = this.getConsultancyAliases(consultancyId);
+      const serialized = JSON.stringify(list);
+      for (const key of aliases) {
+        localStorage.setItem(`ielts_stations_${key}`, serialized);
+      }
       this.broadcast('STATION_HEARTBEAT', list[existingIdx]);
       this.broadcast('STATION_UPDATED', list[existingIdx]);
       this.broadcast('STATION_COMMAND', { stationId, stationName: targetName, consultancyId, command: 'RESET_STATION' });
@@ -1974,6 +2012,36 @@ export class ConsultancyService {
       // Delete AI reports (QA-03)
       this.deleteReportsForStudent(canonical, candNum);
     }
+
+    // Also reset any workstation currently showing this deleted candidate
+    try {
+      const candNum = targetStudent?.candidateNumber || studentId;
+      const candName = targetStudent?.fullName?.trim().toLowerCase();
+      const stations = this.getStations(canonical);
+      let stationsChanged = false;
+      stations.forEach((st) => {
+        const matchesId = st.currentCandidate?.candidateId === candNum || st.currentCandidate?.candidateId === studentId;
+        const matchesName = candName && st.currentCandidate?.name?.trim().toLowerCase() === candName;
+        if (matchesId || matchesName) {
+          st.status = 'idle';
+          delete st.currentCandidate;
+          delete st.assignedTestId;
+          delete st.testTitle;
+          delete st.module;
+          delete st.timeSpentSeconds;
+          delete st.remainingSeconds;
+          delete st.answeredCount;
+          stationsChanged = true;
+        }
+      });
+      if (stationsChanged) {
+        const serializedSt = JSON.stringify(stations);
+        for (const key of aliases) {
+          localStorage.setItem(`ielts_stations_${key}`, serializedSt);
+        }
+        this.broadcast('STATION_UPDATED', { consultancyId: canonical });
+      }
+    } catch {}
 
     this.broadcast('STUDENT_UPDATED', { consultancyId: canonical, studentId });
   }
@@ -2463,6 +2531,36 @@ export class ConsultancyService {
         }
       } catch {}
     }
+
+    // Also reset any station that was displaying this candidate or result as submitted
+    try {
+      const stations = this.getStations(canonical);
+      let stationsChanged = false;
+      stations.forEach((st) => {
+        if (st.status === 'submitted') {
+          const matchCand = candidateId && st.currentCandidate?.candidateId === candidateId;
+          const matchTest = st.assignedTestId === testId;
+          if (matchCand || (!candidateId && matchTest)) {
+            st.status = 'idle';
+            delete st.currentCandidate;
+            delete st.assignedTestId;
+            delete st.testTitle;
+            delete st.module;
+            delete st.timeSpentSeconds;
+            delete st.remainingSeconds;
+            delete st.answeredCount;
+            stationsChanged = true;
+          }
+        }
+      });
+      if (stationsChanged) {
+        const serializedSt = JSON.stringify(stations);
+        for (const key of aliases) {
+          localStorage.setItem(`ielts_stations_${key}`, serializedSt);
+        }
+        this.broadcast('STATION_UPDATED', { consultancyId: canonical });
+      }
+    } catch {}
 
     this.broadcast('RESULT_DELETED', { consultancyId: canonical, testId, candidateId, completedAt });
   }
