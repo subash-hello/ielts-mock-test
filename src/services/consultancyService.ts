@@ -1648,10 +1648,28 @@ export class ConsultancyService {
     }
   }
 
+  public static getActiveBatchName(consultancyId?: string): string | null {
+    if (!consultancyId) return null;
+    const launched = this.getActiveLaunchedTest(consultancyId);
+    if (launched?.sessionName) return launched.sessionName;
+    const direct = localStorage.getItem(`ielts_batch_name_${consultancyId}`);
+    return direct || null;
+  }
+
+  public static setActiveBatchName(consultancyId: string, name?: string): void {
+    if (!consultancyId) return;
+    if (name && name.trim()) {
+      localStorage.setItem(`ielts_batch_name_${consultancyId}`, name.trim());
+    } else {
+      localStorage.removeItem(`ielts_batch_name_${consultancyId}`);
+    }
+  }
+
   public static getActiveLaunchedTest(consultancyId?: string): {
     consultancyId?: string;
     testId: string;
     title: string;
+    sessionName?: string;
     launchedAt: string;
     isFullMock?: boolean;
   } | null {
@@ -1691,7 +1709,8 @@ export class ConsultancyService {
     consultancyId: string,
     testId: string | null,
     title?: string,
-    isFullMock?: boolean
+    isFullMock?: boolean,
+    sessionName?: string
   ): void {
     const c = this.getConsultancyById(consultancyId) || this.getConsultancyByBranchCode(consultancyId);
     const targetCids = [consultancyId];
@@ -1766,10 +1785,17 @@ export class ConsultancyService {
       localStorage.removeItem(`ielts_stopped_test_${cid}`);
     }
 
+    if (sessionName) {
+      this.setActiveBatchName(consultancyId, sessionName);
+    } else {
+      this.setActiveBatchName(consultancyId, undefined);
+    }
+
     const data = {
       consultancyId: c?.id || consultancyId,
       testId,
       title: title || testId,
+      sessionName: sessionName || undefined,
       launchedAt: new Date().toISOString(),
       isFullMock: isFullMock ?? testId.includes('full')
     };
@@ -3040,9 +3066,10 @@ export class ConsultancyService {
     consultancyId: string,
     testId: string | null,
     title?: string,
-    isFullMock?: boolean
+    isFullMock?: boolean,
+    sessionName?: string
   ): void {
-    this.launchTestToBranch(consultancyId, testId, title, isFullMock);
+    this.launchTestToBranch(consultancyId, testId, title, isFullMock, sessionName);
   }
 
   public static assignStationTest(
@@ -3089,7 +3116,18 @@ export class ConsultancyService {
   }
 
   public static addStudent(consultancyId: string, data: { fullName: string; email?: string; phone?: string; targetBand?: number }): ConsultancyStudent {
-    const candNumber = '00' + Math.floor(1000 + Math.random() * 9000);
+    const list = this.getStudents(consultancyId);
+    let candNumber = '';
+    let tries = 0;
+    do {
+      candNumber = '00' + Math.floor(1000 + Math.random() * 9000);
+      tries++;
+    } while (list.some((s) => s.candidateNumber === candNumber) && tries < 20);
+
+    const targetBandVal = data.targetBand !== undefined && data.targetBand !== null && !isNaN(Number(data.targetBand))
+      ? Number(data.targetBand)
+      : 0;
+
     const newStudent: ConsultancyStudent = {
       id: 'std-' + Date.now(),
       consultancyId,
@@ -3097,7 +3135,7 @@ export class ConsultancyService {
       fullName: data.fullName,
       email: data.email || '',
       phone: data.phone || '',
-      targetBand: data.targetBand || 7.0,
+      targetBand: targetBandVal,
       enrolledDate: new Date().toISOString().split('T')[0],
       testsCompletedCount: 0,
       highestBand: 0,

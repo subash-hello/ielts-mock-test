@@ -42,8 +42,20 @@ export const BranchLoginView: React.FC<BranchLoginViewProps> = ({
     // Find branch by branchCode
     const found = ConsultancyService.getConsultancyByBranchCode(branchCode);
     setConsultancy(found || null);
+    if (found) {
+      // Station is currently locked awaiting invigilator/student PIN.
+      // Ensure workstation telemetry reflects idle with no active candidate (resolves stale QA-Monitor display)
+      ConsultancyService.updateStationHeartbeat(found.id, stationName, {
+        status: 'idle',
+        currentCandidate: undefined,
+        remainingSeconds: 0,
+        answeredCount: 0
+      });
+      ConsultancyService.setCurrentCandidateSession(null);
+      localStorage.removeItem('ielts_active_kiosk_exam_session');
+    }
     setIsLoading(false);
-  }, [branchCode]);
+  }, [branchCode, stationName]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();

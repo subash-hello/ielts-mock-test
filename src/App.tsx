@@ -48,6 +48,8 @@ import { SuperAdminPortal } from './components/admin/SuperAdminPortal';
 import { PublicResultLookupView } from './components/results/PublicResultLookupView';
 
 import { Pause, CheckCircle2, Clock, MessageSquare } from 'lucide-react';
+import { ConfirmationModal } from './components/common/ConfirmationModal';
+import type { ConsultancyStudent } from './types/consultancy';
 
 export const App: React.FC = () => {
   // Navigation & Screen State matching Blueprint Sitemap
@@ -67,6 +69,9 @@ export const App: React.FC = () => {
   const [currentBranchCode, setCurrentBranchCode] = useState<string>('kiec-1');
   const [directPcStation, setDirectPcStation] = useState<string | undefined>(undefined);
   const [consultancySubTab, setConsultancySubTab] = useState<ConsultancySubTab>('dashboard');
+  const [launchMode, setLaunchMode] = useState<'modeA' | 'modeB'>('modeA');
+  const [assigningCandidate, setAssigningCandidate] = useState<ConsultancyStudent | null>(null);
+  const [showExitExamModal, setShowExitExamModal] = useState<boolean>(false);
 
   // Candidate Session
   const [, setCandidateSession] = useState<CandidateSession | null>(() =>
@@ -222,16 +227,18 @@ export const App: React.FC = () => {
       localStorage.setItem('ielts_terminal_pc', formatted);
     }
 
-    // QA-01: Check if an active exam session exists on reload and restore it
+    // QA-01 & F11: Restore active exam session on page reload while in exam, without hijacking station login URLs
     const savedExamRaw = typeof window !== 'undefined' ? localStorage.getItem('ielts_active_kiosk_exam_session') : null;
     let hasRestoredActiveExam = false;
 
-    if (
-      savedExamRaw &&
-      !pathname.startsWith('/admin') &&
-      !pathname.startsWith('/consultancy') &&
-      !pathname.startsWith('/result')
-    ) {
+    const isKioskExamPath = pathname === '/kiosk/exam' || pathname === '/kiosk/exam/';
+    const isExplicitDifferentRoute = pathname.startsWith('/admin') ||
+      pathname.startsWith('/consultancy') ||
+      pathname.startsWith('/result') ||
+      pathname.startsWith('/b/') ||
+      pathname === '/';
+
+    if (savedExamRaw && (isKioskExamPath || !isExplicitDifferentRoute)) {
       try {
         const savedExam = JSON.parse(savedExamRaw);
         const elapsedSinceLastUpdate = Math.max(
@@ -290,8 +297,17 @@ export const App: React.FC = () => {
     } else if (pathname.startsWith('/consultancy') || mode === 'consultancy') {
       const parts = pathname.split('/').filter(Boolean);
       if (parts[1]) {
-        const sub = parts[1] as ConsultancySubTab;
+        let sub = parts[1] as ConsultancySubTab;
+        if ((sub as any) === 'live') {
+          sub = 'monitor';
+        }
         setConsultancySubTab(sub);
+      }
+      const modeParam = params.get('mode');
+      if (modeParam === 'modeB' || modeParam === 'per-student' || modeParam === 'b') {
+        setLaunchMode('modeB');
+      } else if (modeParam === 'modeA') {
+        setLaunchMode('modeA');
       }
       setActiveRoute('consultancy');
     } else if (pathname.startsWith('/b/')) {
@@ -433,6 +449,9 @@ export const App: React.FC = () => {
       setActiveFullMock(updatedFullMock);
       setIsExamPausedByTeacher(false);
       setActiveRoute('kiosk-exam');
+      if (typeof window !== 'undefined') {
+        window.history.pushState(null, '', '/kiosk/exam');
+      }
 
       try {
         localStorage.setItem(
@@ -476,6 +495,9 @@ export const App: React.FC = () => {
       setActiveFullMock(updatedFullMock);
       setIsExamPausedByTeacher(false);
       setActiveRoute('kiosk-exam');
+      if (typeof window !== 'undefined') {
+        window.history.pushState(null, '', '/kiosk/exam');
+      }
 
       try {
         localStorage.setItem(
@@ -710,6 +732,9 @@ export const App: React.FC = () => {
     examStartTimeRef.current = Date.now();
     setIsExamPausedByTeacher(false);
     setActiveRoute('kiosk-exam');
+    if (typeof window !== 'undefined') {
+      window.history.pushState(null, '', '/kiosk/exam');
+    }
 
     try {
       localStorage.setItem(
@@ -813,6 +838,7 @@ export const App: React.FC = () => {
     ConsultancyService.updateStationHeartbeat(cid, terminalStationName, {
       status: 'submitted',
       remainingSeconds: 0,
+      timeSpentSeconds: timeTaken,
       answeredCount: Object.keys(curAnswers).length,
       assignedTestId: activeTest.id,
       testTitle: activeTest.title,
@@ -1036,10 +1062,7 @@ export const App: React.FC = () => {
             settings={settings}
             onUpdateSettings={(newSet) => setSettings((prev) => ({ ...prev, ...newSet }))}
             onExitTest={() => {
-              if (window.confirm('Return to previous screen? Your current exam session will be interrupted.')) {
-                localStorage.removeItem('ielts_active_kiosk_exam_session');
-                setActiveRoute('kiosk-student');
-              }
+              setShowExitExamModal(true);
             }}
             audioVolume={audioVolume}
             onVolumeChange={setAudioVolume}
@@ -1147,7 +1170,20 @@ export const App: React.FC = () => {
           onOpenLookup={() => navigateTo('/result')}
           onReturnToTerminalOrHub={() => {
             setActiveFullMock(null);
+            localStorage.removeItem('ielts_active_kiosk_exam_session');
+            ConsultancyService.setCurrentCandidateSession(null);
+            ConsultancyService.logoutCandidate();
+            setActiveCandidateInfo(null);
+            if (selectedConsultancyId && terminalStationName) {
+              ConsultancyService.updateStationHeartbeat(selectedConsultancyId, terminalStationName, {
+                status: 'idle',
+                currentCandidate: undefined
+              });
+            }
             setActiveRoute('kiosk-student');
+            if (typeof window !== 'undefined') {
+              window.history.pushState(null, '', '/kiosk/student');
+            }
           }}
         />
       )}
@@ -1173,12 +1209,16 @@ export const App: React.FC = () => {
               stations={ConsultancyService.getStations(activeConsultancy.id)}
               results={ConsultancyService.getResults(activeConsultancy.id)}
               onOpenLaunchModeA={() => {
+                setLaunchMode('modeA');
+                setAssigningCandidate(null);
                 setConsultancySubTab('launch');
                 navigateTo('/consultancy/launch');
               }}
               onOpenLaunchModeB={() => {
+                setLaunchMode('modeB');
+                setAssigningCandidate(null);
                 setConsultancySubTab('launch');
-                navigateTo('/consultancy/launch');
+                navigateTo('/consultancy/launch?mode=modeB');
               }}
               onOpenPrintQRs={() => {
                 setConsultancySubTab('pcs');
@@ -1198,6 +1238,8 @@ export const App: React.FC = () => {
               stations={ConsultancyService.getStations(activeConsultancy.id)}
               students={ConsultancyService.getStudents(activeConsultancy.id)}
               tests={tests}
+              initialMode={launchMode}
+              preselectedCandidate={assigningCandidate}
               onSessionLaunched={() => {
                 setConsultancySubTab('monitor');
                 navigateTo('/consultancy/monitor');
@@ -1209,7 +1251,7 @@ export const App: React.FC = () => {
             />
           )}
 
-          {consultancySubTab === 'monitor' && (
+          {(consultancySubTab === 'monitor' || (consultancySubTab as string) === 'live') && (
             <LiveMonitorView
               consultancy={activeConsultancy}
               stations={ConsultancyService.getStations(activeConsultancy.id)}
@@ -1221,9 +1263,11 @@ export const App: React.FC = () => {
             <CandidatesView
               consultancy={activeConsultancy}
               students={ConsultancyService.getStudents(activeConsultancy.id)}
-              onOpenAssignTest={() => {
+              onOpenAssignTest={(candidate) => {
+                setLaunchMode('modeB');
+                setAssigningCandidate(candidate || null);
                 setConsultancySubTab('launch');
-                navigateTo('/consultancy/launch');
+                navigateTo('/consultancy/launch?mode=modeB');
               }}
               onRefresh={() => setTests([...tests])}
             />
@@ -1293,6 +1337,34 @@ export const App: React.FC = () => {
           onBackToHub={() => navigateTo('/')}
         />
       )}
+
+      {/* Exit Exam Confirmation Modal */}
+      <ConfirmationModal
+        isOpen={showExitExamModal}
+        title="Exit Examination?"
+        message="Are you sure you want to exit? Your exam session will be interrupted and your station will be returned to idle."
+        confirmLabel="Exit Test"
+        cancelLabel="Continue Test"
+        isDestructive={true}
+        onConfirm={() => {
+          setShowExitExamModal(false);
+          localStorage.removeItem('ielts_active_kiosk_exam_session');
+          ConsultancyService.setCurrentCandidateSession(null);
+          ConsultancyService.logoutCandidate();
+          setActiveCandidateInfo(null);
+          if (selectedConsultancyId && terminalStationName) {
+            ConsultancyService.updateStationHeartbeat(selectedConsultancyId, terminalStationName, {
+              status: 'idle',
+              currentCandidate: undefined
+            });
+          }
+          setActiveRoute('kiosk-student');
+          if (typeof window !== 'undefined') {
+            window.history.pushState(null, '', '/kiosk/student');
+          }
+        }}
+        onCancel={() => setShowExitExamModal(false)}
+      />
     </div>
   );
 };

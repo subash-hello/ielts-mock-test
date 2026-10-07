@@ -31,13 +31,10 @@ export const StudentNameView: React.FC<StudentNameViewProps> = ({
     const list = ConsultancyService.getStudents(consultancyId);
     setCandidatesList(list);
 
-    // If station already had an active candidate session, pre-populate to avoid duplicate IDs (QA-01)
-    const currentSession = ConsultancyService.getCurrentCandidateSession();
-    if (currentSession?.candidateName) {
-      setStudentName(currentSession.candidateName);
-      setCandidateId(currentSession.candidateId);
-      if (currentSession.targetBand) setTargetBand(currentSession.targetBand);
-    }
+    // Fresh candidate identification form on station idle (fixes QA-A1 & QA-A2)
+    setStudentName('');
+    setCandidateId('');
+    setTargetBand(undefined);
 
     // Focus input automatically
     inputRef.current?.focus();
@@ -46,6 +43,10 @@ export const StudentNameView: React.FC<StudentNameViewProps> = ({
   // Handle typing & autocomplete matching
   const handleNameChange = (val: string) => {
     setStudentName(val);
+    // Explicitly clear candidate ID & target band so new names get fresh unique candidate numbers (fixes QA-A1)
+    setCandidateId('');
+    setTargetBand(undefined);
+
     const clean = val.trim().toLowerCase();
     if (clean.length >= 1) {
       const matches = candidatesList.filter(
@@ -73,12 +74,20 @@ export const StudentNameView: React.FC<StudentNameViewProps> = ({
     const finalName = studentName.trim();
     if (!finalName) return;
 
-    // Check if student already exists in registry to prevent duplicate candidate numbers (QA-01)
+    // Check if student already exists in registry to associate pre-registered records
     const existing = candidatesList.find(
       (c) => c.fullName.trim().toLowerCase() === finalName.toLowerCase()
     );
 
-    const finalId = candidateId || existing?.candidateNumber || '00' + Math.floor(1000 + Math.random() * 9000);
+    // Generate unique candidate ID that does not collide with existing candidates
+    let generatedId = '';
+    let attempts = 0;
+    do {
+      generatedId = '00' + Math.floor(1000 + Math.random() * 9000);
+      attempts++;
+    } while (candidatesList.some((c) => c.candidateNumber === generatedId) && attempts < 30);
+
+    const finalId = candidateId || existing?.candidateNumber || generatedId;
     const finalTargetBand = targetBand !== undefined ? targetBand : existing?.targetBand;
 
     onContinue({

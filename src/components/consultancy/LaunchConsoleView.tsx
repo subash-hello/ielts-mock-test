@@ -13,11 +13,15 @@ import { allFullMockTests } from '../../data/mockTests';
 import { ConsultancyService } from '../../services/consultancyService';
 import { ConfirmationModal } from '../common/ConfirmationModal';
 
+import { useEffect } from 'react';
+
 interface LaunchConsoleViewProps {
   consultancy: Consultancy;
   stations: LabStation[];
   students: ConsultancyStudent[];
   tests: IELTSMockTest[];
+  initialMode?: 'modeA' | 'modeB';
+  preselectedCandidate?: ConsultancyStudent | null;
   onSessionLaunched: () => void;
   onSessionEnded: () => void;
 }
@@ -27,10 +31,19 @@ export const LaunchConsoleView: React.FC<LaunchConsoleViewProps> = ({
   stations,
   students,
   tests,
+  initialMode,
+  preselectedCandidate,
   onSessionLaunched,
   onSessionEnded,
 }) => {
-  const [activeMode, setActiveMode] = useState<'modeA' | 'modeB'>('modeA');
+  const [activeMode, setActiveMode] = useState<'modeA' | 'modeB'>(initialMode || 'modeA');
+  const [sessionName, setSessionName] = useState<string>(() => ConsultancyService.getActiveBatchName(consultancy.id) || '');
+
+  useEffect(() => {
+    if (initialMode) {
+      setActiveMode(initialMode);
+    }
+  }, [initialMode]);
 
   // Mode A state (Lab-wide broadcast)
   const [selectedBook, setSelectedBook] = useState<number>(16);
@@ -55,6 +68,23 @@ export const LaunchConsoleView: React.FC<LaunchConsoleViewProps> = ({
     });
     return init;
   });
+
+  // Pre-fill candidate into first available station if assigned from Candidates registry
+  useEffect(() => {
+    if (preselectedCandidate) {
+      const targetStation = stations.find((s) => s.status === 'idle') || stations[0];
+      if (targetStation) {
+        setStationAssignments((prev) => ({
+          ...prev,
+          [targetStation.id]: {
+            ...prev[targetStation.id],
+            studentName: preselectedCandidate.fullName,
+            candidateId: preselectedCandidate.candidateNumber,
+          }
+        }));
+      }
+    }
+  }, [preselectedCandidate, stations]);
 
   // End Session confirmation modal state (Rule 1)
   const [showEndSessionModal, setShowEndSessionModal] = useState(false);
@@ -119,7 +149,8 @@ export const LaunchConsoleView: React.FC<LaunchConsoleViewProps> = ({
           consultancy.id,
           targetTestId,
           modeAPreview.title,
-          selectedSection === 'full'
+          selectedSection === 'full',
+          sessionName.trim() || undefined
         );
 
         onSessionLaunched();
@@ -149,6 +180,10 @@ export const LaunchConsoleView: React.FC<LaunchConsoleViewProps> = ({
     if (assignedEntries.length === 0) {
       alert('Please assign a test to at least one station.');
       return;
+    }
+
+    if (sessionName.trim()) {
+      ConsultancyService.setActiveBatchName(consultancy.id, sessionName.trim());
     }
 
     // Launch assigned tests per station
@@ -184,6 +219,7 @@ export const LaunchConsoleView: React.FC<LaunchConsoleViewProps> = ({
   // Execute End Lab Session
   const handleConfirmEndSession = () => {
     ConsultancyService.launchBranchTest(consultancy.id, null);
+    ConsultancyService.setActiveBatchName(consultancy.id, undefined);
     ConsultancyService.broadcastStationCommand(consultancy.id, 'END_TEST');
     setShowEndSessionModal(false);
     onSessionEnded();
@@ -260,6 +296,25 @@ export const LaunchConsoleView: React.FC<LaunchConsoleViewProps> = ({
             </div>
           </div>
         </button>
+      </div>
+
+      {/* Session / Batch Name (QA-E10) */}
+      <div className="paper-card p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div className="space-y-0.5">
+          <label className="block text-xs font-bold text-[#0F1E33]">
+            Session / Batch Name (Optional)
+          </label>
+          <p className="text-[11px] text-[#5B6B82]">
+            Displayed in Live Monitor telemetry to identify this testing cohort
+          </p>
+        </div>
+        <input
+          type="text"
+          value={sessionName}
+          onChange={(e) => setSessionName(e.target.value)}
+          placeholder="e.g. Oct 7 Evening Mock / Batch A"
+          className="w-full sm:w-80 px-3.5 py-2 bg-white border border-[#5B6B82]/30 rounded-lg text-xs font-semibold text-[#0F1E33] focus:outline-none focus:border-[#C9A24B]"
+        />
       </div>
 
       {/* MODE A: LAB-WIDE BROADCAST */}

@@ -26,6 +26,8 @@ export const LiveMonitorView: React.FC<LiveMonitorViewProps> = ({
   const [messageText, setMessageText] = useState('');
   const [sentNotice, setSentNotice] = useState(false);
 
+  const activeBatchName = ConsultancyService.getActiveBatchName(consultancy.id);
+
   // Invigilator actions
   const handleExtendTime = (st: LabStation | 'all', minutes: number) => {
     if (st === 'all') {
@@ -70,9 +72,14 @@ export const LiveMonitorView: React.FC<LiveMonitorViewProps> = ({
       {/* Mission Control Header */}
       <div className="p-6 rounded-2xl bg-[#0F1E33] text-white border border-[#5B6B82]/30 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-lg">
         <div>
-          <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-[#C9A24B]">
+          <div className="flex flex-wrap items-center gap-2 text-xs font-semibold uppercase tracking-wider text-[#C9A24B]">
             <Radio className="w-4 h-4 animate-pulse" />
             <span>Mission Control · Live Invigilator Telemetry</span>
+            {activeBatchName && (
+              <span className="px-2.5 py-0.5 rounded-full bg-[#C9A24B]/20 text-[#C9A24B] border border-[#C9A24B]/40 normal-case font-bold font-mono text-[11px]">
+                Active Batch: {activeBatchName}
+              </span>
+            )}
           </div>
           <h1 className="font-display text-2xl font-bold text-white mt-1">
             Real-Time Station Monitor
@@ -179,9 +186,16 @@ export const LiveMonitorView: React.FC<LiveMonitorViewProps> = ({
               )}
 
               {isEarlySubmit && (
-                <div className="p-2 rounded bg-cyan-950/60 border border-cyan-500/40 text-[11px] text-cyan-300 flex items-center gap-1.5">
-                  <CheckCircle2 className="w-3.5 h-3.5 shrink-0" />
-                  <span>Submitted early</span>
+                <div className="p-2 rounded bg-cyan-950/60 border border-cyan-500/40 text-[11px] text-cyan-300 flex items-center justify-between gap-1.5">
+                  <div className="flex items-center gap-1.5">
+                    <CheckCircle2 className="w-3.5 h-3.5 shrink-0" />
+                    <span>Submitted early</span>
+                  </div>
+                  {st.timeSpentSeconds !== undefined && st.timeSpentSeconds > 0 && (
+                    <span className="font-mono font-bold text-white">
+                      ({formatTimeSpent(st.timeSpentSeconds)} taken)
+                    </span>
+                  )}
                 </div>
               )}
 
@@ -190,8 +204,10 @@ export const LiveMonitorView: React.FC<LiveMonitorViewProps> = ({
                 <div className="flex items-center gap-1.5 font-mono text-slate-300">
                   <Clock className="w-3.5 h-3.5 text-[#C9A24B]" />
                   <span>
-                    {st.remainingSeconds !== undefined
-                      ? formatTimeSpent(st.remainingSeconds)
+                    {st.status === 'submitted'
+                      ? `${formatTimeSpent(st.timeSpentSeconds || 0)} spent`
+                      : st.remainingSeconds !== undefined
+                      ? `${formatTimeSpent(st.remainingSeconds)} left`
                       : '—'}
                   </span>
                 </div>

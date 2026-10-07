@@ -61,6 +61,7 @@ export interface LabStation {
   totalQuestions?: number;
   answeredCount?: number;
   remainingSeconds?: number;
+  timeSpentSeconds?: number;
   lastHeartbeat: string;
   deviceToken?: string;
 }

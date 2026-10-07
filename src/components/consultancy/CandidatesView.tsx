@@ -13,7 +13,7 @@ import { ConsultancyService } from '../../services/consultancyService';
 interface CandidatesViewProps {
   consultancy: Consultancy;
   students: ConsultancyStudent[];
-  onOpenAssignTest: () => void;
+  onOpenAssignTest: (cand?: ConsultancyStudent) => void;
   onRefresh: () => void;
 }
 
@@ -117,7 +117,7 @@ export const CandidatesView: React.FC<CandidatesViewProps> = ({
         <div className="flex items-center gap-2">
           <button
             type="button"
-            onClick={onOpenAssignTest}
+            onClick={() => onOpenAssignTest()}
             className="btn-texture px-4 py-2 bg-white hover:bg-slate-50 text-[#0F1E33] border border-[#5B6B82]/30 text-xs font-semibold shadow-2xs flex items-center gap-1.5"
             title="Open lab-wide or per-student Launch Console (Mode B)"
           >
@@ -205,6 +205,15 @@ export const CandidatesView: React.FC<CandidatesViewProps> = ({
                     </td>
                     <td className="py-3.5 px-4 text-right">
                       <div className="flex items-center justify-end gap-1.5">
+                        <button
+                          type="button"
+                          onClick={() => onOpenAssignTest(cand)}
+                          className="px-2 py-1 text-[#0F1E33] hover:bg-[#C9A24B]/20 bg-[#C9A24B]/10 rounded text-[11px] font-bold flex items-center gap-1 transition"
+                          title={`Assign test to ${cand.fullName} in Launch Console Mode B`}
+                        >
+                          <Rocket className="w-3 h-3 text-[#C9A24B]" />
+                          <span className="hidden sm:inline">Assign</span>
+                        </button>
                         <button
                           type="button"
                           onClick={() => handleOpenEdit(cand)}

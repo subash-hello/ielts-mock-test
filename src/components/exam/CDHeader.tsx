@@ -49,11 +49,13 @@ export const CDHeader: React.FC<CDHeaderProps> = ({
         {/* Left: Thin Gold Ring Timer + Numerals (Blueprint 6.5: top-left, always visible) */}
         <div className="flex items-center gap-3">
           <button
+            type="button"
             onClick={onExitTest}
-            className="p-1 hover:bg-slate-200/60 rounded text-[#5B6B82] hover:text-[#0F1E33] transition"
+            className="px-2.5 py-1 rounded bg-white hover:bg-red-50 text-[#5B6B82] hover:text-[#C0392B] border border-[#5B6B82]/20 hover:border-red-200 transition font-medium flex items-center gap-1.5 shadow-2xs"
             title="Exit Test"
           >
-            <ArrowLeft className="w-4 h-4" />
+            <ArrowLeft className="w-3.5 h-3.5" />
+            <span className="font-semibold text-[11px]">Exit Test</span>
           </button>
 
           <div className="flex items-center gap-2 px-3 py-1 bg-white border border-[#5B6B82]/20 rounded-lg shadow-2xs">

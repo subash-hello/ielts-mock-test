@@ -53,7 +53,7 @@ export const TestLibraryView: React.FC<TestLibraryViewProps> = ({
             Test Library & Student Visibility
           </h1>
           <p className="text-xs text-[#5B6B82]">
-            Toggle which Cambridge Academic tests are enabled for student self-selection in this branch. (Cambridge 16 includes Reading, Listening & Writing; Cambridge 18–21 contain full Reading & Listening test suites).
+            Toggle which Cambridge Academic tests are enabled for student self-selection in this branch. All Cambridge 16, 18, 19, 20, and 21 books contain full Reading, Listening & Writing test suites.
           </p>
         </div>
 

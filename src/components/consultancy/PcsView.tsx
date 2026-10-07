@@ -229,7 +229,7 @@ export const PcsView: React.FC<PcsViewProps> = ({
                     </td>
 
                     <td className="py-3.5 px-4">
-                      {st.currentCandidate?.name && (st.status === 'in_progress' || st.status === 'paused') ? (
+                      {st.currentCandidate?.name && isOnline && (st.status === 'in_progress' || st.status === 'paused') ? (
                         <span className="font-bold text-[#0F1E33]">
                           {st.currentCandidate.name}
                         </span>
