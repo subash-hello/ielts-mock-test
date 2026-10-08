@@ -581,6 +581,13 @@ export const App: React.FC = () => {
     const unsubscribe = ConsultancyService.subscribe((event) => {
       const cStation = activeCandidateInfo?.stationName || terminalStationName;
       const cId = activeCandidateInfo?.consultancyId || selectedConsultancyId;
+      const currentAdmin = adminUser || ConsultancyService.getCurrentAdmin();
+      const isDirectorOrAdminPortal = Boolean(currentAdmin) || activeRoute === 'consultancy' || activeRoute === 'super-admin';
+      const isCandidateKioskRoute =
+        activeRoute === 'kiosk-student' ||
+        activeRoute === 'kiosk-test' ||
+        activeRoute === 'kiosk-confirm' ||
+        activeRoute === 'branch-login';
 
       if (event.type === 'BRANCH_TEST_LAUNCHED') {
         const payload = event.payload;
@@ -589,11 +596,26 @@ export const App: React.FC = () => {
             if (activeRoute === 'kiosk-exam') {
               localStorage.removeItem('ielts_active_kiosk_exam_session');
               alert('The examination session has been concluded by the consultancy invigilator.');
-              setActiveRoute('kiosk-student');
+              if (currentAdmin?.role === 'super_admin') {
+                navigateTo('/admin');
+              } else if (currentAdmin?.role === 'consultancy_admin' || Boolean(currentAdmin)) {
+                navigateTo('/consultancy/dashboard');
+              } else {
+                if (currentBranchCode) {
+                  navigateTo(`/b/${currentBranchCode}`);
+                } else {
+                  navigateTo('/kiosk/student');
+                }
+              }
             }
           }
         } else {
-          // Lab-wide broadcast test launch (Bug 1 fix): auto-deliver and auto-start the exam!
+          // Lab-wide broadcast test launch (Bug 1 fix): auto-deliver and auto-start the exam on candidate kiosks only!
+          // NEVER hijack the director portal, super admin portal, or active admin sessions.
+          if (isDirectorOrAdminPortal || !isCandidateKioskRoute) {
+            return;
+          }
+
           const targetCid = payload.consultancyId || selectedConsultancyId;
           const isTargetBranch =
             !payload?.consultancyId ||
@@ -601,7 +623,7 @@ export const App: React.FC = () => {
             payload.consultancyId === cId ||
             payload.consultancyId === currentBranchCode;
 
-          if (isTargetBranch && activeRoute !== 'kiosk-exam') {
+          if (isTargetBranch) {
             const testId = payload.testId;
             const matchedTest = tests.find((t) => t.id === testId) || allMockTests.find((t) => t.id === testId) || tests[0];
             const isFull = payload.isFullMock || testId.endsWith('-full');
@@ -638,10 +660,15 @@ export const App: React.FC = () => {
 
         const isTargetBranch = !cmdCid || !cId || cmdCid === cId || cmdCid === currentBranchCode;
 
-        if (isTargetStation || ((command === 'END_TEST' || command === 'START_TEST') && isTargetBranch)) {
-          if (command === 'START_TEST') {
+        if (command === 'START_TEST') {
+          // Never hijack director/admin portal tabs into an exam
+          if (isDirectorOrAdminPortal || !isCandidateKioskRoute) {
+            return;
+          }
+          const isTargetedToMe = (stationId || stationName) ? isTargetStation : isTargetBranch;
+          if (isTargetedToMe) {
             const targetTestId = payload?.testId || testId || (event.payload as any)?.testId;
-            if (targetTestId && activeRoute !== 'kiosk-exam') {
+            if (targetTestId) {
               const matchedTest = tests.find((t) => t.id === targetTestId) || allMockTests.find((t) => t.id === targetTestId) || tests[0];
               const isFull = payload?.isFullMock || (event.payload as any)?.isFullMock || targetTestId.endsWith('-full');
               const matchedFull = isFull
@@ -664,33 +691,49 @@ export const App: React.FC = () => {
                 startExamExecution(matchedTest, matchedFull);
               }
             }
-          } else if (command === 'PAUSE_EXAM') {
-            setIsExamPausedByTeacher(true);
+          }
+        } else if (isTargetStation || isTargetBranch) {
+          if (command === 'PAUSE_EXAM') {
+            if (activeRoute === 'kiosk-exam') setIsExamPausedByTeacher(true);
           } else if (command === 'RESUME_EXAM') {
-            setIsExamPausedByTeacher(false);
+            if (activeRoute === 'kiosk-exam') setIsExamPausedByTeacher(false);
           } else if (command === 'EXTEND_TIME') {
-            const addedSecs = (Number(payload) || 5) * 60;
-            setRemainingSeconds((prev) => {
-              const nextSec = prev + addedSecs;
-              syncExamSessionToStorage({ remainingSeconds: nextSec });
-              return nextSec;
-            });
-            alert(`Your remaining exam time has been extended by +${Number(payload) || 5} minutes by the invigilator.`);
+            if (activeRoute === 'kiosk-exam') {
+              const addedSecs = (Number(payload) || 5) * 60;
+              setRemainingSeconds((prev) => {
+                const nextSec = prev + addedSecs;
+                syncExamSessionToStorage({ remainingSeconds: nextSec });
+                return nextSec;
+              });
+              alert(`Your remaining exam time has been extended by +${Number(payload) || 5} minutes by the invigilator.`);
+            }
           } else if (command === 'BROADCAST_MESSAGE') {
-            setInvigilatorMessageBanner(String(payload || ''));
+            if (activeRoute === 'kiosk-exam') setInvigilatorMessageBanner(String(payload || ''));
           } else if (command === 'FORCE_SUBMIT') {
-            finishExam();
+            if (activeRoute === 'kiosk-exam') finishExam();
           } else if (command === 'RESET_STATION' || command === 'END_TEST') {
-            localStorage.removeItem('ielts_active_kiosk_exam_session');
-            alert('Your examination session was concluded by the consultancy invigilator.');
-            setActiveRoute('kiosk-student');
+            if (activeRoute === 'kiosk-exam') {
+              localStorage.removeItem('ielts_active_kiosk_exam_session');
+              alert('Your examination session was concluded by the consultancy invigilator.');
+              if (currentAdmin?.role === 'super_admin') {
+                navigateTo('/admin');
+              } else if (currentAdmin?.role === 'consultancy_admin' || Boolean(currentAdmin)) {
+                navigateTo('/consultancy/dashboard');
+              } else {
+                if (currentBranchCode) {
+                  navigateTo(`/b/${currentBranchCode}`);
+                } else {
+                  navigateTo('/kiosk/student');
+                }
+              }
+            }
           }
         }
       }
     });
 
     return () => unsubscribe();
-  }, [activeRoute, activeCandidateInfo, terminalStationName, selectedConsultancyId]);
+  }, [activeRoute, activeCandidateInfo, terminalStationName, selectedConsultancyId, adminUser, currentBranchCode]);
 
   // Active exam live telemetry heartbeat
   useEffect(() => {
@@ -1303,9 +1346,17 @@ export const App: React.FC = () => {
                 currentCandidate: undefined
               });
             }
-            setActiveRoute('kiosk-student');
-            if (typeof window !== 'undefined') {
-              window.history.pushState(null, '', '/kiosk/student');
+            const currentAdmin = adminUser || ConsultancyService.getCurrentAdmin();
+            if (currentAdmin?.role === 'super_admin') {
+              navigateTo('/admin');
+            } else if (currentAdmin?.role === 'consultancy_admin' || Boolean(currentAdmin)) {
+              navigateTo('/consultancy/dashboard');
+            } else {
+              if (currentBranchCode) {
+                navigateTo(`/b/${currentBranchCode}`);
+              } else {
+                navigateTo('/kiosk/student');
+              }
             }
           }}
         />
@@ -1513,9 +1564,17 @@ export const App: React.FC = () => {
               currentCandidate: undefined
             });
           }
-          setActiveRoute('kiosk-student');
-          if (typeof window !== 'undefined') {
-            window.history.pushState(null, '', '/kiosk/student');
+          const currentAdmin = adminUser || ConsultancyService.getCurrentAdmin();
+          if (currentAdmin?.role === 'super_admin') {
+            navigateTo('/admin');
+          } else if (currentAdmin?.role === 'consultancy_admin' || Boolean(currentAdmin)) {
+            navigateTo('/consultancy/dashboard');
+          } else {
+            if (currentBranchCode) {
+              navigateTo(`/b/${currentBranchCode}`);
+            } else {
+              navigateTo('/kiosk/student');
+            }
           }
         }}
         onCancel={() => setShowExitExamModal(false)}

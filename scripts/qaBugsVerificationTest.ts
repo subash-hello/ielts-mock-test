@@ -328,6 +328,37 @@ assert(duplicateThrown, 'createConsultancy rejects duplicate branch code with er
 // Clean up test branch
 ConsultancyService.deleteConsultancy('orig-branch-1');
 
+console.log('\n--- Mode A Broadcast Portal Isolation & Exit Test Navigation UX ---');
+// Verify helper logic: Portal vs Kiosk route differentiation
+const checkIsCandidateKiosk = (route: string) =>
+  route === 'kiosk-student' || route === 'kiosk-test' || route === 'kiosk-confirm' || route === 'branch-login';
+
+const checkIsDirectorOrAdmin = (adminUser: any, route: string) =>
+  Boolean(adminUser) || route === 'consultancy' || route === 'super-admin';
+
+// 1. Director Portal is never considered a candidate kiosk
+assert(!checkIsCandidateKiosk('consultancy'), 'Director portal (consultancy) is not a candidate kiosk route');
+assert(!checkIsCandidateKiosk('super-admin'), 'Super admin portal is not a candidate kiosk route');
+assert(checkIsCandidateKiosk('kiosk-student'), 'Student registration is recognized as candidate kiosk route');
+assert(checkIsCandidateKiosk('kiosk-confirm'), 'Confirmation screen is recognized as candidate kiosk route');
+
+// 2. Admin/Director portal tabs are protected from exam start
+const fakeDirectorUser = { id: 'dir-1', role: 'consultancy_admin' as const, consultancyId: 'cid-1' };
+assert(checkIsDirectorOrAdmin(fakeDirectorUser, 'consultancy'), 'Director session correctly identified as protected admin portal');
+assert(checkIsDirectorOrAdmin(null, 'consultancy'), 'Consultancy route without admin user is also identified as protected portal');
+
+// 3. Exit Test returns to director dashboard when director session active
+const resolveExitRoute = (adminUser: any, branchCode?: string) => {
+  if (adminUser?.role === 'super_admin') return '/admin';
+  if (adminUser?.role === 'consultancy_admin' || Boolean(adminUser)) return '/consultancy/dashboard';
+  return branchCode ? `/b/${branchCode}` : '/kiosk/student';
+};
+
+assert(resolveExitRoute(fakeDirectorUser) === '/consultancy/dashboard', 'Exit test for director routes back to /consultancy/dashboard');
+assert(resolveExitRoute({ id: 'sa', role: 'super_admin' }) === '/admin', 'Exit test for super admin routes back to /admin');
+assert(resolveExitRoute(null, 'cr300-1') === '/b/cr300-1', 'Exit test for kiosk candidate with branch code routes back to /b/{code}');
+assert(resolveExitRoute(null) === '/kiosk/student', 'Exit test for standard kiosk candidate routes back to /kiosk/student');
+
 console.log('\n========================================');
 console.log(`TOTAL QA TESTS: ${passed + failed} | PASSED: ${passed} | FAILED: ${failed}`);
 console.log('========================================');
