@@ -138,6 +138,11 @@ export const SuperAdminPortal: React.FC<SuperAdminPortalProps> = ({
       setFormError('Branch Code is required.');
       return;
     }
+    const cleanBranchCode = formData.branchCode.trim().toLowerCase();
+    if (ConsultancyService.isBranchCodeInUse(cleanBranchCode, editingConsultancy?.id)) {
+      setFormError(`Branch code "${formData.branchCode.trim()}" already exists. Each branch must have a unique branch code.`);
+      return;
+    }
     if (isNaN(formData.testCredits) || formData.testCredits < 0) {
       setFormError('Test Attempt Credits must be 0 or greater.');
       return;
@@ -183,6 +188,11 @@ export const SuperAdminPortal: React.FC<SuperAdminPortalProps> = ({
   );
 
   const origin = typeof window !== 'undefined' ? window.location.origin : 'https://mocktest.masterieltsai.com';
+
+  const isBranchCodeDuplicate = Boolean(
+    formData.branchCode.trim() &&
+    ConsultancyService.isBranchCodeInUse(formData.branchCode.trim(), editingConsultancy?.id)
+  );
 
   return (
     <div className="min-h-screen bg-[#FAF8F3] text-[#0F1E33] flex flex-col font-ui selection:bg-[#C9A24B]/30">
@@ -631,11 +641,25 @@ export const SuperAdminPortal: React.FC<SuperAdminPortalProps> = ({
                   <input
                     type="text"
                     value={formData.branchCode}
-                    onChange={(e) => setFormData({ ...formData, branchCode: e.target.value, accessCode: e.target.value })}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      setFormData({ ...formData, branchCode: val, accessCode: val });
+                      if (formError) setFormError(null);
+                    }}
                     placeholder="e.g. kiec-1"
                     required
-                    className="w-full px-3 py-2 bg-white border border-[#5B6B82]/30 rounded-lg text-xs font-mono font-bold text-[#0F1E33] lowercase focus:outline-none focus:border-[#C9A24B]"
+                    className={`w-full px-3 py-2 bg-white border ${
+                      isBranchCodeDuplicate
+                        ? 'border-red-500 text-red-700 focus:border-red-500'
+                        : 'border-[#5B6B82]/30 text-[#0F1E33] focus:border-[#C9A24B]'
+                    } rounded-lg text-xs font-mono font-bold lowercase focus:outline-none`}
                   />
+                  {isBranchCodeDuplicate && (
+                    <p className="text-[10px] text-red-600 mt-1 font-medium flex items-center gap-1 animate-in fade-in">
+                      <AlertCircle className="w-3 h-3 shrink-0" />
+                      Branch code already exists. Please choose a unique code.
+                    </p>
+                  )}
                 </div>
 
                 <div>

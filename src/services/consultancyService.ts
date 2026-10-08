@@ -3406,7 +3406,27 @@ export class ConsultancyService {
     );
   }
 
+  public static isBranchCodeInUse(branchCode: string, excludeConsultancyId?: string): boolean {
+    const clean = (branchCode || '').trim().toLowerCase();
+    if (!clean) return false;
+    const list = this.getConsultancies();
+    return list.some((c) => {
+      if (excludeConsultancyId && c.id.toLowerCase() === excludeConsultancyId.toLowerCase()) {
+        return false;
+      }
+      const bCode = (c.branchCode || '').trim().toLowerCase();
+      const aCode = (c.accessCode || '').trim().toLowerCase();
+      const idCode = (c.id || '').trim().toLowerCase();
+      return bCode === clean || aCode === clean || idCode === clean;
+    });
+  }
+
   public static createConsultancy(consultancy: Partial<Consultancy> & { id: string; name: string }): Consultancy {
+    const targetCode = (consultancy.branchCode || consultancy.accessCode || consultancy.id || '').trim();
+    if (this.isBranchCodeInUse(targetCode, consultancy.id)) {
+      throw new Error(`Branch code "${targetCode}" already exists. Please choose a unique branch code.`);
+    }
+
     const full: Consultancy = {
       id: consultancy.id,
       name: consultancy.name,
@@ -3419,7 +3439,7 @@ export class ConsultancyService {
       adminPassword: consultancy.adminPassword || '1234',
       status: consultancy.status || 'active',
       computerLimit: consultancy.computerLimit || 20,
-      testCredits: consultancy.testCredits || 300,
+      testCredits: consultancy.testCredits !== undefined ? consultancy.testCredits : 300,
       creditsUsed: consultancy.creditsUsed || 0,
       createdAt: new Date().toISOString(),
       validUntil: new Date(Date.now() + 365 * 86400000).toISOString(),
@@ -3472,6 +3492,9 @@ export class ConsultancyService {
     consultancyId: string,
     updates: Partial<Consultancy>
   ): void {
+    if (updates.branchCode && this.isBranchCodeInUse(updates.branchCode, consultancyId)) {
+      throw new Error(`Branch code "${updates.branchCode}" already exists. Please choose a unique branch code.`);
+    }
     const existing = this.getConsultancyById(consultancyId);
     if (existing) {
       this.saveConsultancy({ ...existing, ...updates });

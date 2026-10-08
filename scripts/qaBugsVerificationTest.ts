@@ -283,6 +283,51 @@ assert(fetchedCreditBranch !== undefined, 'Branch with 300 test credits saved su
 assert(fetchedCreditBranch?.testCredits === 300, 'Branch test credits correctly stored as 300');
 ConsultancyService.deleteConsultancy('credit-300-branch');
 
+// Test 8: Unique Branch Code Constraint (Duplicate prevention)
+console.log('\n--- Duplicate Branch Code Constraint ---');
+const primaryBranch: Consultancy = {
+  id: 'orig-branch-1',
+  name: 'Original Branch',
+  branch: 'Kathmandu',
+  adminEmail: 'orig@test.com',
+  phone: '9801111111',
+  accessCode: 'cr300-1',
+  branchCode: 'cr300-1',
+  examPassword: '1234',
+  adminPassword: 'admin',
+  status: 'active',
+  computerLimit: 20,
+  testCredits: 300,
+  creditsUsed: 0,
+  createdAt: new Date().toISOString(),
+  validUntil: new Date().toISOString(),
+  assignedTestIds: []
+};
+ConsultancyService.createConsultancy(primaryBranch);
+
+// 1. isBranchCodeInUse identifies existing branchCode
+assert(ConsultancyService.isBranchCodeInUse('cr300-1'), 'isBranchCodeInUse detects existing branch code');
+assert(ConsultancyService.isBranchCodeInUse('CR300-1'), 'isBranchCodeInUse is case-insensitive');
+assert(!ConsultancyService.isBranchCodeInUse('cr300-1', 'orig-branch-1'), 'isBranchCodeInUse excludes self when editing');
+assert(!ConsultancyService.isBranchCodeInUse('unique-unassigned-code-99'), 'isBranchCodeInUse returns false for unused code');
+
+// 2. Attempting to create duplicate branch throws error
+let duplicateThrown = false;
+try {
+  ConsultancyService.createConsultancy({
+    id: 'duplicate-branch-2',
+    name: 'Duplicate Branch',
+    branchCode: 'cr300-1'
+  });
+} catch (e: any) {
+  duplicateThrown = true;
+  assert(e.message.includes('already exists'), 'Error message clearly indicates branch code already exists');
+}
+assert(duplicateThrown, 'createConsultancy rejects duplicate branch code with error');
+
+// Clean up test branch
+ConsultancyService.deleteConsultancy('orig-branch-1');
+
 console.log('\n========================================');
 console.log(`TOTAL QA TESTS: ${passed + failed} | PASSED: ${passed} | FAILED: ${failed}`);
 console.log('========================================');
