@@ -1247,15 +1247,14 @@ export class ConsultancyService {
 
     const list = this.getConsultancies();
     const existingIdx = list.findIndex(
-      (c) =>
-        (c.id && consultancy.id && c.id.toLowerCase() === consultancy.id.toLowerCase()) ||
-        (consultancy.branchCode && c.branchCode && c.branchCode.trim().toUpperCase() === consultancy.branchCode) ||
-        (consultancy.accessCode && c.accessCode && c.accessCode.trim().toUpperCase() === consultancy.accessCode) ||
-        (consultancy.adminEmail && c.adminEmail && c.adminEmail.trim().toLowerCase() === consultancy.adminEmail)
+      (c) => c.id && consultancy.id && c.id.toLowerCase() === consultancy.id.toLowerCase()
     );
     if (existingIdx >= 0) {
       list[existingIdx] = { ...list[existingIdx], ...consultancy, id: list[existingIdx].id };
     } else {
+      if (consultancy.branchCode && this.isBranchCodeInUse(consultancy.branchCode, consultancy.id)) {
+        throw new Error(`Branch code "${consultancy.branchCode}" already exists. Please choose a unique branch code.`);
+      }
       list.unshift(consultancy);
     }
     localStorage.setItem('ielts_consultancies', JSON.stringify(list));

@@ -88,7 +88,13 @@ export const SuperAdminPortal: React.FC<SuperAdminPortalProps> = ({
   };
 
   const handleOpenAddModal = () => {
-    const randomCode = 'kiec-' + Math.floor(1 + Math.random() * 9);
+    let randomCode = '';
+    let attempts = 0;
+    do {
+      randomCode = 'branch-' + Math.floor(100 + Math.random() * 900);
+      attempts++;
+    } while (ConsultancyService.isBranchCodeInUse(randomCode) && attempts < 50);
+
     setFormData({
       name: '',
       branch: '',
@@ -754,7 +760,8 @@ export const SuperAdminPortal: React.FC<SuperAdminPortalProps> = ({
                 </button>
                 <button
                   type="submit"
-                  className="btn-texture px-5 py-2 bg-[#0F1E33] text-white text-xs font-bold"
+                  disabled={isBranchCodeDuplicate}
+                  className="btn-texture px-5 py-2 bg-[#0F1E33] hover:bg-[#1A2E4B] disabled:opacity-50 disabled:cursor-not-allowed text-white text-xs font-bold transition"
                 >
                   Save Account
                 </button>
