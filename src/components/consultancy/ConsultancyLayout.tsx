@@ -22,7 +22,8 @@ export type ConsultancySubTab =
   | 'reports'
   | 'tests'
   | 'pcs'
-  | 'settings';
+  | 'settings'
+  | 'login';
 
 interface ConsultancyLayoutProps {
   consultancy: Consultancy;

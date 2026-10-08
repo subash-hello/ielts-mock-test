@@ -9,7 +9,8 @@ import type {
   WritingSubmission
 } from './types/ielts';
 import type {
-  CandidateSession
+  CandidateSession,
+  AdminUser
 } from './types/consultancy';
 import { ConsultancyService } from './services/consultancyService';
 import { calculateBandScore, evaluateTestAnswers } from './utils/scoring';
@@ -33,6 +34,7 @@ import { QuestionPalette } from './components/exam/QuestionPalette';
 
 // Consultancy Portal Components (Blueprint Screen 6.6 - 6.10, Section 7)
 import { ConsultancyLayout, type ConsultancySubTab } from './components/consultancy/ConsultancyLayout';
+import { DirectorLoginView } from './components/consultancy/DirectorLoginView';
 import { DashboardView } from './components/consultancy/DashboardView';
 import { LaunchConsoleView } from './components/consultancy/LaunchConsoleView';
 import { LiveMonitorView } from './components/consultancy/LiveMonitorView';
@@ -77,6 +79,11 @@ export const App: React.FC = () => {
   // Candidate Session
   const [, setCandidateSession] = useState<CandidateSession | null>(() =>
     ConsultancyService.getCurrentCandidateSession()
+  );
+
+  // Admin / Director Session
+  const [adminUser, setAdminUser] = useState<AdminUser | null>(() =>
+    ConsultancyService.getCurrentAdmin()
   );
 
   // Active Station Name
@@ -303,12 +310,21 @@ export const App: React.FC = () => {
           sub = 'monitor';
         }
         setConsultancySubTab(sub);
+      } else {
+        setConsultancySubTab('dashboard');
       }
       const modeParam = params.get('mode');
       if (modeParam === 'modeB' || modeParam === 'per-student' || modeParam === 'b') {
         setLaunchMode('modeB');
       } else if (modeParam === 'modeA') {
         setLaunchMode('modeA');
+      }
+      const cidParam = params.get('consultancy') || params.get('cid');
+      if (cidParam) {
+        setSelectedConsultancyId(cidParam);
+      } else if (branchParam) {
+        const found = ConsultancyService.getConsultancyByBranchCode(branchParam);
+        if (found) setSelectedConsultancyId(found.id);
       }
       setActiveRoute('consultancy');
     } else if (pathname.startsWith('/b/')) {
@@ -979,12 +995,20 @@ export const App: React.FC = () => {
     ConsultancyService.logoutCandidate();
     ConsultancyService.logoutAdmin();
     setCandidateSession(null);
+    setAdminUser(null);
     setActiveCandidateInfo(null);
     navigateTo('/');
   };
 
   const activeConsultancy = ConsultancyService.getConsultancyById(selectedConsultancyId) ||
     ConsultancyService.getConsultancies()[0];
+
+  const isDirectorAuthenticated = Boolean(
+    adminUser &&
+      (adminUser.role === 'super_admin' ||
+        !adminUser.consultancyId ||
+        adminUser.consultancyId === activeConsultancy.id)
+  );
 
   return (
     <div className="min-h-screen bg-[#FAF8F3] text-[#0F1E33] flex flex-col font-ui selection:bg-[#C9A24B]/30">
@@ -998,8 +1022,13 @@ export const App: React.FC = () => {
           onOpenResultLookup={() => navigateTo('/result')}
           onOpenSuperAdmin={() => navigateTo('/admin')}
           onOpenConsultancyPortal={(cid) => {
+            const targetId = cid || selectedConsultancyId;
             if (cid) setSelectedConsultancyId(cid);
-            navigateTo('/consultancy/dashboard');
+            if (ConsultancyService.isDirectorAuthenticated(targetId)) {
+              navigateTo('/consultancy/dashboard');
+            } else {
+              navigateTo('/consultancy/login');
+            }
           }}
         />
       )}
@@ -1015,9 +1044,20 @@ export const App: React.FC = () => {
             setActiveRoute('kiosk-student');
           }}
           onEnterInvigilator={(consultancy) => {
+            const user: AdminUser = {
+              id: `admin-${consultancy.id}`,
+              name: `${consultancy.name} Director`,
+              email: consultancy.adminEmail || `${consultancy.id}@consultancy.com`,
+              role: 'consultancy_admin',
+              consultancyId: consultancy.id,
+              consultancyName: consultancy.name
+            };
+            ConsultancyService.setCurrentAdmin(user);
+            setAdminUser(user);
             setSelectedConsultancyId(consultancy.id);
             setConsultancySubTab('dashboard');
             setActiveRoute('consultancy');
+            navigateTo('/consultancy/dashboard');
           }}
           onBackToDirectory={() => navigateTo('/')}
         />
@@ -1273,19 +1313,33 @@ export const App: React.FC = () => {
 
       {/* 8. CONSULTANCY PORTAL (Blueprint Screen 6.6 - 6.10: /consultancy/*) */}
       {activeRoute === 'consultancy' && (
-        <ConsultancyLayout
-          consultancy={activeConsultancy}
-          activeTab={consultancySubTab}
-          onTabChange={(tab) => {
-            setConsultancySubTab(tab);
-            navigateTo(`/consultancy/${tab}`);
-          }}
-          onQuickLaunchClick={() => {
-            setConsultancySubTab('launch');
-            navigateTo('/consultancy/launch');
-          }}
-          onLogout={handleLogout}
-        >
+        !isDirectorAuthenticated || consultancySubTab === 'login' ? (
+          <DirectorLoginView
+            consultancy={activeConsultancy}
+            onSuccess={(user, targetConsultancy) => {
+              setAdminUser(user);
+              if (targetConsultancy) {
+                setSelectedConsultancyId(targetConsultancy.id);
+              }
+              setConsultancySubTab('dashboard');
+              navigateTo('/consultancy/dashboard');
+            }}
+            onBackToHub={() => navigateTo('/')}
+          />
+        ) : (
+          <ConsultancyLayout
+            consultancy={activeConsultancy}
+            activeTab={consultancySubTab}
+            onTabChange={(tab) => {
+              setConsultancySubTab(tab);
+              navigateTo(`/consultancy/${tab}`);
+            }}
+            onQuickLaunchClick={() => {
+              setConsultancySubTab('launch');
+              navigateTo('/consultancy/launch');
+            }}
+            onLogout={handleLogout}
+          >
           {consultancySubTab === 'dashboard' && (
             <DashboardView
               consultancy={activeConsultancy}
@@ -1405,16 +1459,28 @@ export const App: React.FC = () => {
             />
           )}
         </ConsultancyLayout>
-      )}
+      ))}
 
       {/* 9. SUPER ADMIN PORTAL (Blueprint Screen 6.11: /admin) */}
       {activeRoute === 'super-admin' && (
         <SuperAdminPortal
           onBackToApp={() => navigateTo('/')}
           onOpenConsultancy={(cid) => {
+            let current = ConsultancyService.getCurrentAdmin();
+            if (!current) {
+              current = {
+                id: 'super-admin-user',
+                name: 'System Super Administrator',
+                email: 'admin@ieltsplatform.com',
+                role: 'super_admin'
+              };
+              ConsultancyService.setCurrentAdmin(current);
+              setAdminUser(current);
+            }
             setSelectedConsultancyId(cid);
             setConsultancySubTab('dashboard');
             setActiveRoute('consultancy');
+            navigateTo('/consultancy/dashboard');
           }}
           onLogout={handleLogout}
         />

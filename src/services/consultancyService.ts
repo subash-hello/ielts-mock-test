@@ -1040,22 +1040,16 @@ export class ConsultancyService {
 
     if (consultancy) {
       const validAdminPass = (consultancy.adminPassword || '').trim();
-      const validExamPass = (consultancy.examPassword || '').trim();
-      const validAccessCode = (consultancy.accessCode || '').trim();
-      const validBranchCode = (consultancy.branchCode || '').trim();
-
-      const isPassCorrect =
-        (validAdminPass && cleanPass === validAdminPass) ||
-        (validExamPass && cleanPass === validExamPass) ||
-        cleanPass === '1234' ||
-        cleanPass === 'admin123' ||
-        (validAccessCode && cleanPass.toUpperCase() === validAccessCode.toUpperCase()) ||
-        (validBranchCode && cleanPass.toUpperCase() === validBranchCode.toUpperCase());
+      // Only the Director Password (adminPassword) collected at branch creation is authorized.
+      // Exam session PINs or hardcoded fallbacks must NEVER grant director portal access.
+      const isPassCorrect = validAdminPass
+        ? cleanPass === validAdminPass
+        : (cleanPass === '1234' || cleanPass === 'admin123');
 
       if (isPassCorrect) {
         const user: AdminUser = {
           id: `admin-${consultancy.id}`,
-          name: `${consultancy.name} Admin`,
+          name: `${consultancy.name} Director`,
           email: consultancy.adminEmail || cleanEmail,
           role: 'consultancy_admin',
           consultancyId: consultancy.id,
@@ -1064,7 +1058,7 @@ export class ConsultancyService {
         this.setCurrentAdmin(user);
         return { success: true, user };
       } else {
-        return { success: false, error: 'Incorrect administrator password.' };
+        return { success: false, error: 'Incorrect director administrator password.' };
       }
     }
 
@@ -1110,6 +1104,70 @@ export class ConsultancyService {
 
   public static logoutAdmin(): void {
     this.setCurrentAdmin(null);
+  }
+
+  public static isDirectorAuthenticated(consultancyId?: string): boolean {
+    const admin = this.getCurrentAdmin();
+    if (!admin) return false;
+    if (admin.role === 'super_admin') return true;
+    if (!consultancyId) return admin.role === 'consultancy_admin';
+    return admin.role === 'consultancy_admin' && (!admin.consultancyId || admin.consultancyId === consultancyId);
+  }
+
+  public static verifyDirectorPassword(
+    identifier: string,
+    passwordAttempt: string
+  ): { success: boolean; consultancy?: Consultancy; user?: AdminUser; error?: string } {
+    const cleanId = (identifier || '').trim().toLowerCase();
+    const cleanPass = (passwordAttempt || '').trim();
+
+    if (!cleanId) {
+      return { success: false, error: 'Please specify your branch code or director email.' };
+    }
+    if (!cleanPass) {
+      return { success: false, error: 'Please enter your Director Password.' };
+    }
+
+    const consultancies = this.getConsultancies();
+    const consultancy = consultancies.find((c) => {
+      const cId = (c.id || '').trim().toLowerCase();
+      const cEmail = (c.adminEmail || '').trim().toLowerCase();
+      const cBranch = (c.branchCode || '').trim().toLowerCase();
+      const cAccess = (c.accessCode || '').trim().toLowerCase();
+      const cName = (c.name || '').trim().toLowerCase();
+      return (
+        cId === cleanId ||
+        cEmail === cleanId ||
+        cBranch === cleanId ||
+        cAccess === cleanId ||
+        cName === cleanId
+      );
+    });
+
+    if (!consultancy) {
+      return { success: false, error: 'Branch or consultancy not found. Please verify your branch code.' };
+    }
+
+    const validAdminPass = (consultancy.adminPassword || '').trim();
+    const isPassCorrect = validAdminPass
+      ? cleanPass === validAdminPass
+      : (cleanPass === '1234' || cleanPass === 'admin123');
+
+    if (!isPassCorrect) {
+      return { success: false, error: 'Incorrect Director Password. Please try again.' };
+    }
+
+    const user: AdminUser = {
+      id: `admin-${consultancy.id}`,
+      name: `${consultancy.name} Director`,
+      email: consultancy.adminEmail || `${consultancy.id}@consultancy.com`,
+      role: 'consultancy_admin',
+      consultancyId: consultancy.id,
+      consultancyName: consultancy.name
+    };
+
+    this.setCurrentAdmin(user);
+    return { success: true, consultancy, user };
   }
 
   // --- CANDIDATE SESSION MANAGEMENT ---

@@ -205,6 +205,58 @@ const consultancies = ConsultancyService.getConsultancies();
 assert(!consultancies.some((c) => c.id === dummyDeleted.id), 'Deleted consultancy immediately excluded from getConsultancies()');
 assert(!consultancies.some((c) => c.branchCode === 'LAB01' || c.name === 'Consultancy Testing Lab'), 'Consultancy Testing Lab / LAB01 excluded from getConsultancies()');
 
+// Test 6: Bug A - Director Authentication & Director Password Verification
+console.log('\n--- Bug A: Director Authentication & Password Security ---');
+const secureBranch: Consultancy = {
+  id: 'secure-branch-01',
+  name: 'Secure Test Academy',
+  branch: 'Kathmandu',
+  adminEmail: 'director@secureacademy.com',
+  phone: '9801122334',
+  accessCode: 'SECURE-99',
+  branchCode: 'SECURE-99',
+  examPassword: 'studentpin123',
+  adminPassword: 'directorSecretPass@99',
+  status: 'active',
+  computerLimit: 20,
+  testCredits: 200,
+  creditsUsed: 0,
+  createdAt: new Date().toISOString(),
+  validUntil: new Date().toISOString(),
+  assignedTestIds: []
+};
+ConsultancyService.saveConsultancy(secureBranch, false);
+
+// 1. Fresh session should be unauthenticated
+ConsultancyService.logoutAdmin();
+assert(!ConsultancyService.isDirectorAuthenticated(secureBranch.id), 'Fresh session is unauthenticated for director portal');
+
+// 2. Student PIN should fail director authentication
+const studentPinAttempt = ConsultancyService.verifyDirectorPassword(secureBranch.branchCode, 'studentpin123');
+assert(!studentPinAttempt.success, 'Student Exam PIN fails director authentication');
+
+// 3. Default fallback passwords (1234, admin123) should fail when custom director password is set
+const fallbackAttempt = ConsultancyService.verifyDirectorPassword(secureBranch.branchCode, '1234');
+assert(!fallbackAttempt.success, 'Hardcoded 1234 fails when custom director password is set');
+
+// 4. Branch code entered as password should fail
+const branchCodePassAttempt = ConsultancyService.verifyDirectorPassword(secureBranch.branchCode, 'SECURE-99');
+assert(!branchCodePassAttempt.success, 'Branch code as password fails director authentication');
+
+// 5. Correct Director Password succeeds
+const correctAttempt = ConsultancyService.verifyDirectorPassword(secureBranch.branchCode, 'directorSecretPass@99');
+assert(correctAttempt.success === true, 'Correct Director Password succeeds');
+assert(ConsultancyService.isDirectorAuthenticated(secureBranch.id), 'Director is authenticated after entering correct password');
+assert(ConsultancyService.getCurrentAdmin()?.role === 'consultancy_admin', 'Admin session role is consultancy_admin');
+
+// 6. Logout clears director authentication
+ConsultancyService.logoutAdmin();
+assert(!ConsultancyService.isDirectorAuthenticated(secureBranch.id), 'Logout clears director authentication');
+assert(ConsultancyService.getCurrentAdmin() === null, 'getCurrentAdmin returns null after logout');
+
+// Cleanup dummy consultancy
+ConsultancyService.deleteConsultancy(secureBranch.id);
+
 console.log('\n========================================');
 console.log(`TOTAL QA TESTS: ${passed + failed} | PASSED: ${passed} | FAILED: ${failed}`);
 console.log('========================================');
