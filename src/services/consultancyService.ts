@@ -259,6 +259,8 @@ export class ConsultancyService {
   private static localListeners: Set<(event: { type: string; payload: any }) => void> = new Set();
   private static supabaseChannel: any = null;
   private static isSupabaseSubscribed = false;
+  private static isSyncing = false;
+  public static lastSyncTimestamp = 0;
 
   private static getChannel(): BroadcastChannel | null {
     if (typeof window !== 'undefined' && 'BroadcastChannel' in window) {
@@ -706,6 +708,9 @@ export class ConsultancyService {
     // 5. Visibility and focus listeners (instant sync when student switches to or refocuses tab)
     const focusHandler = () => {
       callback({ type: 'WINDOW_FOCUSED', payload: {} });
+      if (Date.now() - ConsultancyService.lastSyncTimestamp > 15000) {
+        ConsultancyService.syncFromSupabase().catch(() => {});
+      }
     };
 
     if (typeof window !== 'undefined') {
@@ -726,6 +731,466 @@ export class ConsultancyService {
         document.removeEventListener('visibilitychange', focusHandler);
       }
     };
+  }
+
+  // --- SUPABASE DATA MAPPERS & CLOUD PERSISTENCE ENGINE ---
+  private static mapRowToConsultancy(row: any): Consultancy {
+    return {
+      id: row.id,
+      name: row.name,
+      branch: row.branch || 'Central',
+      adminEmail: row.admin_email || '',
+      phone: row.phone || '',
+      accessCode: row.access_code || row.branch_code || row.id,
+      branchCode: row.branch_code || row.access_code || row.id,
+      examPassword: row.exam_password || '1234',
+      adminPassword: row.admin_password || 'admin123',
+      status: row.status || 'active',
+      computerLimit: row.computer_limit !== undefined ? Number(row.computer_limit) : 20,
+      testCredits: row.test_credits !== undefined ? Number(row.test_credits) : 300,
+      creditsUsed: row.credits_used !== undefined ? Number(row.credits_used) : 0,
+      assignedTestIds: Array.isArray(row.assigned_test_ids) ? row.assigned_test_ids : [],
+      logoUrl: row.logo_url || undefined,
+      createdAt: row.created_at || new Date().toISOString(),
+      validUntil: row.valid_until || new Date(Date.now() + 365 * 86400000).toISOString()
+    };
+  }
+
+  private static mapConsultancyToRow(c: Consultancy): any {
+    return {
+      id: c.id,
+      name: c.name,
+      branch: c.branch || 'Central',
+      admin_email: c.adminEmail || '',
+      phone: c.phone || '',
+      access_code: c.accessCode || c.branchCode || c.id,
+      branch_code: c.branchCode || c.accessCode || c.id,
+      exam_password: c.examPassword || '1234',
+      admin_password: c.adminPassword || '1234',
+      status: c.status || 'active',
+      computer_limit: c.computerLimit !== undefined ? c.computerLimit : 20,
+      test_credits: c.testCredits !== undefined ? c.testCredits : 300,
+      credits_used: c.creditsUsed !== undefined ? c.creditsUsed : 0,
+      assigned_test_ids: c.assignedTestIds || [],
+      logo_url: c.logoUrl || null,
+      created_at: c.createdAt || new Date().toISOString(),
+      valid_until: c.validUntil || new Date(Date.now() + 365 * 86400000).toISOString(),
+      updated_at: new Date().toISOString()
+    };
+  }
+
+  private static mapRowToStation(row: any): LabStation {
+    return {
+      id: row.id,
+      name: row.name,
+      consultancyId: row.consultancy_id,
+      status: row.status || 'idle',
+      currentCandidate: row.current_candidate || undefined,
+      assignedTestId: row.assigned_test_id || undefined,
+      testTitle: row.test_title || undefined,
+      module: row.module || undefined,
+      isFullMock: row.is_full_mock || false,
+      currentQuestion: row.current_question !== undefined ? Number(row.current_question) : 1,
+      totalQuestions: row.total_questions !== undefined ? Number(row.total_questions) : 40,
+      answeredCount: row.answered_count !== undefined ? Number(row.answered_count) : 0,
+      remainingSeconds: row.remaining_seconds !== undefined && row.remaining_seconds !== null ? Number(row.remaining_seconds) : undefined,
+      timeSpentSeconds: row.time_spent_seconds !== undefined && row.time_spent_seconds !== null ? Number(row.time_spent_seconds) : undefined,
+      lastHeartbeat: row.last_heartbeat || new Date().toISOString(),
+      deviceToken: row.device_token || undefined
+    };
+  }
+
+  private static mapStationToRow(s: LabStation): any {
+    return {
+      id: s.id,
+      consultancy_id: s.consultancyId,
+      name: s.name,
+      status: s.status || 'idle',
+      current_candidate: s.currentCandidate || null,
+      assigned_test_id: s.assignedTestId || null,
+      test_title: s.testTitle || null,
+      module: s.module || null,
+      is_full_mock: s.isFullMock || false,
+      current_question: s.currentQuestion !== undefined ? s.currentQuestion : 1,
+      total_questions: s.totalQuestions !== undefined ? s.totalQuestions : 40,
+      answered_count: s.answeredCount !== undefined ? s.answeredCount : 0,
+      remaining_seconds: s.remainingSeconds !== undefined ? s.remainingSeconds : null,
+      time_spent_seconds: s.timeSpentSeconds !== undefined ? s.timeSpentSeconds : null,
+      device_token: s.deviceToken || null,
+      last_heartbeat: s.lastHeartbeat || new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    };
+  }
+
+  private static mapRowToStudent(row: any): ConsultancyStudent {
+    return {
+      id: row.id,
+      consultancyId: row.consultancy_id,
+      candidateNumber: row.candidate_number,
+      fullName: row.full_name,
+      email: row.email || '',
+      phone: row.phone || '',
+      targetBand: row.target_band ? Number(row.target_band) : 0,
+      enrolledDate: row.enrolled_date || new Date().toISOString().split('T')[0],
+      testsCompletedCount: row.tests_completed_count !== undefined ? Number(row.tests_completed_count) : 0,
+      highestBand: row.highest_band ? Number(row.highest_band) : 0,
+      averageBand: row.average_band ? Number(row.average_band) : 0,
+      latestResultId: row.latest_result_id || undefined,
+      assignedTestId: row.assigned_test_id || undefined,
+      assignedTestTitle: row.assigned_test_title || undefined
+    };
+  }
+
+  private static mapStudentToRow(s: ConsultancyStudent): any {
+    return {
+      id: s.id,
+      consultancy_id: s.consultancyId,
+      candidate_number: s.candidateNumber,
+      full_name: s.fullName,
+      email: s.email || '',
+      phone: s.phone || '',
+      target_band: s.targetBand || 0,
+      enrolled_date: s.enrolledDate || new Date().toISOString().split('T')[0],
+      tests_completed_count: s.testsCompletedCount || 0,
+      highest_band: s.highestBand || 0,
+      average_band: s.averageBand || 0,
+      latest_result_id: s.latestResultId || null,
+      assigned_test_id: s.assignedTestId || null,
+      assigned_test_title: s.assignedTestTitle || null,
+      updated_at: new Date().toISOString()
+    };
+  }
+
+  private static mapRowToResult(row: any): TestResult {
+    return {
+      testId: row.test_id,
+      book: row.book ? Number(row.book) : 16,
+      testNumber: row.test_number ? Number(row.test_number) : 1,
+      module: row.module || 'reading',
+      totalQuestions: row.total_questions ? Number(row.total_questions) : 40,
+      correctCount: row.correct_count ? Number(row.correct_count) : 0,
+      bandScore: row.band_score ? Number(row.band_score) : 0,
+      timeTakenSeconds: row.time_taken_seconds ? Number(row.time_taken_seconds) : 0,
+      completedAt: row.completed_at,
+      answers: row.answers || {},
+      candidateName: row.candidate_name || undefined,
+      candidateId: row.candidate_id || undefined,
+      stationName: row.station_name || undefined,
+      consultancyId: row.consultancy_id,
+      consultancyName: row.consultancy_name || undefined,
+      targetBand: row.target_band ? Number(row.target_band) : 0,
+      isPublished: row.is_published ?? false,
+      publishedAt: row.published_at || undefined,
+      writingSubmission: row.writing_submission || undefined
+    };
+  }
+
+  private static mapResultToRow(r: TestResult, consultancyId: string): any {
+    const uid = `${r.testId}-${r.candidateId || 'cand'}-${r.completedAt}`;
+    return {
+      id: uid,
+      consultancy_id: consultancyId,
+      test_id: r.testId,
+      book: r.book || 16,
+      test_number: r.testNumber || 1,
+      module: r.module,
+      total_questions: r.totalQuestions,
+      correct_count: r.correctCount,
+      band_score: r.bandScore,
+      time_taken_seconds: r.timeTakenSeconds,
+      completed_at: r.completedAt,
+      answers: r.answers || {},
+      candidate_name: r.candidateName || null,
+      candidate_id: r.candidateId || null,
+      station_name: r.stationName || null,
+      consultancy_name: r.consultancyName || null,
+      target_band: r.targetBand || null,
+      is_published: r.isPublished ?? false,
+      published_at: r.publishedAt || null,
+      writing_submission: r.writingSubmission || null
+    };
+  }
+
+  private static async pushConsultancyToSupabase(consultancy: Consultancy): Promise<void> {
+    if (!supabase) return;
+    try {
+      const row = this.mapConsultancyToRow(consultancy);
+      await supabase.from('consultancies').upsert(row);
+    } catch {}
+  }
+
+  private static async deleteConsultancyFromSupabase(id: string): Promise<void> {
+    if (!supabase) return;
+    try {
+      const clean = id.toLowerCase().trim();
+      await supabase.from('consultancies').delete().eq('id', clean);
+      await supabase.from('consultancy_stations').delete().eq('consultancy_id', clean);
+      await supabase.from('consultancy_students').delete().eq('consultancy_id', clean);
+      await supabase.from('consultancy_results').delete().eq('consultancy_id', clean);
+      await supabase.from('consultancy_reports').delete().eq('consultancy_id', clean);
+      await supabase.from('consultancy_active_launches').delete().eq('consultancy_id', clean);
+    } catch {}
+  }
+
+  private static async pushStationToSupabase(station: LabStation): Promise<void> {
+    if (!supabase) return;
+    try {
+      const row = this.mapStationToRow(station);
+      await supabase.from('consultancy_stations').upsert(row);
+    } catch {}
+  }
+
+  private static async deleteStationFromSupabase(consultancyId: string, stationIdentifier: string): Promise<void> {
+    if (!supabase) return;
+    try {
+      const canonical = this.getCanonicalConsultancyId(consultancyId);
+      const norm = this.normalizeStationName(stationIdentifier);
+      await supabase
+        .from('consultancy_stations')
+        .delete()
+        .eq('consultancy_id', canonical)
+        .or(`id.eq.${stationIdentifier},name.eq.${norm}`);
+    } catch {}
+  }
+
+  private static async pushStudentToSupabase(student: ConsultancyStudent): Promise<void> {
+    if (!supabase) return;
+    try {
+      const row = this.mapStudentToRow(student);
+      await supabase.from('consultancy_students').upsert(row);
+    } catch {}
+  }
+
+  private static async deleteStudentFromSupabase(consultancyId: string, studentId: string): Promise<void> {
+    if (!supabase) return;
+    try {
+      const canonical = this.getCanonicalConsultancyId(consultancyId);
+      await supabase
+        .from('consultancy_students')
+        .delete()
+        .eq('consultancy_id', canonical)
+        .or(`id.eq.${studentId},candidate_number.eq.${studentId}`);
+    } catch {}
+  }
+
+  private static async pushResultToSupabase(consultancyId: string, result: TestResult): Promise<void> {
+    if (!supabase) return;
+    try {
+      const canonical = this.getCanonicalConsultancyId(consultancyId);
+      const row = this.mapResultToRow(result, canonical);
+      await supabase.from('consultancy_results').upsert(row);
+      const c = this.getConsultancyById(canonical);
+      if (c && c.creditsUsed !== undefined) {
+        await supabase.from('consultancies').update({
+          credits_used: c.creditsUsed,
+          updated_at: new Date().toISOString()
+        }).eq('id', c.id);
+      }
+    } catch {}
+  }
+
+  private static async deleteResultFromSupabase(
+    consultancyId: string,
+    testId: string,
+    candidateId?: string,
+    completedAt?: string
+  ): Promise<void> {
+    if (!supabase) return;
+    try {
+      const canonical = this.getCanonicalConsultancyId(consultancyId);
+      let query = supabase.from('consultancy_results').delete().eq('consultancy_id', canonical).eq('test_id', testId);
+      if (candidateId) query = query.eq('candidate_id', candidateId);
+      if (completedAt) query = query.eq('completed_at', completedAt);
+      await query;
+    } catch {}
+  }
+
+  private static async pushActiveLaunchToSupabase(
+    consultancyId: string,
+    testId: string | null,
+    title?: string,
+    sessionName?: string,
+    isFullMock?: boolean,
+    stoppedAt?: number
+  ): Promise<void> {
+    if (!supabase) return;
+    try {
+      const canonical = this.getCanonicalConsultancyId(consultancyId);
+      const now = new Date().toISOString();
+      const row = {
+        consultancy_id: canonical,
+        test_id: testId,
+        title: title || testId,
+        session_name: sessionName || null,
+        is_full_mock: isFullMock || false,
+        launched_at: testId ? now : null,
+        stopped_at: stoppedAt ? new Date(stoppedAt).toISOString() : (!testId ? now : null),
+        updated_at: now
+      };
+      await supabase.from('consultancy_active_launches').upsert(row);
+    } catch {}
+  }
+
+  public static async syncFromSupabase(): Promise<void> {
+    if (this.isSyncing || !supabase) return;
+    this.isSyncing = true;
+    try {
+      // 1. Sync Consultancies
+      const { data: dbConsultancies, error: cErr } = await supabase.from('consultancies').select('*');
+      if (!cErr && Array.isArray(dbConsultancies) && dbConsultancies.length > 0) {
+        const deletedIds = this.getDeletedConsultancyIds();
+        const remoteConsultancies = dbConsultancies.map((r: any) => this.mapRowToConsultancy(r));
+        const currentLocal = this.getConsultancies();
+
+        const map = new Map<string, Consultancy>();
+        for (const rem of remoteConsultancies) {
+          const cid = rem.id.toLowerCase().trim();
+          if (!deletedIds.includes(cid)) {
+            map.set(cid, rem);
+          }
+        }
+        for (const loc of currentLocal) {
+          const cid = loc.id.toLowerCase().trim();
+          if (!map.has(cid) && !deletedIds.includes(cid)) {
+            map.set(cid, loc);
+            this.pushConsultancyToSupabase(loc).catch(() => {});
+          }
+        }
+        const merged = Array.from(map.values());
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('ielts_consultancies', JSON.stringify(merged));
+        }
+      }
+
+      // 2. Sync Stations
+      const { data: dbStations, error: sErr } = await supabase.from('consultancy_stations').select('*');
+      if (!sErr && Array.isArray(dbStations) && dbStations.length > 0) {
+        const byCid = new Map<string, LabStation[]>();
+        for (const row of dbStations) {
+          const st = this.mapRowToStation(row);
+          const cid = this.getCanonicalConsultancyId(st.consultancyId);
+          if (!byCid.has(cid)) byCid.set(cid, []);
+          byCid.get(cid)!.push(st);
+        }
+        for (const [cid, remoteSts] of byCid.entries()) {
+          const aliases = this.getConsultancyAliases(cid);
+          const localSts = this.getStations(cid);
+          const stMap = new Map<string, LabStation>();
+          for (const s of remoteSts) {
+            stMap.set(this.normalizeStationName(s.name), s);
+          }
+          for (const s of localSts) {
+            const norm = this.normalizeStationName(s.name);
+            if (!stMap.has(norm)) {
+              stMap.set(norm, s);
+              this.pushStationToSupabase(s).catch(() => {});
+            }
+          }
+          const finalStations = Array.from(stMap.values());
+          finalStations.sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true, sensitivity: 'base' }));
+          const ser = JSON.stringify(finalStations);
+          for (const k of aliases) {
+            localStorage.setItem(`ielts_stations_${k}`, ser);
+          }
+        }
+      }
+
+      // 3. Sync Students
+      const { data: dbStudents, error: stdErr } = await supabase.from('consultancy_students').select('*');
+      if (!stdErr && Array.isArray(dbStudents) && dbStudents.length > 0) {
+        const byCid = new Map<string, ConsultancyStudent[]>();
+        for (const row of dbStudents) {
+          const std = this.mapRowToStudent(row);
+          const cid = this.getCanonicalConsultancyId(std.consultancyId);
+          if (!byCid.has(cid)) byCid.set(cid, []);
+          byCid.get(cid)!.push(std);
+        }
+        for (const [cid, remoteStds] of byCid.entries()) {
+          const aliases = this.getConsultancyAliases(cid);
+          const localStds = this.getStudents(cid);
+          const stdMap = new Map<string, ConsultancyStudent>();
+          for (const s of remoteStds) {
+            stdMap.set(s.candidateNumber || s.id, s);
+          }
+          for (const s of localStds) {
+            const key = s.candidateNumber || s.id;
+            if (!stdMap.has(key)) {
+              stdMap.set(key, s);
+              this.pushStudentToSupabase(s).catch(() => {});
+            }
+          }
+          const finalStudents = Array.from(stdMap.values());
+          const ser = JSON.stringify(finalStudents);
+          for (const k of aliases) {
+            localStorage.setItem(`ielts_students_${k}`, ser);
+          }
+        }
+      }
+
+      // 4. Sync Results
+      const { data: dbResults, error: rErr } = await supabase.from('consultancy_results').select('*');
+      if (!rErr && Array.isArray(dbResults) && dbResults.length > 0) {
+        const byCid = new Map<string, TestResult[]>();
+        for (const row of dbResults) {
+          const res = this.mapRowToResult(row);
+          const cid = this.getCanonicalConsultancyId(res.consultancyId || row.consultancy_id);
+          if (!byCid.has(cid)) byCid.set(cid, []);
+          byCid.get(cid)!.push(res);
+        }
+        for (const [cid, remoteRes] of byCid.entries()) {
+          const aliases = this.getConsultancyAliases(cid);
+          const localRes = this.getResults(cid);
+          const resMap = new Map<string, TestResult>();
+          for (const r of remoteRes) {
+            resMap.set(`${r.testId}-${r.candidateId || ''}-${r.completedAt}`, r);
+          }
+          for (const r of localRes) {
+            const key = `${r.testId}-${r.candidateId || ''}-${r.completedAt}`;
+            if (!resMap.has(key)) {
+              resMap.set(key, r);
+              this.pushResultToSupabase(cid, r).catch(() => {});
+            }
+          }
+          const finalResults = Array.from(resMap.values()).sort(
+            (a, b) => new Date(b.completedAt || 0).getTime() - new Date(a.completedAt || 0).getTime()
+          );
+          const ser = JSON.stringify(finalResults);
+          for (const k of aliases) {
+            localStorage.setItem(`ielts_results_${k}`, ser);
+          }
+        }
+      }
+
+      // 5. Sync Active Launches
+      const { data: dbLaunches, error: lErr } = await supabase.from('consultancy_active_launches').select('*');
+      if (!lErr && Array.isArray(dbLaunches) && dbLaunches.length > 0) {
+        for (const l of dbLaunches) {
+          const cid = l.consultancy_id;
+          if (l.stopped_at && (!l.launched_at || new Date(l.stopped_at).getTime() >= new Date(l.launched_at).getTime())) {
+            const stopMs = new Date(l.stopped_at).getTime();
+            localStorage.setItem(`ielts_stopped_test_${cid}`, String(stopMs));
+            localStorage.removeItem(`ielts_launched_test_${cid}`);
+          } else if (l.test_id && l.launched_at) {
+            const data = {
+              consultancyId: cid,
+              testId: l.test_id,
+              title: l.title || l.test_id,
+              sessionName: l.session_name || undefined,
+              launchedAt: l.launched_at,
+              isFullMock: l.is_full_mock || false
+            };
+            localStorage.setItem(`ielts_launched_test_${cid}`, JSON.stringify(data));
+          }
+        }
+      }
+
+      this.lastSyncTimestamp = Date.now();
+      this.broadcast('STORAGE_SYNC', { fromSupabase: true });
+    } catch {
+      // Graceful offline fallback
+    } finally {
+      this.isSyncing = false;
+    }
   }
 
   // --- CONSULTANCIES MANAGEMENT (SUPER ADMIN) ---
@@ -1261,6 +1726,7 @@ export class ConsultancyService {
     if (shouldBroadcast) {
       this.broadcast('CONSULTANCY_UPDATED', list[existingIdx >= 0 ? existingIdx : 0]);
     }
+    this.pushConsultancyToSupabase(list[existingIdx >= 0 ? existingIdx : 0]).catch(() => {});
   }
 
   public static deleteConsultancy(id: string): void {
@@ -1316,6 +1782,7 @@ export class ConsultancyService {
 
     // 4. Broadcast deletion event
     this.broadcast('CONSULTANCY_DELETED', id);
+    this.deleteConsultancyFromSupabase(cleanId).catch(() => {});
   }
 
   // --- ASSIGNED TEST MANAGEMENT ---
@@ -1495,6 +1962,7 @@ export class ConsultancyService {
       localStorage.setItem(`ielts_stations_${key}`, serialized);
     }
     this.broadcast('STATION_UPDATED', stationWithNorm);
+    this.pushStationToSupabase(stationWithNorm).catch(() => {});
   }
 
   public static updateStationHeartbeat(
@@ -1580,6 +2048,7 @@ export class ConsultancyService {
     }
     this.broadcast('STATION_ADDED', newStation);
     this.broadcast('STATION_UPDATED', newStation);
+    this.pushStationToSupabase(newStation).catch(() => {});
     return newStation;
   }
 
@@ -1622,6 +2091,7 @@ export class ConsultancyService {
 
     this.broadcast('STATION_DELETED', { consultancyId: canonical, stationId: stationIdentifier, stationName: normIdentifier });
     this.broadcast('STATION_UPDATED', { consultancyId: canonical });
+    this.deleteStationFromSupabase(canonical, stationIdentifier).catch(() => {});
   }
 
   public static deleteStations(consultancyId: string, stationIdentifiers: string[]): void {
@@ -1641,6 +2111,9 @@ export class ConsultancyService {
 
     this.broadcast('STATION_DELETED', { consultancyId: canonical, stationIds: stationIdentifiers });
     this.broadcast('STATION_UPDATED', { consultancyId: canonical });
+    for (const sid of stationIdentifiers) {
+      this.deleteStationFromSupabase(canonical, sid).catch(() => {});
+    }
   }
 
   public static clearOfflineStations(consultancyId: string, offlineThresholdMs: number = 45000): void {
@@ -1957,6 +2430,7 @@ export class ConsultancyService {
       this.broadcast('BRANCH_TEST_LAUNCHED', { consultancyId, testId: null, stoppedAt: stopTime });
       this.broadcast('STATION_COMMAND', { consultancyId, command: 'END_TEST', stoppedAt: stopTime });
       this.broadcast('ADMIN_FORCE_RESET_TEST', { consultancyId, stoppedAt: stopTime });
+      this.pushActiveLaunchToSupabase(consultancyId, null, undefined, undefined, false, stopTime).catch(() => {});
       return;
     }
 
@@ -2013,6 +2487,7 @@ export class ConsultancyService {
       isFullMock: data.isFullMock,
       title: data.title
     });
+    this.pushActiveLaunchToSupabase(data.consultancyId, data.testId, data.title, data.sessionName, data.isFullMock).catch(() => {});
   }
 
   public static forceSubmitStation(consultancyId: string, stationId: string): void {
@@ -2133,6 +2608,7 @@ export class ConsultancyService {
       localStorage.setItem(`ielts_students_${key}`, serialized);
     }
     this.broadcast('STUDENT_UPDATED', { consultancyId: canonical, student: cleanStd });
+    this.pushStudentToSupabase(cleanStd).catch(() => {});
   }
 
   public static deleteStudent(consultancyId: string, studentId: string, cascadeDeleteData: boolean = false): void {
@@ -2190,6 +2666,7 @@ export class ConsultancyService {
     } catch {}
 
     this.broadcast('STUDENT_UPDATED', { consultancyId: canonical, studentId });
+    this.deleteStudentFromSupabase(canonical, studentId).catch(() => {});
   }
 
   private static upsertStudentForResult(
@@ -2417,6 +2894,7 @@ export class ConsultancyService {
     } catch {}
 
     this.broadcast('RESULT_ADDED', { consultancyId: canonical, result: cleanRes });
+    this.pushResultToSupabase(canonical, cleanRes).catch(() => {});
   }
 
   public static consumeCredit(consultancyId: string, count: number = 1): void {
@@ -2524,6 +3002,7 @@ export class ConsultancyService {
     } catch {}
 
     this.broadcast('RESULT_UPDATED', { consultancyId: canonical, result: updated });
+    this.pushResultToSupabase(canonical, updated).catch(() => {});
     return true;
   }
 
@@ -2709,6 +3188,7 @@ export class ConsultancyService {
     } catch {}
 
     this.broadcast('RESULT_DELETED', { consultancyId: canonical, testId, candidateId, completedAt });
+    this.deleteResultFromSupabase(canonical, testId, candidateId, completedAt).catch(() => {});
   }
 
   // Clear all test results for a consultancy
@@ -3582,4 +4062,11 @@ export class ConsultancyService {
     }
     return all;
   }
+}
+
+// Automatically trigger background Supabase sync on application startup
+if (typeof window !== 'undefined') {
+  setTimeout(() => {
+    ConsultancyService.syncFromSupabase().catch(() => {});
+  }, 100);
 }

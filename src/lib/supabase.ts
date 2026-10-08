@@ -32,7 +32,7 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey);
  * Fetch all mock tests from Supabase (from live Storage bucket or table)
  */
 export async function fetchMockTestsFromSupabase(): Promise<IELTSMockTest[] | null> {
-  // Try loading from Supabase Database Table if configured
+  // 1. Try loading from Supabase Database Table if configured
   try {
     const { data, error } = await supabase
       .from('ielts_mock_tests')
@@ -51,6 +51,20 @@ export async function fetchMockTestsFromSupabase(): Promise<IELTSMockTest[] | nu
         audioUrl: row.audio_url,
         sections: row.sections
       }));
+    }
+  } catch {
+    // Database table not yet created or offline - fallback to storage
+  }
+
+  // 2. Fetch directly from Supabase Public Storage bucket (contains all 32 Cambridge tests)
+  try {
+    const storageUrl = `${supabaseUrl}/storage/v1/object/public/ielts-mock-tests/all-tests.json`;
+    const res = await fetch(storageUrl);
+    if (res.ok) {
+      const storageData = await res.json();
+      if (Array.isArray(storageData) && storageData.length > 0) {
+        return storageData as IELTSMockTest[];
+      }
     }
   } catch {
     // Graceful fallback to static bundled Cambridge tests

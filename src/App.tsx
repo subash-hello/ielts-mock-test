@@ -385,6 +385,7 @@ export const App: React.FC = () => {
 
   useEffect(() => {
     parseUrlRoute();
+    ConsultancyService.syncFromSupabase().catch(() => {});
     window.addEventListener('popstate', parseUrlRoute);
     return () => window.removeEventListener('popstate', parseUrlRoute);
   }, []);
@@ -435,6 +436,27 @@ export const App: React.FC = () => {
       unsub();
     };
   }, [selectedConsultancyId]);
+
+  // Reactive state refresh across all portal tabs when Supabase or lab telemetry syncs
+  const [, setGlobalSyncTick] = useState(0);
+  useEffect(() => {
+    const unsub = ConsultancyService.subscribe((event) => {
+      if (
+        event.type === 'STORAGE_SYNC' ||
+        event.type === 'CONSULTANCY_UPDATED' ||
+        event.type === 'CONSULTANCY_DELETED' ||
+        event.type === 'STUDENT_UPDATED' ||
+        event.type === 'RESULT_ADDED' ||
+        event.type === 'RESULT_UPDATED' ||
+        event.type === 'RESULT_DELETED' ||
+        event.type === 'STATION_UPDATED' ||
+        event.type === 'STATION_DELETED'
+      ) {
+        setGlobalSyncTick((t) => t + 1);
+      }
+    });
+    return () => unsub();
+  }, []);
 
   // QA-02: Authoritative Countdown Timer (does not reset on answers keystrokes)
   useEffect(() => {

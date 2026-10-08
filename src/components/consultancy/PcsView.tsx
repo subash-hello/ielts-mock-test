@@ -41,7 +41,8 @@ export const PcsView: React.FC<PcsViewProps> = ({
         event.type === 'STATION_UPDATED' ||
         event.type === 'STATION_HEARTBEAT' ||
         event.type === 'STATION_ADDED' ||
-        event.type === 'STATION_DELETED'
+        event.type === 'STATION_DELETED' ||
+        event.type === 'STORAGE_SYNC'
       ) {
         setStationList(ConsultancyService.getStations(consultancy.id));
       }

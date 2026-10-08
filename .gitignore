@@ -34,3 +34,6 @@ __pycache__/
 *.pyc
 
 .vercel
+
+# Supabase CLI temp
+supabase/.temp/
