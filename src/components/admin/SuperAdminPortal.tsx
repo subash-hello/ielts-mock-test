@@ -15,7 +15,8 @@ import {
   Activity,
   Library,
   Copy,
-  Check
+  Check,
+  AlertCircle
 } from 'lucide-react';
 import type { Consultancy, ConsultancyStatus } from '../../types/consultancy';
 import { ConsultancyService } from '../../services/consultancyService';
@@ -38,6 +39,7 @@ export const SuperAdminPortal: React.FC<SuperAdminPortalProps> = ({
   const [searchQuery, setSearchQuery] = useState('');
   const [showAddModal, setShowAddModal] = useState(false);
   const [editingConsultancy, setEditingConsultancy] = useState<Consultancy | null>(null);
+  const [formError, setFormError] = useState<string | null>(null);
 
   // Form state
   const [formData, setFormData] = useState<{
@@ -101,6 +103,7 @@ export const SuperAdminPortal: React.FC<SuperAdminPortalProps> = ({
       status: 'active'
     });
     setEditingConsultancy(null);
+    setFormError(null);
     setShowAddModal(true);
   };
 
@@ -119,26 +122,49 @@ export const SuperAdminPortal: React.FC<SuperAdminPortalProps> = ({
       testCredits: c.testCredits,
       status: c.status
     });
+    setFormError(null);
     setShowAddModal(true);
   };
 
   const handleSaveConsultancy = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formData.name.trim()) return;
+    setFormError(null);
 
-    if (editingConsultancy) {
-      ConsultancyService.updateConsultancy(editingConsultancy.id, {
-        ...formData,
-      });
-    } else {
-      ConsultancyService.createConsultancy({
-        ...formData,
-        id: formData.name.toLowerCase().replace(/[^a-z0-9]/g, '-') + '-' + Math.floor(100 + Math.random() * 900),
-      });
+    if (!formData.name.trim()) {
+      setFormError('Consultancy Name is required.');
+      return;
+    }
+    if (!formData.branchCode.trim()) {
+      setFormError('Branch Code is required.');
+      return;
+    }
+    if (isNaN(formData.testCredits) || formData.testCredits < 0) {
+      setFormError('Test Attempt Credits must be 0 or greater.');
+      return;
+    }
+    if (isNaN(formData.computerLimit) || formData.computerLimit < 1) {
+      setFormError('PC Stations License Limit must be at least 1.');
+      return;
     }
 
-    setShowAddModal(false);
-    reloadData();
+    try {
+      if (editingConsultancy) {
+        ConsultancyService.updateConsultancy(editingConsultancy.id, {
+          ...formData,
+        });
+      } else {
+        ConsultancyService.createConsultancy({
+          ...formData,
+          id: formData.name.toLowerCase().replace(/[^a-z0-9]/g, '-') + '-' + Math.floor(100 + Math.random() * 900),
+        });
+      }
+
+      setShowAddModal(false);
+      setFormError(null);
+      reloadData();
+    } catch (err: any) {
+      setFormError(err?.message || 'Failed to save branch account. Please check your inputs.');
+    }
   };
 
   const handleConfirmDelete = () => {
@@ -680,12 +706,19 @@ export const SuperAdminPortal: React.FC<SuperAdminPortalProps> = ({
                     type="number"
                     value={formData.testCredits}
                     onChange={(e) => setFormData({ ...formData, testCredits: Number(e.target.value) })}
-                    min="1"
+                    min="0"
                     step="50"
                     className="w-full px-3 py-2 bg-white border border-[#5B6B82]/30 rounded-lg text-xs font-mono font-bold text-[#C9A24B]"
                   />
                 </div>
               </div>
+
+              {formError && (
+                <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-xs flex items-start gap-2 animate-in fade-in">
+                  <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+                  <span>{formError}</span>
+                </div>
+              )}
 
               <div className="flex justify-end gap-2 pt-3 border-t border-[#5B6B82]/10">
                 <button

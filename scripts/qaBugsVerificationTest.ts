@@ -257,6 +257,32 @@ assert(ConsultancyService.getCurrentAdmin() === null, 'getCurrentAdmin returns n
 // Cleanup dummy consultancy
 ConsultancyService.deleteConsultancy(secureBranch.id);
 
+// Test 7: 300-Credits Save Validation Fix
+console.log('\n--- 300-Credits Save Validation Fix ---');
+const branchWith300Credits: Consultancy = {
+  id: 'credit-300-branch',
+  name: 'Credit Test Branch',
+  branch: 'Kathmandu',
+  adminEmail: 'credit@test.com',
+  phone: '9801234567',
+  accessCode: 'CREDIT-300',
+  branchCode: 'CREDIT-300',
+  examPassword: '1234',
+  adminPassword: 'admin',
+  status: 'active',
+  computerLimit: 20,
+  testCredits: 300,
+  creditsUsed: 0,
+  createdAt: new Date().toISOString(),
+  validUntil: new Date().toISOString(),
+  assignedTestIds: []
+};
+ConsultancyService.createConsultancy(branchWith300Credits);
+const fetchedCreditBranch = ConsultancyService.getConsultancyById('credit-300-branch');
+assert(fetchedCreditBranch !== undefined, 'Branch with 300 test credits saved successfully without silent failure');
+assert(fetchedCreditBranch?.testCredits === 300, 'Branch test credits correctly stored as 300');
+ConsultancyService.deleteConsultancy('credit-300-branch');
+
 console.log('\n========================================');
 console.log(`TOTAL QA TESTS: ${passed + failed} | PASSED: ${passed} | FAILED: ${failed}`);
 console.log('========================================');
