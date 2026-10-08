@@ -359,6 +359,54 @@ assert(resolveExitRoute({ id: 'sa', role: 'super_admin' }) === '/admin', 'Exit t
 assert(resolveExitRoute(null, 'cr300-1') === '/b/cr300-1', 'Exit test for kiosk candidate with branch code routes back to /b/{code}');
 assert(resolveExitRoute(null) === '/kiosk/student', 'Exit test for standard kiosk candidate routes back to /kiosk/student');
 
+console.log('\n--- Paired PC Removal & Multi-Alias Sync Tests ---');
+const testBranchId = 'test-station-sync-branch';
+const testBranchCode = 'TSSB-01';
+ConsultancyService.createConsultancy({
+  id: testBranchId,
+  name: 'Test Station Sync Branch',
+  branchCode: testBranchCode,
+  testCredits: 50,
+  adminPassword: 'password123'
+});
+
+// 1. Add stations under branch
+ConsultancyService.addStation(testBranchId, 'PC-01');
+ConsultancyService.addStation(testBranchId, 'PC-02');
+ConsultancyService.addStation(testBranchId, 'PC-03');
+
+let stationsBefore = ConsultancyService.getStations(testBranchId);
+assert(stationsBefore.some((s) => s.name === 'PC-01'), 'PC-01 was added');
+assert(stationsBefore.some((s) => s.name === 'PC-02'), 'PC-02 was added');
+assert(stationsBefore.some((s) => s.name === 'PC-03'), 'PC-03 was added');
+
+// 2. Delete PC-02 using station ID
+const pc02 = stationsBefore.find((s) => s.name === 'PC-02')!;
+ConsultancyService.deleteStation(testBranchId, pc02.id);
+
+let stationsAfter1 = ConsultancyService.getStations(testBranchId);
+assert(!stationsAfter1.some((s) => s.name === 'PC-02'), 'PC-02 is removed from getStations(id)');
+
+// 3. Verify alias key in localStorage does not resurrect PC-02
+const branchCodeStations = ConsultancyService.getStations(testBranchCode);
+assert(!branchCodeStations.some((s) => s.name === 'PC-02'), 'PC-02 is removed from getStations(branchCode) without resurrection');
+
+// 4. Delete PC-01 using station name directly
+ConsultancyService.deleteStation(testBranchId, 'PC-01');
+let stationsAfter2 = ConsultancyService.getStations(testBranchId);
+assert(!stationsAfter2.some((s) => s.name === 'PC-01'), 'PC-01 is removed when deleting by station name');
+assert(stationsAfter2.some((s) => s.name === 'PC-03'), 'PC-03 remains intact');
+
+// 5. Batch delete stations
+ConsultancyService.addStation(testBranchId, 'PC-10');
+ConsultancyService.addStation(testBranchId, 'PC-11');
+ConsultancyService.deleteStations(testBranchId, ['PC-10', 'PC-11']);
+let stationsAfterBatch = ConsultancyService.getStations(testBranchId);
+assert(!stationsAfterBatch.some((s) => s.name === 'PC-10' || s.name === 'PC-11'), 'Batch deletion removes all specified stations');
+
+// Clean up
+ConsultancyService.deleteConsultancy(testBranchId);
+
 console.log('\n========================================');
 console.log(`TOTAL QA TESTS: ${passed + failed} | PASSED: ${passed} | FAILED: ${failed}`);
 console.log('========================================');

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   QrCode,
   Printer,
@@ -23,14 +23,41 @@ export const PcsView: React.FC<PcsViewProps> = ({
   stations,
   onRefresh,
 }) => {
+  const [stationList, setStationList] = useState<LabStation[]>(() =>
+    ConsultancyService.getStations(consultancy.id)
+  );
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
   const [showAddStationModal, setShowAddStationModal] = useState(false);
   const [newStationName, setNewStationName] = useState('');
   const [showPrintModal, setShowPrintModal] = useState(false);
 
+  useEffect(() => {
+    setStationList(ConsultancyService.getStations(consultancy.id));
+  }, [consultancy.id, stations]);
+
+  useEffect(() => {
+    const unsubscribe = ConsultancyService.subscribe((event) => {
+      if (
+        event.type === 'STATION_UPDATED' ||
+        event.type === 'STATION_HEARTBEAT' ||
+        event.type === 'STATION_ADDED' ||
+        event.type === 'STATION_DELETED'
+      ) {
+        setStationList(ConsultancyService.getStations(consultancy.id));
+      }
+    });
+    return () => unsubscribe();
+  }, [consultancy.id]);
+
   const origin = typeof window !== 'undefined' ? window.location.origin : 'https://mocktest.masterieltsai.com';
   const branchSlug = consultancy.branchCode || consultancy.accessCode || consultancy.id;
   const universalUrl = `${origin}/b/${branchSlug}`;
+
+  const now = Date.now();
+  const offlineStations = stationList.filter((st) => {
+    const lastHb = st.lastHeartbeat ? new Date(st.lastHeartbeat).getTime() : 0;
+    return now - lastHb >= 45000 && st.status !== 'in_progress' && st.status !== 'assigned';
+  });
 
   const handleCopy = (text: string, key: string) => {
     navigator.clipboard.writeText(text);
@@ -45,6 +72,7 @@ export const PcsView: React.FC<PcsViewProps> = ({
     const formatted = clean.startsWith('PC-') ? clean : `PC-${clean.replace(/^PC/i, '')}`;
 
     ConsultancyService.addStation(consultancy.id, formatted);
+    setStationList(ConsultancyService.getStations(consultancy.id));
     setNewStationName('');
     setShowAddStationModal(false);
     onRefresh();
@@ -52,7 +80,28 @@ export const PcsView: React.FC<PcsViewProps> = ({
 
   const handleDeleteStation = (st: LabStation) => {
     if (window.confirm(`Remove station ${st.name} from this branch?`)) {
+      setStationList((prev) =>
+        prev.filter(
+          (s) =>
+            s.id !== st.id &&
+            ConsultancyService.normalizeStationName(s.name) !== ConsultancyService.normalizeStationName(st.name)
+        )
+      );
       ConsultancyService.deleteStation(consultancy.id, st.id);
+      onRefresh();
+    }
+  };
+
+  const handleClearOfflineStations = () => {
+    if (offlineStations.length === 0) return;
+    if (
+      window.confirm(
+        `Remove all ${offlineStations.length} offline/inactive paired stations from this branch?`
+      )
+    ) {
+      const offlineIds = offlineStations.map((s) => s.id);
+      setStationList((prev) => prev.filter((s) => !offlineIds.includes(s.id)));
+      ConsultancyService.deleteStations(consultancy.id, offlineIds);
       onRefresh();
     }
   };
@@ -73,7 +122,19 @@ export const PcsView: React.FC<PcsViewProps> = ({
           </p>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
+          {offlineStations.length > 0 && (
+            <button
+              type="button"
+              onClick={handleClearOfflineStations}
+              className="px-3 py-2 bg-red-50 hover:bg-red-100 text-red-700 border border-red-200 text-xs font-semibold rounded shadow-xs flex items-center gap-1.5 transition"
+              title={`Remove ${offlineStations.length} offline stations`}
+            >
+              <Trash2 className="w-3.5 h-3.5" />
+              <span>Clear Offline PCs ({offlineStations.length})</span>
+            </button>
+          )}
+
           <button
             type="button"
             onClick={() => setShowPrintModal(true)}
@@ -86,7 +147,7 @@ export const PcsView: React.FC<PcsViewProps> = ({
           <button
             type="button"
             onClick={() => {
-              const nextNum = stations.length + 1;
+              const nextNum = stationList.length + 1;
               setNewStationName(`PC-${nextNum.toString().padStart(2, '0')}`);
               setShowAddStationModal(true);
             }}
@@ -167,7 +228,7 @@ export const PcsView: React.FC<PcsViewProps> = ({
       <div className="paper-card overflow-hidden space-y-0">
         <div className="p-4 bg-white border-b border-[#5B6B82]/15 flex items-center justify-between">
           <h2 className="text-xs font-bold uppercase tracking-wider text-[#0F1E33]">
-            Configured Stations ({stations.length})
+            Configured Stations ({stationList.length})
           </h2>
           <span className="text-[11px] text-[#5B6B82]">
             Heartbeat pinged every 15 seconds during active session
@@ -187,74 +248,82 @@ export const PcsView: React.FC<PcsViewProps> = ({
               </tr>
             </thead>
             <tbody className="divide-y divide-[#5B6B82]/10">
-              {stations.map((st) => {
-                const pcUrl = `${universalUrl}/${st.name.toLowerCase()}`;
-                const now = Date.now();
-                const lastHb = st.lastHeartbeat ? new Date(st.lastHeartbeat).getTime() : 0;
-                const isOnline = now - lastHb < 45000;
+              {stationList.length === 0 ? (
+                <tr>
+                  <td colSpan={6} className="py-12 text-center text-[#5B6B82] text-xs">
+                    No paired computer stations found. Workstations appear here automatically when candidates pair via QR code or universal link, or click &quot;Add Station&quot; to configure one.
+                  </td>
+                </tr>
+              ) : (
+                stationList.map((st) => {
+                  const pcUrl = `${universalUrl}/${st.name.toLowerCase()}`;
+                  const now = Date.now();
+                  const lastHb = st.lastHeartbeat ? new Date(st.lastHeartbeat).getTime() : 0;
+                  const isOnline = now - lastHb < 45000;
 
-                return (
-                  <tr key={st.id} className="hover:bg-white/60 transition">
-                    <td className="py-3.5 px-4 font-mono font-bold text-sm text-[#0F1E33]">
-                      {st.name}
-                    </td>
+                  return (
+                    <tr key={st.id} className="hover:bg-white/60 transition">
+                      <td className="py-3.5 px-4 font-mono font-bold text-sm text-[#0F1E33]">
+                        {st.name}
+                      </td>
 
-                    <td className="py-3.5 px-4">
-                      <div className="flex items-center gap-2 font-mono text-slate-700">
-                        <span className="truncate max-w-xs">{pcUrl}</span>
+                      <td className="py-3.5 px-4">
+                        <div className="flex items-center gap-2 font-mono text-slate-700">
+                          <span className="truncate max-w-xs">{pcUrl}</span>
+                          <button
+                            type="button"
+                            onClick={() => handleCopy(pcUrl, st.id)}
+                            className="p-1 text-[#5B6B82] hover:text-[#0F1E33]"
+                            title="Copy direct URL"
+                          >
+                            {copiedKey === st.id ? (
+                              <Check className="w-3.5 h-3.5 text-emerald-600" />
+                            ) : (
+                              <Copy className="w-3.5 h-3.5" />
+                            )}
+                          </button>
+                        </div>
+                      </td>
+
+                      <td className="py-3.5 px-4">
+                        {isOnline ? (
+                          <span className="inline-flex items-center gap-1.5 text-[11px] font-bold text-[#2E7D4F]">
+                            <span className="w-2 h-2 rounded-full bg-[#2E7D4F] animate-pulse" />
+                            <span>Connected</span>
+                          </span>
+                        ) : (
+                          <span className="text-[11px] text-[#5B6B82]">Offline</span>
+                        )}
+                      </td>
+
+                      <td className="py-3.5 px-4">
+                        {st.currentCandidate?.name && isOnline && (st.status === 'in_progress' || st.status === 'paused') ? (
+                          <span className="font-bold text-[#0F1E33]">
+                            {st.currentCandidate.name}
+                          </span>
+                        ) : (
+                          <span className="text-[#5B6B82]">—</span>
+                        )}
+                      </td>
+
+                      <td className="py-3.5 px-4 text-[#5B6B82] font-mono text-[11px]">
+                        {formatRelativeTime(st.lastHeartbeat)}
+                      </td>
+
+                      <td className="py-3.5 px-4 text-right">
                         <button
                           type="button"
-                          onClick={() => handleCopy(pcUrl, st.id)}
-                          className="p-1 text-[#5B6B82] hover:text-[#0F1E33]"
-                          title="Copy direct URL"
+                          onClick={() => handleDeleteStation(st)}
+                          className="p-1.5 text-[#C0392B] hover:text-red-700 rounded hover:bg-red-50"
+                          title="Remove Station"
                         >
-                          {copiedKey === st.id ? (
-                            <Check className="w-3.5 h-3.5 text-emerald-600" />
-                          ) : (
-                            <Copy className="w-3.5 h-3.5" />
-                          )}
+                          <Trash2 className="w-3.5 h-3.5" />
                         </button>
-                      </div>
-                    </td>
-
-                    <td className="py-3.5 px-4">
-                      {isOnline ? (
-                        <span className="inline-flex items-center gap-1.5 text-[11px] font-bold text-[#2E7D4F]">
-                          <span className="w-2 h-2 rounded-full bg-[#2E7D4F] animate-pulse" />
-                          <span>Connected</span>
-                        </span>
-                      ) : (
-                        <span className="text-[11px] text-[#5B6B82]">Offline</span>
-                      )}
-                    </td>
-
-                    <td className="py-3.5 px-4">
-                      {st.currentCandidate?.name && isOnline && (st.status === 'in_progress' || st.status === 'paused') ? (
-                        <span className="font-bold text-[#0F1E33]">
-                          {st.currentCandidate.name}
-                        </span>
-                      ) : (
-                        <span className="text-[#5B6B82]">—</span>
-                      )}
-                    </td>
-
-                    <td className="py-3.5 px-4 text-[#5B6B82] font-mono text-[11px]">
-                      {formatRelativeTime(st.lastHeartbeat)}
-                    </td>
-
-                    <td className="py-3.5 px-4 text-right">
-                      <button
-                        type="button"
-                        onClick={() => handleDeleteStation(st)}
-                        className="p-1.5 text-[#C0392B] hover:text-red-700 rounded hover:bg-red-50"
-                        title="Remove Station"
-                      >
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </button>
-                    </td>
-                  </tr>
-                );
-              })}
+                      </td>
+                    </tr>
+                  );
+                })
+              )}
             </tbody>
           </table>
         </div>
@@ -347,7 +416,7 @@ export const PcsView: React.FC<PcsViewProps> = ({
 
             {/* Printable Cards Grid */}
             <div className="grid grid-cols-2 md:grid-cols-3 gap-6 p-4 bg-slate-50 border border-slate-200 rounded-xl">
-              {stations.map((st) => {
+              {stationList.map((st) => {
                 const targetUrl = `${universalUrl}/${st.name.toLowerCase()}`;
                 const qrSvgUrl = `https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(
                   targetUrl

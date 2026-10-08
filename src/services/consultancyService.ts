@@ -1542,9 +1542,11 @@ export class ConsultancyService {
   }
 
   public static addStation(consultancyId: string, stationName: string): LabStation {
+    const canonical = this.getCanonicalConsultancyId(consultancyId);
+    const aliases = this.getConsultancyAliases(consultancyId);
     const normName = this.normalizeStationName(stationName);
-    const list = this.getStations(consultancyId);
-    const activeTest = this.getActiveLaunchedTest(consultancyId);
+    const list = this.getStations(canonical);
+    const activeTest = this.getActiveLaunchedTest(canonical);
     
     // Strict uniqueness check by normalized station name
     const existing = list.find((s) => this.normalizeStationName(s.name) === normName);
@@ -1560,11 +1562,11 @@ export class ConsultancyService {
       return existing;
     }
 
-    const id = `${consultancyId}-${normName.toLowerCase().replace(/[^a-z0-9]/g, '-')}`;
+    const id = `${canonical}-${normName.toLowerCase().replace(/[^a-z0-9]/g, '-')}`;
     const newStation: LabStation = {
       id,
       name: normName,
-      consultancyId,
+      consultancyId: canonical,
       status: activeTest ? 'assigned' : 'idle',
       assignedTestId: activeTest?.testId,
       testTitle: activeTest?.title,
@@ -1572,13 +1574,18 @@ export class ConsultancyService {
       lastHeartbeat: new Date().toISOString()
     };
     list.push(newStation);
-    localStorage.setItem(`ielts_stations_${consultancyId}`, JSON.stringify(list));
+    const serialized = JSON.stringify(list);
+    for (const key of aliases) {
+      localStorage.setItem(`ielts_stations_${key}`, serialized);
+    }
     this.broadcast('STATION_ADDED', newStation);
+    this.broadcast('STATION_UPDATED', newStation);
     return newStation;
   }
 
   public static addStationsBatch(consultancyId: string, count: number): LabStation[] {
-    const list = this.getStations(consultancyId);
+    const canonical = this.getCanonicalConsultancyId(consultancyId);
+    const list = this.getStations(canonical);
     let maxNum = 0;
     list.forEach((st) => {
       const match = st.name.match(/\d+/);
@@ -1592,15 +1599,68 @@ export class ConsultancyService {
     for (let i = 1; i <= count; i++) {
       const num = maxNum + i;
       const formattedName = `PC-${num < 10 ? '0' + num : num}`;
-      added.push(this.addStation(consultancyId, formattedName));
+      added.push(this.addStation(canonical, formattedName));
     }
     return added;
   }
 
-  public static deleteStation(consultancyId: string, stationId: string): void {
-    const list = this.getStations(consultancyId).filter((s) => s.id !== stationId);
-    localStorage.setItem(`ielts_stations_${consultancyId}`, JSON.stringify(list));
-    this.broadcast('STATION_DELETED', { consultancyId, stationId });
+  public static deleteStation(consultancyId: string, stationIdentifier: string): void {
+    const canonical = this.getCanonicalConsultancyId(consultancyId);
+    const aliases = this.getConsultancyAliases(consultancyId);
+    const normIdentifier = this.normalizeStationName(stationIdentifier);
+
+    // Filter matching by BOTH station id AND normalized station name
+    const list = this.getStations(canonical).filter(
+      (s) => s.id !== stationIdentifier && this.normalizeStationName(s.name) !== normIdentifier
+    );
+    const serialized = JSON.stringify(list);
+
+    // Save synchronously across ALL aliases so it can NEVER be resurrected by another alias key
+    for (const key of aliases) {
+      localStorage.setItem(`ielts_stations_${key}`, serialized);
+    }
+
+    this.broadcast('STATION_DELETED', { consultancyId: canonical, stationId: stationIdentifier, stationName: normIdentifier });
+    this.broadcast('STATION_UPDATED', { consultancyId: canonical });
+  }
+
+  public static deleteStations(consultancyId: string, stationIdentifiers: string[]): void {
+    const canonical = this.getCanonicalConsultancyId(consultancyId);
+    const aliases = this.getConsultancyAliases(consultancyId);
+    const idSet = new Set(stationIdentifiers);
+    const normSet = new Set(stationIdentifiers.map((id) => this.normalizeStationName(id)));
+
+    const list = this.getStations(canonical).filter(
+      (s) => !idSet.has(s.id) && !normSet.has(this.normalizeStationName(s.name))
+    );
+    const serialized = JSON.stringify(list);
+
+    for (const key of aliases) {
+      localStorage.setItem(`ielts_stations_${key}`, serialized);
+    }
+
+    this.broadcast('STATION_DELETED', { consultancyId: canonical, stationIds: stationIdentifiers });
+    this.broadcast('STATION_UPDATED', { consultancyId: canonical });
+  }
+
+  public static clearOfflineStations(consultancyId: string, offlineThresholdMs: number = 45000): void {
+    const canonical = this.getCanonicalConsultancyId(consultancyId);
+    const aliases = this.getConsultancyAliases(consultancyId);
+    const now = Date.now();
+
+    const list = this.getStations(canonical).filter((s) => {
+      const lastHb = s.lastHeartbeat ? new Date(s.lastHeartbeat).getTime() : 0;
+      const isOnline = now - lastHb < offlineThresholdMs;
+      return isOnline || s.status === 'in_progress' || s.status === 'assigned';
+    });
+    const serialized = JSON.stringify(list);
+
+    for (const key of aliases) {
+      localStorage.setItem(`ielts_stations_${key}`, serialized);
+    }
+
+    this.broadcast('STATION_DELETED', { consultancyId: canonical });
+    this.broadcast('STATION_UPDATED', { consultancyId: canonical });
   }
 
   public static assignTestToStation(
