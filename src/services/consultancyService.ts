@@ -2114,6 +2114,23 @@ export class ConsultancyService {
     full?: string;
   } {
     const consultancy = this.getConsultancyById(consultancyId);
+
+    // If an active live mock test is currently launched by consultancy, derive all modules from that launched set!
+    const activeLaunch = this.getActiveLaunchedTest(consultancyId);
+    if (activeLaunch?.testId) {
+      const match = activeLaunch.testId.match(/cambridge-(\d+)-test-(\d+)/i);
+      if (match) {
+        const book = parseInt(match[1], 10);
+        const testNum = parseInt(match[2], 10);
+        return {
+          listening: `cambridge-${book}-test-${testNum}-listening`,
+          reading: `cambridge-${book}-test-${testNum}-reading`,
+          writing: `cambridge-${book}-test-${testNum}-writing`,
+          full: `cambridge-${book}-test-${testNum}-full`,
+        };
+      }
+    }
+
     const assignedIds = this.getAssignedTestIds(consultancyId);
 
     // 1. Reading
@@ -2815,6 +2832,20 @@ export class ConsultancyService {
       launchedAt: new Date().toISOString(),
       isFullMock: isFullMock ?? testId.includes('full')
     };
+
+    // Keep active module tests aligned with launched test paper
+    const match = testId.match(/cambridge-(\d+)-test-(\d+)/i);
+    if (match && c) {
+      const book = parseInt(match[1], 10);
+      const testNum = parseInt(match[2], 10);
+      c.activeModuleTests = {
+        listening: `cambridge-${book}-test-${testNum}-listening`,
+        reading: `cambridge-${book}-test-${testNum}-reading`,
+        writing: `cambridge-${book}-test-${testNum}-writing`,
+        full: `cambridge-${book}-test-${testNum}-full`,
+      };
+      this.saveConsultancy(c);
+    }
 
     for (const cid of targetCids) {
       localStorage.setItem(`ielts_launched_test_${cid}`, JSON.stringify(data));

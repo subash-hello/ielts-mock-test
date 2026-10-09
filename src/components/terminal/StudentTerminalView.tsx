@@ -15,7 +15,8 @@ import {
   Maximize,
   Minimize,
   SlidersHorizontal,
-  AlertCircle
+  AlertCircle,
+  Radio
 } from 'lucide-react';
 import type { Consultancy, LabStation } from '../../types/consultancy';
 import type { IELTSMockTest, FullMockTest } from '../../types/ielts';
@@ -503,7 +504,47 @@ export const StudentTerminalView: React.FC<StudentTerminalViewProps> = ({
     onStartExam(testToRun, candidateData, fullMock);
   };
 
-  const handleStartLaunchedTest = () => {
+  const [selectedTerminalModule, setSelectedTerminalModule] = useState<'listening' | 'reading' | 'writing' | 'full'>('full');
+
+  const parseBookAndTest = (testId?: string): { book: number; testNumber: number } | null => {
+    if (!testId) return null;
+    const match = testId.match(/cambridge-(\d+)-test-(\d+)/i);
+    if (match) {
+      return { book: parseInt(match[1], 10), testNumber: parseInt(match[2], 10) };
+    }
+    const found = allMockTests.find((t) => t.id === testId);
+    if (found) {
+      return { book: found.book, testNumber: found.testNumber };
+    }
+    const foundFull = allFullMockTests.find((f) => f.id === testId);
+    if (foundFull) {
+      return { book: foundFull.book, testNumber: foundFull.testNumber };
+    }
+    return null;
+  };
+
+  const parsedLaunch = parseBookAndTest(activeLaunchedTest?.testId);
+  const targetBook = parsedLaunch?.book || 16;
+  const targetTestNum = parsedLaunch?.testNumber || 1;
+
+  const terminalListeningTest =
+    tests.find((t) => t.book === targetBook && t.testNumber === targetTestNum && t.module === 'listening') ||
+    allMockTests.find((t) => t.book === targetBook && t.testNumber === targetTestNum && t.module === 'listening');
+
+  const terminalReadingTest =
+    tests.find((t) => t.book === targetBook && t.testNumber === targetTestNum && t.module === 'reading') ||
+    allMockTests.find((t) => t.book === targetBook && t.testNumber === targetTestNum && t.module === 'reading');
+
+  const terminalWritingTest =
+    tests.find((t) => t.book === targetBook && t.testNumber === targetTestNum && t.module === 'writing') ||
+    allMockTests.find((t) => t.book === targetBook && t.testNumber === targetTestNum && t.module === 'writing');
+
+  const terminalFullMock =
+    allFullMockTests.find((f) => f.book === targetBook && f.testNumber === targetTestNum) ||
+    buildFullMockTests(tests.length > 0 ? tests : allMockTests).find((f) => f.book === targetBook && f.testNumber === targetTestNum) ||
+    allFullMockTests[0];
+
+  const handleStartLaunchedTest = (explicitMod?: 'listening' | 'reading' | 'writing' | 'full') => {
     if (!activeLaunchedTest) return;
 
     const enteredName = candidateNameInput.trim();
@@ -512,21 +553,22 @@ export const StudentTerminalView: React.FC<StudentTerminalViewProps> = ({
       return;
     }
 
-    if (activeLaunchedTest.isFullMock || activeLaunchedTest.testId.includes('full')) {
-      const allFull = buildFullMockTests(tests.length > 0 ? tests : allMockTests);
-      const fm = allFull.find((f) => f.id === activeLaunchedTest.testId) || allFull[0];
-      if (fm) {
-        handleLaunchExam(fm.listeningTest, fm);
-        return;
-      }
-    }
+    const modToRun = explicitMod || selectedTerminalModule;
 
-    const foundTest =
-      tests.find((t) => t.id === activeLaunchedTest.testId) ||
-      allMockTests.find((t) => t.id === activeLaunchedTest.testId) ||
-      tests[0];
-    if (foundTest) {
-      handleLaunchExam(foundTest);
+    if (modToRun === 'listening' && terminalListeningTest) {
+      handleLaunchExam(terminalListeningTest);
+    } else if (modToRun === 'reading' && terminalReadingTest) {
+      handleLaunchExam(terminalReadingTest);
+    } else if (modToRun === 'writing' && terminalWritingTest) {
+      handleLaunchExam(terminalWritingTest);
+    } else if (modToRun === 'full' && terminalFullMock) {
+      handleLaunchExam(terminalFullMock.listeningTest, terminalFullMock);
+    } else {
+      if (terminalFullMock) {
+        handleLaunchExam(terminalFullMock.listeningTest, terminalFullMock);
+      } else if (terminalReadingTest) {
+        handleLaunchExam(terminalReadingTest);
+      }
     }
   };
 
@@ -558,17 +600,7 @@ export const StudentTerminalView: React.FC<StudentTerminalViewProps> = ({
     setPhase('connected');
   };
 
-  // Resolve launched test details
-  const resolvedTest = activeLaunchedTest
-    ? tests.find((t) => t.id === activeLaunchedTest.testId) ||
-      allMockTests.find((t) => t.id === activeLaunchedTest.testId) ||
-      null
-    : null;
-  const resolvedFullMock = activeLaunchedTest && (activeLaunchedTest.isFullMock || activeLaunchedTest.testId.includes('full'))
-    ? allFullMockTests.find((f) => f.id === activeLaunchedTest.testId) ||
-      buildFullMockTests(tests.length > 0 ? tests : allMockTests).find((f) => f.id === activeLaunchedTest.testId) ||
-      null
-    : null;
+
   if (isDeleted) {
     return (
       <div className="min-h-screen bg-slate-50 text-slate-900 flex items-center justify-center p-4 font-sans">
@@ -902,36 +934,19 @@ export const StudentTerminalView: React.FC<StudentTerminalViewProps> = ({
               {/* Test Meta Card */}
               <div className="space-y-3">
                 <div className="flex flex-wrap items-center gap-2">
-                  {activeLaunchedTest.isFullMock || activeLaunchedTest.testId.includes('full') ? (
-                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-purple-100 text-purple-800 font-bold text-xs">
-                      <Layers className="w-3.5 h-3.5 text-purple-700" />
-                      <span>Full Mock Test</span>
-                    </span>
-                  ) : resolvedTest?.module === 'writing' ? (
-                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-100 text-emerald-800 font-bold text-xs">
-                      <PenTool className="w-3.5 h-3.5 text-emerald-700" />
-                      <span>Academic Writing</span>
-                    </span>
-                  ) : resolvedTest?.module === 'reading' ? (
-                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-blue-100 text-blue-800 font-bold text-xs">
-                      <BookOpen className="w-3.5 h-3.5 text-blue-700" />
-                      <span>Academic Reading</span>
-                    </span>
-                  ) : (
-                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-indigo-100 text-indigo-800 font-bold text-xs">
-                      <Headphones className="w-3.5 h-3.5 text-indigo-700" />
-                      <span>Academic Listening</span>
-                    </span>
-                  )}
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-100 text-emerald-800 font-bold text-xs">
+                    <Radio className="w-3.5 h-3.5 text-emerald-600 animate-pulse" />
+                    <span>Live Paper: Cambridge {targetBook} Test {targetTestNum}</span>
+                  </span>
 
                   <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-slate-100 text-slate-700 font-medium text-xs">
                     <Clock className="w-3 h-3 text-slate-500" />
                     <span>
-                      {activeLaunchedTest.isFullMock || activeLaunchedTest.testId.includes('full')
-                        ? '95 Mins Total'
-                        : resolvedTest?.module === 'writing'
+                      {selectedTerminalModule === 'full'
+                        ? `${terminalFullMock?.totalDurationMinutes || 155} Mins Total (All 3 Modules)`
+                        : selectedTerminalModule === 'writing'
                         ? '60 Mins • 2 Tasks'
-                        : resolvedTest?.module === 'reading'
+                        : selectedTerminalModule === 'reading'
                         ? '60 Mins • 40 Questions'
                         : '35 Mins • 40 Questions'}
                     </span>
@@ -939,26 +954,114 @@ export const StudentTerminalView: React.FC<StudentTerminalViewProps> = ({
                 </div>
 
                 <h2 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
-                  {resolvedFullMock ? resolvedFullMock.title : resolvedTest ? resolvedTest.title : activeLaunchedTest.title}
+                  {selectedTerminalModule === 'full'
+                    ? terminalFullMock?.title || `Cambridge ${targetBook} Test ${targetTestNum} — Full Mock`
+                    : selectedTerminalModule === 'writing'
+                    ? terminalWritingTest?.title || `Cambridge ${targetBook} Test ${targetTestNum} Writing`
+                    : selectedTerminalModule === 'reading'
+                    ? terminalReadingTest?.title || `Cambridge ${targetBook} Test ${targetTestNum} Reading`
+                    : terminalListeningTest?.title || `Cambridge ${targetBook} Test ${targetTestNum} Listening`}
                 </h2>
 
                 <p className="text-xs sm:text-sm text-slate-600 leading-relaxed">
-                  {resolvedTest?.module === 'writing'
-                    ? 'In this exam session, you will complete Task 1 (report/summary, 150 words minimum) and Task 2 (essay, 250 words minimum). Your essays will submit directly to your consultancy admin for band scoring.'
-                    : activeLaunchedTest.isFullMock || activeLaunchedTest.testId.includes('full')
-                    ? 'Official full mock exam sequence: Section 1 Listening (35 min), followed by a 1-minute transition window, and Section 2 Reading (60 min).'
-                    : 'Standard computer-delivered examination simulator with official timing, navigation palette, and live invigilator telemetry.'}
+                  Your consultancy launched the official <strong>Cambridge {targetBook} Test {targetTestNum}</strong> paper set. Select your desired examination module below.
                 </p>
+
+                {/* Module Scope Selection Tabs */}
+                <div className="pt-2 border-t border-emerald-100 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold text-slate-800 uppercase tracking-wider">
+                      Select Examination Module:
+                    </span>
+                    <span className="text-[11px] text-slate-500 font-medium">
+                      Student Choice
+                    </span>
+                  </div>
+
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setSelectedTerminalModule('listening')}
+                      className={`p-3 rounded-xl border text-left transition flex flex-col justify-between cursor-pointer ${
+                        selectedTerminalModule === 'listening'
+                          ? 'border-indigo-600 bg-indigo-50/80 text-indigo-950 font-bold shadow-xs ring-2 ring-indigo-500'
+                          : 'border-slate-200 bg-white hover:bg-slate-50 text-slate-700'
+                      }`}
+                    >
+                      <div className="flex items-center justify-between w-full">
+                        <Headphones className="w-4 h-4 text-indigo-600" />
+                        <span className="text-[10px] font-mono text-indigo-700 bg-indigo-100 px-1.5 py-0.5 rounded">35m</span>
+                      </div>
+                      <span className="text-xs font-bold mt-2">Listening</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setSelectedTerminalModule('reading')}
+                      className={`p-3 rounded-xl border text-left transition flex flex-col justify-between cursor-pointer ${
+                        selectedTerminalModule === 'reading'
+                          ? 'border-blue-600 bg-blue-50/80 text-blue-950 font-bold shadow-xs ring-2 ring-blue-500'
+                          : 'border-slate-200 bg-white hover:bg-slate-50 text-slate-700'
+                      }`}
+                    >
+                      <div className="flex items-center justify-between w-full">
+                        <BookOpen className="w-4 h-4 text-blue-600" />
+                        <span className="text-[10px] font-mono text-blue-700 bg-blue-100 px-1.5 py-0.5 rounded">60m</span>
+                      </div>
+                      <span className="text-xs font-bold mt-2">Reading</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setSelectedTerminalModule('writing')}
+                      className={`p-3 rounded-xl border text-left transition flex flex-col justify-between cursor-pointer ${
+                        selectedTerminalModule === 'writing'
+                          ? 'border-emerald-600 bg-emerald-50/80 text-emerald-950 font-bold shadow-xs ring-2 ring-emerald-500'
+                          : 'border-slate-200 bg-white hover:bg-slate-50 text-slate-700'
+                      }`}
+                    >
+                      <div className="flex items-center justify-between w-full">
+                        <PenTool className="w-4 h-4 text-emerald-600" />
+                        <span className="text-[10px] font-mono text-emerald-700 bg-emerald-100 px-1.5 py-0.5 rounded">60m</span>
+                      </div>
+                      <span className="text-xs font-bold mt-2">Writing</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setSelectedTerminalModule('full')}
+                      className={`p-3 rounded-xl border text-left transition flex flex-col justify-between cursor-pointer ${
+                        selectedTerminalModule === 'full'
+                          ? 'border-purple-600 bg-purple-50/90 text-purple-950 font-bold shadow-xs ring-2 ring-purple-500'
+                          : 'border-slate-200 bg-white hover:bg-slate-50 text-slate-700'
+                      }`}
+                    >
+                      <div className="flex items-center justify-between w-full">
+                        <Layers className="w-4 h-4 text-purple-600" />
+                        <span className="text-[10px] font-mono text-purple-700 bg-purple-100 px-1.5 py-0.5 rounded">155m</span>
+                      </div>
+                      <span className="text-xs font-bold mt-2">Full 3-Set</span>
+                    </button>
+                  </div>
+                </div>
               </div>
 
               {/* Start Exam Action Button */}
               <div>
                 {candidateNameInput.trim().length >= 2 ? (
                   <button
-                    onClick={handleStartLaunchedTest}
+                    onClick={() => handleStartLaunchedTest()}
                     className="w-full py-4 bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-base rounded-2xl transition cursor-pointer shadow-lg hover:shadow-xl shadow-emerald-600/20 flex items-center justify-center gap-3 transform active:scale-[0.99]"
                   >
-                    <span>Start Test</span>
+                    <span>
+                      {selectedTerminalModule === 'full'
+                        ? `Start Full 3-Set Mock Exam (Cambridge ${targetBook} Test ${targetTestNum})`
+                        : selectedTerminalModule === 'writing'
+                        ? `Start Academic Writing Exam (Cambridge ${targetBook} Test ${targetTestNum})`
+                        : selectedTerminalModule === 'reading'
+                        ? `Start Academic Reading Exam (Cambridge ${targetBook} Test ${targetTestNum})`
+                        : `Start Academic Listening Exam (Cambridge ${targetBook} Test ${targetTestNum})`}
+                    </span>
                     <ArrowRight className="w-5 h-5" />
                   </button>
                 ) : (

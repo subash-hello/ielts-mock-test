@@ -144,7 +144,7 @@ export const LaunchConsoleView: React.FC<LaunchConsoleViewProps> = ({
         setIsBroadcastingCountdown(false);
 
         // Broadcast test to lab terminals
-        const targetTestId = modeAPreview.test?.id || 'cambridge-16-test-1-reading';
+        const targetTestId = (selectedSection === 'full' && modeAPreview.fullMock ? modeAPreview.fullMock.id : modeAPreview.test?.id) || 'cambridge-16-test-1-full';
         ConsultancyService.launchBranchTest(
           consultancy.id,
           targetTestId,

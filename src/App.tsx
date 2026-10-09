@@ -1154,38 +1154,24 @@ export const App: React.FC = () => {
               consultancyId: activeConsultancy.id
             });
 
-            // Blueprint 6.3: "If the invigilator pre-assigned a specific test to this student, the screen skips straight to confirmation — the student doesn't choose."
-            const activeLaunch = ConsultancyService.getActiveLaunchedTest(activeConsultancy.id);
+            // If invigilator individually pre-assigned a single specific non-full module to this station, go to confirmation
             const stationObj = ConsultancyService.getStations(activeConsultancy.id).find((s) => s.name === terminalStationName);
-            
-            // Only prioritize if station was explicitly set to 'assigned' by teacher OR there is an active broadcast
-            const isStationSpecificallyAssigned = stationObj && stationObj.status === 'assigned' && Boolean(stationObj.assignedTestId);
-            const assignedTestId = isStationSpecificallyAssigned ? stationObj.assignedTestId : (activeLaunch?.testId || undefined);
+            const isStationSpecificallySingle = stationObj && stationObj.status === 'assigned' && Boolean(stationObj.assignedTestId) && !stationObj.isFullMock && !stationObj.assignedTestId?.endsWith('-full');
 
-            if (assignedTestId) {
-              const matchedTest = tests.find((t) => t.id === assignedTestId) || allMockTests.find((t) => t.id === assignedTestId);
+            if (isStationSpecificallySingle && stationObj?.assignedTestId) {
+              const matchedTest = tests.find((t) => t.id === stationObj.assignedTestId) || allMockTests.find((t) => t.id === stationObj.assignedTestId);
               if (matchedTest) {
-                const isFull = (isStationSpecificallyAssigned ? stationObj?.isFullMock : activeLaunch?.isFullMock) || assignedTestId.endsWith('-full');
-                const matchedFull = isFull ? allFullMockTests.find((fm) => fm.id === assignedTestId || fm.book === matchedTest.book) : undefined;
                 setCurrentTest(matchedTest);
-                setSelectedFullMock(matchedFull);
-
-                // If an active lab-wide broadcast is running, auto-start immediately
-                if (activeLaunch?.testId && activeLaunch.testId === assignedTestId) {
-                  startExamExecution(matchedTest, matchedFull);
-                } else {
-                  setActiveRoute('kiosk-confirm');
-                }
-              } else {
-                setCurrentTest(null);
                 setSelectedFullMock(undefined);
-                setActiveRoute('kiosk-test');
+                setActiveRoute('kiosk-confirm');
+                return;
               }
-            } else {
-              setCurrentTest(null);
-              setSelectedFullMock(undefined);
-              setActiveRoute('kiosk-test');
             }
+
+            // Otherwise (including full mock sets and broadcasts), student chooses their module from the consultancy's launched test paper
+            setCurrentTest(null);
+            setSelectedFullMock(undefined);
+            setActiveRoute('kiosk-test');
           }}
           onSwitchStationOrReset={() => {
             if (typeof window !== 'undefined') {
