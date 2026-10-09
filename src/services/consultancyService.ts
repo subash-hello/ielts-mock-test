@@ -14,95 +14,6 @@ import { BACKEND_BASE_URL } from './backendApi';
 // Initial pre-configured consultancies for immediate out-of-the-box demonstration
 const DEFAULT_CONSULTANCIES: Consultancy[] = [
   {
-    id: 'apex-global',
-    name: 'Apex Global Education',
-    branch: 'Kathmandu Central (Bagbazar)',
-    adminEmail: 'director@apexglobal.edu.np',
-    phone: '+977 1 4241920',
-    accessCode: 'APEX-2026',
-    branchCode: 'APEX-2026',
-    examPassword: '1234',
-    adminPassword: 'admin123',
-    status: 'active',
-    computerLimit: 25,
-    testCredits: 500,
-    creditsUsed: 142,
-    createdAt: '2026-01-15T00:00:00Z',
-    validUntil: '2027-01-15T00:00:00Z',
-    assignedTestIds: [
-      'cambridge-16-test-1-reading',
-      'cambridge-16-test-1-listening',
-      'cambridge-16-test-1-writing',
-      'cambridge-16-test-2-reading',
-      'cambridge-16-test-2-listening',
-      'cambridge-16-test-2-writing',
-      'cambridge-16-test-3-reading',
-      'cambridge-16-test-3-listening',
-      'cambridge-16-test-3-writing',
-      'cambridge-16-test-4-reading',
-      'cambridge-16-test-4-listening',
-      'cambridge-16-test-4-writing',
-      'cambridge-19-test-1-reading',
-      'cambridge-19-test-1-listening',
-      'cambridge-19-test-2-reading',
-      'cambridge-19-test-2-listening',
-      'cambridge-18-test-1-reading',
-      'cambridge-18-test-1-listening'
-    ]
-  },
-  {
-    id: 'edwise-overseas',
-    name: 'Edwise Overseas Education',
-    branch: 'Putalisadak Hub',
-    adminEmail: 'ieltslab@edwise.com.np',
-    phone: '+977 1 4438190',
-    accessCode: 'EDWISE-99',
-    branchCode: 'EDWISE-99',
-    examPassword: '1234',
-    adminPassword: 'admin123',
-    status: 'active',
-    computerLimit: 15,
-    testCredits: 300,
-    creditsUsed: 89,
-    createdAt: '2026-02-01T00:00:00Z',
-    validUntil: '2027-02-01T00:00:00Z',
-    assignedTestIds: [
-      'cambridge-16-test-1-reading',
-      'cambridge-16-test-1-listening',
-      'cambridge-16-test-1-writing',
-      'cambridge-19-test-1-reading',
-      'cambridge-19-test-1-listening',
-      'cambridge-20-test-1-reading',
-      'cambridge-20-test-1-listening'
-    ]
-  },
-  {
-    id: 'kangaroo-studies',
-    name: 'Kangaroo Education Group',
-    branch: 'Chitwan / Bharatpur',
-    adminEmail: 'lab@kangarooedu.com',
-    phone: '+977 56 524180',
-    accessCode: 'KANGAROO-7',
-    branchCode: 'KANGAROO-7',
-    examPassword: '1234',
-    adminPassword: 'admin123',
-    status: 'active',
-    computerLimit: 20,
-    testCredits: 400,
-    creditsUsed: 210,
-    createdAt: '2026-02-10T00:00:00Z',
-    validUntil: '2027-02-10T00:00:00Z',
-    assignedTestIds: [
-      'cambridge-16-test-1-reading',
-      'cambridge-16-test-1-listening',
-      'cambridge-16-test-1-writing',
-      'cambridge-18-test-2-reading',
-      'cambridge-18-test-2-listening',
-      'cambridge-19-test-1-reading',
-      'cambridge-19-test-1-listening'
-    ]
-  },
-  {
     id: 'kiec-lalitpur',
     name: 'KIEC Lalitpur',
     branch: 'Lalitpur',
@@ -1603,15 +1514,19 @@ export class ConsultancyService {
 
   // --- CONSULTANCIES MANAGEMENT (SUPER ADMIN) ---
   public static getDeletedConsultancyIds(): string[] {
+    const knownDeleted = [
+      'apex-global', 'apex-2026',
+      'edwise-overseas', 'edwise-99',
+      'kangaroo-studies', 'kangaroo-7',
+      'branch-751', 'kiec-942', 'lab01'
+    ];
     try {
       const raw = typeof window !== 'undefined' ? localStorage.getItem('ielts_deleted_consultancies') : null;
       const list: string[] = raw ? JSON.parse(raw) : [];
-      if (Array.isArray(list)) {
-        return list.map((k) => String(k).toLowerCase().trim()).filter(Boolean);
-      }
-      return [];
+      const set = new Set([...knownDeleted, ...(Array.isArray(list) ? list.map((k) => String(k).toLowerCase().trim()) : [])]);
+      return Array.from(set).filter(Boolean);
     } catch {
-      return [];
+      return knownDeleted;
     }
   }
 
@@ -1641,7 +1556,7 @@ export class ConsultancyService {
         return true;
       }
 
-      // Exclude strictly by unique ID or branchCode tombstone, NEVER by common human name
+      // Exclude strictly by unique ID or branchCode tombstone
       if (id && deletedIds.includes(id)) return true;
       if (branch && deletedIds.includes(branch)) return true;
       if (access && deletedIds.includes(access)) return true;
@@ -1663,25 +1578,6 @@ export class ConsultancyService {
       const parsed: Consultancy[] = JSON.parse(raw);
       if (Array.isArray(parsed) && parsed.length > 0) {
         list = parsed.filter((c) => !isExcluded(c));
-
-        // Merge missing default consultancies EXCEPT those explicitly deleted or inactive
-        let changed = false;
-        for (const def of DEFAULT_CONSULTANCIES) {
-          if (isExcluded(def)) continue;
-          const exists = list.some(
-            (c) =>
-              c.id.toLowerCase() === def.id.toLowerCase() ||
-              (c.adminEmail && c.adminEmail.trim().toLowerCase() === def.adminEmail.toLowerCase()) ||
-              (c.branchCode && c.branchCode.trim().toUpperCase() === def.branchCode.toUpperCase())
-          );
-          if (!exists) {
-            list.push(def);
-            changed = true;
-          }
-        }
-        if (typeof window !== 'undefined' && (changed || list.length !== parsed.length)) {
-          localStorage.setItem('ielts_consultancies', JSON.stringify(list));
-        }
         return list;
       }
       return DEFAULT_CONSULTANCIES.filter((d) => !isExcluded(d));
