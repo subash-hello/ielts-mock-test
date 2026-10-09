@@ -48,7 +48,7 @@ export const LaunchConsoleView: React.FC<LaunchConsoleViewProps> = ({
   // Mode A state (Lab-wide broadcast)
   const [selectedBook, setSelectedBook] = useState<number>(16);
   const [selectedTestNum, setSelectedTestNum] = useState<number>(1);
-  const [selectedSection, setSelectedSection] = useState<'reading' | 'listening' | 'writing' | 'full'>('reading');
+  const [selectedSection, setSelectedSection] = useState<'reading' | 'listening' | 'writing' | 'full'>('full');
   const [isBroadcastingCountdown, setIsBroadcastingCountdown] = useState(false);
   const [countdownNum, setCountdownNum] = useState<number>(5);
 
