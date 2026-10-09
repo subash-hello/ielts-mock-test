@@ -67,12 +67,7 @@ export const BranchLoginView: React.FC<BranchLoginViewProps> = ({
 
       // Station is currently locked awaiting invigilator/student PIN.
       // Ensure workstation telemetry reflects idle with no active candidate (resolves stale QA-Monitor display)
-      ConsultancyService.updateStationHeartbeat(found.id, stationName, {
-        status: 'idle',
-        currentCandidate: undefined,
-        remainingSeconds: 0,
-        answeredCount: 0
-      });
+      ConsultancyService.resetStation(found.id, stationName);
       ConsultancyService.setCurrentCandidateSession(null);
       localStorage.removeItem('ielts_active_kiosk_exam_session');
     }

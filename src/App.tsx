@@ -240,13 +240,8 @@ export const App: React.FC = () => {
     let hasRestoredActiveExam = false;
 
     const isKioskExamPath = pathname === '/kiosk/exam' || pathname === '/kiosk/exam/';
-    const isExplicitDifferentRoute = pathname.startsWith('/admin') ||
-      pathname.startsWith('/consultancy') ||
-      pathname.startsWith('/result') ||
-      pathname.startsWith('/b/') ||
-      pathname === '/';
 
-    if (savedExamRaw && (isKioskExamPath || !isExplicitDifferentRoute)) {
+    if (savedExamRaw && isKioskExamPath) {
       try {
         const savedExam = JSON.parse(savedExamRaw);
         const elapsedSinceLastUpdate = Math.max(
@@ -647,10 +642,10 @@ export const App: React.FC = () => {
 
           if (isTargetBranch) {
             const testId = payload.testId;
-            const matchedTest = tests.find((t) => t.id === testId) || allMockTests.find((t) => t.id === testId) || tests[0];
+            const matchedTest = tests.find((t) => t.id === testId) || allMockTests.find((t) => t.id === testId);
             const isFull = payload.isFullMock || testId.endsWith('-full');
-            const matchedFull = isFull
-              ? allFullMockTests.find((fm) => fm.id === testId || fm.book === matchedTest?.book)
+            const matchedFull = isFull && matchedTest
+              ? allFullMockTests.find((fm) => fm.id === testId || fm.book === matchedTest.book)
               : undefined;
 
             if (matchedTest) {
@@ -691,10 +686,10 @@ export const App: React.FC = () => {
           if (isTargetedToMe) {
             const targetTestId = payload?.testId || testId || (event.payload as any)?.testId;
             if (targetTestId) {
-              const matchedTest = tests.find((t) => t.id === targetTestId) || allMockTests.find((t) => t.id === targetTestId) || tests[0];
+              const matchedTest = tests.find((t) => t.id === targetTestId) || allMockTests.find((t) => t.id === targetTestId);
               const isFull = payload?.isFullMock || (event.payload as any)?.isFullMock || targetTestId.endsWith('-full');
-              const matchedFull = isFull
-                ? allFullMockTests.find((fm) => fm.id === targetTestId || fm.book === matchedTest?.book)
+              const matchedFull = isFull && matchedTest
+                ? allFullMockTests.find((fm) => fm.id === targetTestId || fm.book === matchedTest.book)
                 : undefined;
 
               if (matchedTest) {
@@ -1146,22 +1141,33 @@ export const App: React.FC = () => {
             // Blueprint 6.3: "If the invigilator pre-assigned a specific test to this student, the screen skips straight to confirmation — the student doesn't choose."
             const activeLaunch = ConsultancyService.getActiveLaunchedTest(activeConsultancy.id);
             const stationObj = ConsultancyService.getStations(activeConsultancy.id).find((s) => s.name === terminalStationName);
-            const assignedTestId = stationObj?.assignedTestId || activeLaunch?.testId;
+            
+            // Only prioritize if station was explicitly set to 'assigned' by teacher OR there is an active broadcast
+            const isStationSpecificallyAssigned = stationObj && stationObj.status === 'assigned' && Boolean(stationObj.assignedTestId);
+            const assignedTestId = isStationSpecificallyAssigned ? stationObj.assignedTestId : (activeLaunch?.testId || undefined);
 
             if (assignedTestId) {
-              const matchedTest = tests.find((t) => t.id === assignedTestId) || allMockTests.find((t) => t.id === assignedTestId) || tests[0];
-              const isFull = stationObj?.isFullMock || activeLaunch?.isFullMock || assignedTestId.endsWith('-full');
-              const matchedFull = isFull ? allFullMockTests.find((fm) => fm.id === assignedTestId || fm.book === matchedTest.book) : undefined;
-              setCurrentTest(matchedTest);
-              setSelectedFullMock(matchedFull);
+              const matchedTest = tests.find((t) => t.id === assignedTestId) || allMockTests.find((t) => t.id === assignedTestId);
+              if (matchedTest) {
+                const isFull = (isStationSpecificallyAssigned ? stationObj?.isFullMock : activeLaunch?.isFullMock) || assignedTestId.endsWith('-full');
+                const matchedFull = isFull ? allFullMockTests.find((fm) => fm.id === assignedTestId || fm.book === matchedTest.book) : undefined;
+                setCurrentTest(matchedTest);
+                setSelectedFullMock(matchedFull);
 
-              // If an active lab-wide broadcast is running, auto-start immediately
-              if (activeLaunch?.testId && activeLaunch.testId === assignedTestId) {
-                startExamExecution(matchedTest, matchedFull);
+                // If an active lab-wide broadcast is running, auto-start immediately
+                if (activeLaunch?.testId && activeLaunch.testId === assignedTestId) {
+                  startExamExecution(matchedTest, matchedFull);
+                } else {
+                  setActiveRoute('kiosk-confirm');
+                }
               } else {
-                setActiveRoute('kiosk-confirm');
+                setCurrentTest(null);
+                setSelectedFullMock(undefined);
+                setActiveRoute('kiosk-test');
               }
             } else {
+              setCurrentTest(null);
+              setSelectedFullMock(undefined);
               setActiveRoute('kiosk-test');
             }
           }}
@@ -1199,7 +1205,14 @@ export const App: React.FC = () => {
           onStart={() => {
             startExamExecution(currentTest, selectedFullMock);
           }}
-          onBack={() => setActiveRoute('kiosk-test')}
+          onBack={() => {
+            if (selectedConsultancyId && terminalStationName) {
+              ConsultancyService.clearStationAssignedTest(selectedConsultancyId, terminalStationName);
+            }
+            setCurrentTest(null);
+            setSelectedFullMock(undefined);
+            setActiveRoute('kiosk-test');
+          }}
         />
       )}
 
@@ -1262,6 +1275,7 @@ export const App: React.FC = () => {
           {/* Module-Specific Exam Views */}
           {currentTest.module === 'writing' ? (
             <WritingExamView
+              key={currentTest.id}
               test={currentTest}
               settings={settings}
               onSubmitWriting={handleWritingSubmit}
@@ -1270,6 +1284,7 @@ export const App: React.FC = () => {
             <>
               {currentTest.module === 'reading' ? (
                 <ReadingExamView
+                  key={currentTest.id}
                   test={currentTest}
                   currentQuestion={currentQuestion}
                   answers={answers}
@@ -1281,6 +1296,7 @@ export const App: React.FC = () => {
                 />
               ) : (
                 <ListeningExamView
+                  key={currentTest.id}
                   test={currentTest}
                   currentQuestion={currentQuestion}
                   answers={answers}
@@ -1358,15 +1374,18 @@ export const App: React.FC = () => {
           onOpenLookup={() => navigateTo('/result')}
           onReturnToTerminalOrHub={() => {
             setActiveFullMock(null);
+            setSelectedFullMock(undefined);
+            setCurrentTest(null);
+            setAnswers({});
+            setReviewStatus({});
+            setCurrentQuestion(1);
+            setActiveSectionIndex(0);
             localStorage.removeItem('ielts_active_kiosk_exam_session');
             ConsultancyService.setCurrentCandidateSession(null);
             ConsultancyService.logoutCandidate();
             setActiveCandidateInfo(null);
             if (selectedConsultancyId && terminalStationName) {
-              ConsultancyService.updateStationHeartbeat(selectedConsultancyId, terminalStationName, {
-                status: 'idle',
-                currentCandidate: undefined
-              });
+              ConsultancyService.resetStation(selectedConsultancyId, terminalStationName);
             }
             const currentAdmin = adminUser || ConsultancyService.getCurrentAdmin();
             if (currentAdmin?.role === 'super_admin') {
@@ -1576,15 +1595,19 @@ export const App: React.FC = () => {
         isDestructive={true}
         onConfirm={() => {
           setShowExitExamModal(false);
+          setActiveFullMock(null);
+          setSelectedFullMock(undefined);
+          setCurrentTest(null);
+          setAnswers({});
+          setReviewStatus({});
+          setCurrentQuestion(1);
+          setActiveSectionIndex(0);
           localStorage.removeItem('ielts_active_kiosk_exam_session');
           ConsultancyService.setCurrentCandidateSession(null);
           ConsultancyService.logoutCandidate();
           setActiveCandidateInfo(null);
           if (selectedConsultancyId && terminalStationName) {
-            ConsultancyService.updateStationHeartbeat(selectedConsultancyId, terminalStationName, {
-              status: 'idle',
-              currentCandidate: undefined
-            });
+            ConsultancyService.resetStation(selectedConsultancyId, terminalStationName);
           }
           const currentAdmin = adminUser || ConsultancyService.getCurrentAdmin();
           if (currentAdmin?.role === 'super_admin') {

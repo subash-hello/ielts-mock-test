@@ -1984,6 +1984,15 @@ export class ConsultancyService {
         consultancyId: canonical,
         lastHeartbeat: new Date().toISOString()
       };
+      if (updates.status === 'idle') {
+        delete list[existingIdx].assignedTestId;
+        delete list[existingIdx].testTitle;
+        delete list[existingIdx].module;
+        delete list[existingIdx].isFullMock;
+        delete list[existingIdx].currentCandidate;
+        delete list[existingIdx].remainingSeconds;
+        delete list[existingIdx].timeSpentSeconds;
+      }
       const serialized = JSON.stringify(list);
       for (const key of aliases) {
         localStorage.setItem(`ielts_stations_${key}`, serialized);
@@ -2344,8 +2353,9 @@ export class ConsultancyService {
           const parsed = JSON.parse(raw);
           if (parsed && parsed.testId) {
             const launchTime = parsed.launchedAt ? new Date(parsed.launchedAt).getTime() : 0;
-            if (maxStopped && maxStopped >= launchTime) {
-              // Already stopped by admin! Purge stale key
+            const isStale = launchTime > 0 && (Date.now() - launchTime > 4 * 60 * 60 * 1000);
+            if ((maxStopped && maxStopped >= launchTime) || isStale) {
+              // Already stopped by admin or expired! Purge stale key
               localStorage.removeItem(`ielts_launched_test_${cid}`);
             } else {
               return parsed;
@@ -2544,6 +2554,29 @@ export class ConsultancyService {
       this.broadcast('STATION_UPDATED', list[existingIdx]);
       this.broadcast('STATION_COMMAND', { stationId, stationName: targetName, consultancyId, command: 'RESET_STATION' });
       this.broadcast('STATION_COMMAND', { stationId, stationName: targetName, consultancyId, command: 'END_TEST' });
+    }
+  }
+
+  public static clearStationAssignedTest(consultancyId: string, stationIdentifier: string): void {
+    const canonical = this.getCanonicalConsultancyId(consultancyId);
+    const aliases = this.getConsultancyAliases(consultancyId);
+    const list = this.getStations(canonical);
+    const normSearch = this.normalizeStationName(stationIdentifier);
+    const existingIdx = list.findIndex(
+      (s) => s.id === stationIdentifier || this.normalizeStationName(s.name) === normSearch
+    );
+    if (existingIdx >= 0) {
+      delete list[existingIdx].assignedTestId;
+      delete list[existingIdx].testTitle;
+      delete list[existingIdx].module;
+      delete list[existingIdx].isFullMock;
+      list[existingIdx].status = 'idle';
+      list[existingIdx].lastHeartbeat = new Date().toISOString();
+      const serialized = JSON.stringify(list);
+      for (const key of aliases) {
+        localStorage.setItem(`ielts_stations_${key}`, serialized);
+      }
+      this.broadcast('STATION_UPDATED', list[existingIdx]);
     }
   }
 
