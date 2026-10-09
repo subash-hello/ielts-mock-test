@@ -24,7 +24,7 @@ const getEnv = (key: string): string | undefined => {
 export const BACKEND_BASE_URL: string = (
   getEnv('VITE_BACKEND_API_URL') ||
   getEnv('VITE_BACKEND_URL') ||
-  ''
+  'https://subash2064-ielts-mock-backend.hf.space'
 ).replace(/\/$/, '');
 
 export const isBackendConfigured = (): boolean => {
