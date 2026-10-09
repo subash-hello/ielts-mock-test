@@ -97,7 +97,7 @@ export const LaunchConsoleView: React.FC<LaunchConsoleViewProps> = ({
   // Connected stations count
   const activeStations = stations.filter((st) => {
     const hb = st.lastHeartbeat ? new Date(st.lastHeartbeat).getTime() : 0;
-    return Date.now() - hb < 45000;
+    return (Date.now() - hb < 60000) || st.status === 'in_progress' || st.status === 'assigned' || Boolean(st.currentCandidate?.name);
   });
   const connectedCount = activeStations.length;
 

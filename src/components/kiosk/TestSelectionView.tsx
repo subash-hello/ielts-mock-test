@@ -34,11 +34,17 @@ export const TestSelectionView: React.FC<TestSelectionViewProps> = ({
   onSelectTest,
   onBack,
 }) => {
+  const resolveTargetCid = () => {
+    return consultancy?.id ||
+      (typeof window !== 'undefined' ? (localStorage.getItem('ielts_terminal_branch') || localStorage.getItem('ielts_selected_consultancy')) : null) ||
+      'kiec-lalitpur';
+  };
+
   // Sync active live mock test launched by consultancy
   const [activeLaunch, setActiveLaunch] = useState(() => {
-    if (!consultancy?.id) return null;
-    const stationAssigned = ConsultancyService.getStationAssignedTest(consultancy.id, stationName);
-    const branchActive = ConsultancyService.getActiveLaunchedTest(consultancy.id);
+    const targetCid = resolveTargetCid();
+    const stationAssigned = ConsultancyService.getStationAssignedTest(targetCid, stationName);
+    const branchActive = ConsultancyService.getActiveLaunchedTest(targetCid);
     return stationAssigned || branchActive || null;
   });
 
@@ -69,53 +75,83 @@ export const TestSelectionView: React.FC<TestSelectionViewProps> = ({
   };
 
   useEffect(() => {
-    const syncLaunch = () => {
-      if (!consultancy?.id) return;
-      const stationAssigned = ConsultancyService.getStationAssignedTest(consultancy.id, stationName);
-      const branchActive = ConsultancyService.getActiveLaunchedTest(consultancy.id);
-      const resolved = stationAssigned || branchActive || null;
-      setActiveLaunch(resolved);
+    const targetCid = resolveTargetCid();
 
-      // Keep station heartbeat updated on invigilator radar
-      if (!resolved) {
-        ConsultancyService.updateStationHeartbeat(consultancy.id, stationName, {
-          status: 'idle',
-          currentCandidate: {
-            candidateId: '004128',
-            name: studentName,
-          }
-        });
+    const syncLaunch = () => {
+      const stationAssigned = ConsultancyService.getStationAssignedTest(targetCid, stationName);
+      const branchActive = ConsultancyService.getActiveLaunchedTest(targetCid);
+      const resolved = stationAssigned || branchActive || null;
+      if (resolved) {
+        setActiveLaunch(resolved);
       }
     };
 
-    syncLaunch();
+    // Keep station heartbeat updated on invigilator radar every 3 seconds
+    const sendHeartbeat = () => {
+      ConsultancyService.updateStationHeartbeat(targetCid, stationName, {
+        status: activeLaunch ? 'assigned' : 'idle',
+        assignedTestId: activeLaunch?.testId,
+        testTitle: activeLaunch?.title,
+        isFullMock: activeLaunch?.isFullMock,
+        currentCandidate: {
+          candidateId: '004128',
+          name: studentName,
+        }
+      });
+    };
 
-    // Query backend for active broadcast if available
-    if (consultancy?.id) {
-      ConsultancyService.syncActiveLaunchFromBackend(consultancy.id)
-        .then(() => syncLaunch())
-        .catch(() => {});
-    }
+    syncLaunch();
+    sendHeartbeat();
+
+    // Query cloud immediately on mount
+    ConsultancyService.syncActiveLaunchFromCloud(targetCid)
+      .then((res) => {
+        if (res) setActiveLaunch(res);
+      })
+      .catch(() => {});
 
     const unsub = ConsultancyService.subscribe((event) => {
       if (
         event.type === 'BRANCH_TEST_LAUNCHED' ||
+        event.type === 'ACTIVE_LAUNCH_UPDATED' ||
         event.type === 'STATION_COMMAND' ||
-        event.type === 'STATION_UPDATED' ||
         event.type === 'MODULE_TEST_ASSIGNED' ||
         event.type === 'ADMIN_FORCE_RESET_TEST' ||
-        event.type === 'STORAGE_SYNC'
+        event.type === 'STORAGE_SYNC' ||
+        event.type === 'WINDOW_FOCUSED'
       ) {
-        syncLaunch();
+        if (event.type === 'BRANCH_TEST_LAUNCHED' && event.payload?.testId) {
+          setActiveLaunch(event.payload);
+        } else if (event.type === 'BRANCH_TEST_LAUNCHED' && !event.payload?.testId) {
+          setActiveLaunch(null);
+        } else {
+          syncLaunch();
+        }
       }
     });
 
-    const interval = setInterval(syncLaunch, 500);
+    // Check local storage assignments every 500ms
+    const localInterval = setInterval(syncLaunch, 500);
+
+    // Heartbeat transmitter every 3 seconds to keep radar status online
+    const hbInterval = setInterval(sendHeartbeat, 3000);
+
+    // Poll cloud for active launches every 2 seconds while on this view
+    const cloudInterval = setInterval(() => {
+      ConsultancyService.syncActiveLaunchFromCloud(targetCid)
+        .then((res) => {
+          if (res) setActiveLaunch(res);
+        })
+        .catch(() => {});
+    }, 2000);
+
     return () => {
       unsub();
-      clearInterval(interval);
+      clearInterval(localInterval);
+      clearInterval(hbInterval);
+      clearInterval(cloudInterval);
     };
-  }, [consultancy?.id, stationName, studentName]);
+  }, [consultancy?.id, stationName, studentName, activeLaunch?.testId]);
 
   // ================= CONDITION: WAITING SIGN UNTIL CONSULTANCY LAUNCHES EXAM =================
   if (!activeLaunch) {

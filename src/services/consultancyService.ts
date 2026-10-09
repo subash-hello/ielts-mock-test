@@ -230,25 +230,28 @@ export class ConsultancyService {
       if (p?.consultancyId && p?.testId) {
         const stoppedAt = this.getStoppedTimestamp(p.consultancyId);
         const launchedAt = p.launchedAt ? new Date(p.launchedAt).getTime() : 0;
-        if (stoppedAt && stoppedAt >= launchedAt) {
-          // Test was stopped at or after this launch: do NOT resurrect
+        if (stoppedAt && stoppedAt > launchedAt + 5000) {
+          // Explicitly stopped after this launch (+ 5s skew leeway): do NOT resurrect
           return;
         }
         try {
-          localStorage.setItem(`ielts_launched_test_${p.consultancyId}`, JSON.stringify(p));
+          const aliases = this.getConsultancyAliases(p.consultancyId);
+          for (const k of aliases) {
+            localStorage.removeItem(`ielts_stopped_test_${k}`);
+            localStorage.setItem(`ielts_launched_test_${k}`, JSON.stringify(p));
+            localStorage.setItem(`ielts_active_launch_${k}`, JSON.stringify(p));
+          }
           localStorage.setItem('ielts_latest_launched_test', JSON.stringify(p));
         } catch {}
       } else if (p?.consultancyId && !p?.testId) {
         const stopTime = p.stoppedAt || Date.now();
-        const c = this.getConsultancyById(p.consultancyId) || this.getConsultancyByBranchCode(p.consultancyId);
-        const targetCids = [p.consultancyId];
-        if (c && c.id && !targetCids.includes(c.id)) targetCids.push(c.id);
-        if (c && c.branchCode && !targetCids.includes(c.branchCode)) targetCids.push(c.branchCode);
+        const targetCids = this.getConsultancyAliases(p.consultancyId);
 
         try {
           for (const cid of targetCids) {
             localStorage.setItem(`ielts_stopped_test_${cid}`, String(stopTime));
             localStorage.removeItem(`ielts_launched_test_${cid}`);
+            localStorage.removeItem(`ielts_active_launch_${cid}`);
           }
           const latestRaw = localStorage.getItem('ielts_latest_launched_test');
           if (latestRaw) {
@@ -1341,15 +1344,20 @@ export class ConsultancyService {
             testId: data.launch.testId,
             title: data.launch.title,
             launchedAt: data.launch.startedAt,
-            isFullMock: false
+            isFullMock: Boolean(data.launch.isFullMock || (data.launch.testId && data.launch.testId.includes('full')))
           };
           for (const k of aliases) {
+            localStorage.removeItem(`ielts_stopped_test_${k}`);
+            localStorage.setItem(`ielts_launched_test_${k}`, JSON.stringify(launchData));
             localStorage.setItem(`ielts_active_launch_${k}`, JSON.stringify(launchData));
           }
+          localStorage.setItem('ielts_latest_launched_test', JSON.stringify(launchData));
+          this.broadcast('BRANCH_TEST_LAUNCHED', launchData);
           this.broadcast('ACTIVE_LAUNCH_UPDATED', launchData);
           return launchData;
         } else {
           for (const k of aliases) {
+            localStorage.removeItem(`ielts_launched_test_${k}`);
             localStorage.removeItem(`ielts_active_launch_${k}`);
           }
           return null;
@@ -1357,6 +1365,175 @@ export class ConsultancyService {
       }
     } catch {}
     return this.getActiveLaunchedTest(consultancyId);
+  }
+
+  public static async syncActiveLaunchFromCloud(consultancyId: string): Promise<any> {
+    if (typeof window === 'undefined') return this.getActiveLaunchedTest(consultancyId);
+    const canonical = this.getCanonicalConsultancyId(consultancyId);
+    const aliases = this.getConsultancyAliases(consultancyId);
+
+    // 1. Try Supabase first
+    if (supabase) {
+      try {
+        const { data: dbLaunch, error } = await supabase
+          .from('consultancy_active_launches')
+          .select('*')
+          .in('consultancy_id', aliases)
+          .order('updated_at', { ascending: false })
+          .limit(1)
+          .maybeSingle();
+
+        if (!error && dbLaunch) {
+          const isStopped = dbLaunch.stopped_at && (!dbLaunch.launched_at || new Date(dbLaunch.stopped_at).getTime() > new Date(dbLaunch.launched_at).getTime());
+          if (isStopped) {
+            const stopMs = new Date(dbLaunch.stopped_at).getTime();
+            for (const k of aliases) {
+              localStorage.setItem(`ielts_stopped_test_${k}`, String(stopMs));
+              localStorage.removeItem(`ielts_launched_test_${k}`);
+              localStorage.removeItem(`ielts_active_launch_${k}`);
+            }
+            return null;
+          } else if (dbLaunch.test_id && dbLaunch.launched_at) {
+            const launchData = {
+              consultancyId: canonical,
+              testId: dbLaunch.test_id,
+              title: dbLaunch.title || dbLaunch.test_id,
+              sessionName: dbLaunch.session_name || undefined,
+              launchedAt: dbLaunch.launched_at,
+              isFullMock: dbLaunch.is_full_mock || dbLaunch.test_id.includes('full')
+            };
+            for (const k of aliases) {
+              localStorage.removeItem(`ielts_stopped_test_${k}`);
+              localStorage.setItem(`ielts_launched_test_${k}`, JSON.stringify(launchData));
+              localStorage.setItem(`ielts_active_launch_${k}`, JSON.stringify(launchData));
+            }
+            localStorage.setItem('ielts_latest_launched_test', JSON.stringify(launchData));
+            this.broadcast('BRANCH_TEST_LAUNCHED', launchData);
+            this.broadcast('ACTIVE_LAUNCH_UPDATED', launchData);
+            return launchData;
+          }
+        }
+      } catch {}
+    }
+
+    // 2. Try Hugging Face FastAPI backend
+    if (BACKEND_BASE_URL) {
+      try {
+        const res = await fetch(`${BACKEND_BASE_URL}/api/consultancies/${encodeURIComponent(canonical)}/active-launch`, {
+          headers: { 'Accept': 'application/json' },
+          signal: AbortSignal.timeout(3000)
+        });
+        if (res.ok) {
+          const data = await res.json();
+          if (data.isActive && data.launch) {
+            const launchData = {
+              consultancyId: canonical,
+              testId: data.launch.testId,
+              title: data.launch.title,
+              sessionName: undefined,
+              launchedAt: data.launch.startedAt,
+              isFullMock: Boolean(data.launch.isFullMock || (data.launch.testId && data.launch.testId.includes('full')))
+            };
+            for (const k of aliases) {
+              localStorage.removeItem(`ielts_stopped_test_${k}`);
+              localStorage.setItem(`ielts_launched_test_${k}`, JSON.stringify(launchData));
+              localStorage.setItem(`ielts_active_launch_${k}`, JSON.stringify(launchData));
+            }
+            localStorage.setItem('ielts_latest_launched_test', JSON.stringify(launchData));
+            this.broadcast('BRANCH_TEST_LAUNCHED', launchData);
+            this.broadcast('ACTIVE_LAUNCH_UPDATED', launchData);
+            return launchData;
+          } else if (data.isActive === false) {
+            for (const k of aliases) {
+              localStorage.removeItem(`ielts_launched_test_${k}`);
+              localStorage.removeItem(`ielts_active_launch_${k}`);
+            }
+          }
+        }
+      } catch {}
+    }
+
+    return this.getActiveLaunchedTest(consultancyId);
+  }
+
+  public static async syncStationsFromCloud(consultancyId: string): Promise<LabStation[]> {
+    if (typeof window === 'undefined') return this.getStations(consultancyId);
+    const canonical = this.getCanonicalConsultancyId(consultancyId);
+    const aliases = this.getConsultancyAliases(consultancyId);
+    let remoteStations: LabStation[] = [];
+
+    // 1. Try Supabase
+    if (supabase) {
+      try {
+        const { data: dbStations, error } = await supabase
+          .from('consultancy_stations')
+          .select('*')
+          .in('consultancy_id', aliases);
+
+        if (!error && Array.isArray(dbStations) && dbStations.length > 0) {
+          remoteStations = dbStations.map((r: any) => this.mapRowToStation(r));
+        }
+      } catch {}
+    }
+
+    // 2. Try Backend if Supabase had none
+    if (remoteStations.length === 0 && BACKEND_BASE_URL) {
+      try {
+        const res = await fetch(`${BACKEND_BASE_URL}/api/consultancies/${encodeURIComponent(canonical)}/stations`, {
+          headers: { 'Accept': 'application/json' },
+          signal: AbortSignal.timeout(3000)
+        });
+        if (res.ok) {
+          const raw = await res.json();
+          if (Array.isArray(raw)) {
+            remoteStations = raw.map((r: any) => ({
+              id: r.id,
+              name: r.name || r.station_name || r.id,
+              consultancyId: canonical,
+              status: r.status || 'idle',
+              currentCandidate: r.currentCandidate || r.current_candidate || undefined,
+              assignedTestId: r.assignedTestId || r.currentTestId || undefined,
+              testTitle: r.testTitle || r.currentTestId || undefined,
+              module: r.module || r.currentModule || undefined,
+              answeredCount: r.answeredCount ?? r.answersCount ?? 0,
+              remainingSeconds: r.remainingSeconds ?? r.remaining_seconds ?? undefined,
+              lastHeartbeat: r.lastHeartbeat || r.last_heartbeat || new Date().toISOString()
+            }));
+          }
+        }
+      } catch {}
+    }
+
+    if (remoteStations.length > 0) {
+      const localSts = this.getStations(canonical);
+      const stMap = new Map<string, LabStation>();
+      for (const s of localSts) {
+        stMap.set(this.normalizeStationName(s.name), s);
+      }
+      for (const r of remoteStations) {
+        const norm = this.normalizeStationName(r.name);
+        const existing = stMap.get(norm);
+        if (!existing) {
+          stMap.set(norm, r);
+        } else {
+          const exTime = new Date(existing.lastHeartbeat || 0).getTime();
+          const remTime = new Date(r.lastHeartbeat || 0).getTime();
+          if (remTime >= exTime) {
+            stMap.set(norm, { ...existing, ...r });
+          }
+        }
+      }
+      const merged = Array.from(stMap.values());
+      merged.sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true, sensitivity: 'base' }));
+      const serialized = JSON.stringify(merged);
+      for (const k of aliases) {
+        localStorage.setItem(`ielts_stations_${k}`, serialized);
+      }
+      this.broadcast('STATION_UPDATED', { consultancyId: canonical, stations: merged });
+      return merged;
+    }
+
+    return this.getStations(consultancyId);
   }
 
   public static async syncFromSupabase(): Promise<void> {
@@ -1485,10 +1662,14 @@ export class ConsultancyService {
       if (!lErr && Array.isArray(dbLaunches) && dbLaunches.length > 0) {
         for (const l of dbLaunches) {
           const cid = l.consultancy_id;
-          if (l.stopped_at && (!l.launched_at || new Date(l.stopped_at).getTime() >= new Date(l.launched_at).getTime())) {
+          const aliases = this.getConsultancyAliases(cid);
+          if (l.stopped_at && (!l.launched_at || new Date(l.stopped_at).getTime() > new Date(l.launched_at).getTime())) {
             const stopMs = new Date(l.stopped_at).getTime();
-            localStorage.setItem(`ielts_stopped_test_${cid}`, String(stopMs));
-            localStorage.removeItem(`ielts_launched_test_${cid}`);
+            for (const k of aliases) {
+              localStorage.setItem(`ielts_stopped_test_${k}`, String(stopMs));
+              localStorage.removeItem(`ielts_launched_test_${k}`);
+              localStorage.removeItem(`ielts_active_launch_${k}`);
+            }
           } else if (l.test_id && l.launched_at) {
             const data = {
               consultancyId: cid,
@@ -1496,9 +1677,14 @@ export class ConsultancyService {
               title: l.title || l.test_id,
               sessionName: l.session_name || undefined,
               launchedAt: l.launched_at,
-              isFullMock: l.is_full_mock || false
+              isFullMock: l.is_full_mock || l.test_id.includes('full')
             };
-            localStorage.setItem(`ielts_launched_test_${cid}`, JSON.stringify(data));
+            for (const k of aliases) {
+              localStorage.removeItem(`ielts_stopped_test_${k}`);
+              localStorage.setItem(`ielts_launched_test_${k}`, JSON.stringify(data));
+              localStorage.setItem(`ielts_active_launch_${k}`, JSON.stringify(data));
+            }
+            localStorage.setItem('ielts_latest_launched_test', JSON.stringify(data));
           }
         }
       }
@@ -2217,9 +2403,22 @@ export class ConsultancyService {
       }
     }
 
-    if (!foundRaw) {
+    if (!foundRaw || stationsList.length === 0) {
       if (canonical === 'apex-global') {
         stationsList = [...DEFAULT_STATIONS];
+      } else {
+        const c = this.getConsultancyById(canonical);
+        const limit = Math.min(c?.computerLimit || 12, 12);
+        stationsList = Array.from({ length: limit }, (_, i) => {
+          const numStr = String(i + 1).padStart(2, '0');
+          return {
+            id: `${canonical}-pc-${numStr}`,
+            name: `PC-${numStr}`,
+            consultancyId: canonical,
+            status: 'idle' as const,
+            lastHeartbeat: new Date().toISOString()
+          };
+        });
       }
     } else {
       stationsList = stationsList.map((st: LabStation) => {
@@ -2356,7 +2555,9 @@ export class ConsultancyService {
         delete list[existingIdx].testTitle;
         delete list[existingIdx].module;
         delete list[existingIdx].isFullMock;
-        delete list[existingIdx].currentCandidate;
+        if (!updates.currentCandidate) {
+          delete list[existingIdx].currentCandidate;
+        }
         delete list[existingIdx].remainingSeconds;
         delete list[existingIdx].timeSpentSeconds;
       }
@@ -2367,6 +2568,7 @@ export class ConsultancyService {
       this.broadcast('STATION_HEARTBEAT', list[existingIdx]);
       this.broadcast('STATION_UPDATED', list[existingIdx]);
       this.pushStationToBackend(list[existingIdx]).catch(() => {});
+      this.pushStationToSupabase(list[existingIdx]).catch(() => {});
     } else {
       const newStation: LabStation = {
         id: `${canonical}-${normSearch.toLowerCase().replace(/[^a-z0-9]/g, '-')}`,
@@ -2384,6 +2586,7 @@ export class ConsultancyService {
       this.broadcast('STATION_HEARTBEAT', newStation);
       this.broadcast('STATION_UPDATED', newStation);
       this.pushStationToBackend(newStation).catch(() => {});
+      this.pushStationToSupabase(newStation).catch(() => {});
     }
   }
 
@@ -2705,27 +2908,35 @@ export class ConsultancyService {
     isFullMock?: boolean;
   } | null {
     if (!consultancyId) {
+      const latestRaw = localStorage.getItem('ielts_latest_launched_test');
+      if (latestRaw) {
+        try {
+          const parsed = JSON.parse(latestRaw);
+          if (parsed && parsed.testId) {
+            const launchTime = parsed.launchedAt ? new Date(parsed.launchedAt).getTime() : 0;
+            const isStale = launchTime > 0 && (Date.now() - launchTime > 4 * 60 * 60 * 1000);
+            if (!isStale) return parsed;
+          }
+        } catch {}
+      }
       return null;
     }
 
-    const c = this.getConsultancyById(consultancyId) || this.getConsultancyByBranchCode(consultancyId);
-    const cids = [consultancyId];
-    if (c && c.id && !cids.includes(c.id)) cids.push(c.id);
-    if (c && c.branchCode && !cids.includes(c.branchCode)) cids.push(c.branchCode);
-
+    const cids = this.getConsultancyAliases(consultancyId);
     const maxStopped = this.getStoppedTimestamp(consultancyId);
 
     for (const cid of cids) {
-      const raw = localStorage.getItem(`ielts_launched_test_${cid}`);
+      const raw = localStorage.getItem(`ielts_launched_test_${cid}`) || localStorage.getItem(`ielts_active_launch_${cid}`);
       if (raw) {
         try {
           const parsed = JSON.parse(raw);
           if (parsed && parsed.testId) {
             const launchTime = parsed.launchedAt ? new Date(parsed.launchedAt).getTime() : 0;
             const isStale = launchTime > 0 && (Date.now() - launchTime > 4 * 60 * 60 * 1000);
-            if ((maxStopped && maxStopped >= launchTime) || isStale) {
+            if ((maxStopped && maxStopped > launchTime + 5000) || isStale) {
               // Already stopped by admin or expired! Purge stale key
               localStorage.removeItem(`ielts_launched_test_${cid}`);
+              localStorage.removeItem(`ielts_active_launch_${cid}`);
             } else {
               return parsed;
             }
@@ -2733,7 +2944,27 @@ export class ConsultancyService {
         } catch {}
       }
     }
-    // Never fall back to another consultancy's test!
+
+    // Also check ielts_latest_launched_test
+    const latestRaw = localStorage.getItem('ielts_latest_launched_test');
+    if (latestRaw) {
+      try {
+        const parsed = JSON.parse(latestRaw);
+        if (parsed && parsed.testId) {
+          const canonical = this.getCanonicalConsultancyId(consultancyId);
+          const launchCid = parsed.consultancyId ? this.getCanonicalConsultancyId(parsed.consultancyId) : null;
+          const matches = !launchCid || launchCid === canonical || cids.includes(parsed.consultancyId);
+          if (matches) {
+            const launchTime = parsed.launchedAt ? new Date(parsed.launchedAt).getTime() : 0;
+            const isStale = launchTime > 0 && (Date.now() - launchTime > 4 * 60 * 60 * 1000);
+            if (!((maxStopped && maxStopped > launchTime + 5000) || isStale)) {
+              return parsed;
+            }
+          }
+        }
+      } catch {}
+    }
+
     return null;
   }
 
@@ -2745,15 +2976,15 @@ export class ConsultancyService {
     sessionName?: string
   ): void {
     const c = this.getConsultancyById(consultancyId) || this.getConsultancyByBranchCode(consultancyId);
-    const targetCids = [consultancyId];
-    if (c && c.id && !targetCids.includes(c.id)) targetCids.push(c.id);
-    if (c && c.branchCode && !targetCids.includes(c.branchCode)) targetCids.push(c.branchCode);
+    const canonical = this.getCanonicalConsultancyId(consultancyId);
+    const targetCids = this.getConsultancyAliases(consultancyId);
 
     if (!testId) {
       const stopTime = Date.now();
       for (const cid of targetCids) {
         localStorage.setItem(`ielts_stopped_test_${cid}`, String(stopTime));
         localStorage.removeItem(`ielts_launched_test_${cid}`);
+        localStorage.removeItem(`ielts_active_launch_${cid}`);
       }
 
       try {
@@ -2784,7 +3015,6 @@ export class ConsultancyService {
             if (st.assignedTestId || st.status === 'assigned' || st.status === 'in_progress' || st.status === 'paused') {
               st.status = 'idle';
               delete st.assignedTestId;
-              delete st.currentCandidate;
               delete st.testTitle;
               delete st.module;
               delete st.isFullMock;
@@ -2797,35 +3027,34 @@ export class ConsultancyService {
             }
           }
           if (changed) {
-            const aliases = this.getConsultancyAliases(cid);
             const serialized = JSON.stringify(stations);
-            for (const key of aliases) {
+            for (const key of targetCids) {
               localStorage.setItem(`ielts_stations_${key}`, serialized);
             }
           }
         } catch {}
       }
 
-      this.broadcast('BRANCH_TEST_LAUNCHED', { consultancyId, testId: null, stoppedAt: stopTime });
-      this.broadcast('STATION_COMMAND', { consultancyId, command: 'END_TEST', stoppedAt: stopTime });
-      this.broadcast('ADMIN_FORCE_RESET_TEST', { consultancyId, stoppedAt: stopTime });
-      this.pushActiveLaunchToSupabase(consultancyId, null, undefined, undefined, false, stopTime).catch(() => {});
+      this.broadcast('BRANCH_TEST_LAUNCHED', { consultancyId: canonical, testId: null, stoppedAt: stopTime });
+      this.broadcast('STATION_COMMAND', { consultancyId: canonical, command: 'END_TEST', stoppedAt: stopTime });
+      this.broadcast('ADMIN_FORCE_RESET_TEST', { consultancyId: canonical, stoppedAt: stopTime });
+      this.pushActiveLaunchToSupabase(canonical, null, undefined, undefined, false, stopTime).catch(() => {});
       return;
     }
 
-    // Launching new test: clear any previous stop tombstones!
+    // Launching new test: clear ALL stop tombstones across all aliases!
     for (const cid of targetCids) {
       localStorage.removeItem(`ielts_stopped_test_${cid}`);
     }
 
     if (sessionName) {
-      this.setActiveBatchName(consultancyId, sessionName);
+      this.setActiveBatchName(canonical, sessionName);
     } else {
-      this.setActiveBatchName(consultancyId, undefined);
+      this.setActiveBatchName(canonical, undefined);
     }
 
     const data = {
-      consultancyId: c?.id || consultancyId,
+      consultancyId: canonical,
       testId,
       title: title || testId,
       sessionName: sessionName || undefined,
@@ -2849,6 +3078,7 @@ export class ConsultancyService {
 
     for (const cid of targetCids) {
       localStorage.setItem(`ielts_launched_test_${cid}`, JSON.stringify(data));
+      localStorage.setItem(`ielts_active_launch_${cid}`, JSON.stringify(data));
     }
     localStorage.setItem('ielts_latest_launched_test', JSON.stringify(data));
 
@@ -2867,12 +3097,16 @@ export class ConsultancyService {
           }
         }
         if (changed) {
-          localStorage.setItem(`ielts_stations_${cid}`, JSON.stringify(stations));
+          const serialized = JSON.stringify(stations);
+          for (const key of targetCids) {
+            localStorage.setItem(`ielts_stations_${key}`, serialized);
+          }
         }
       } catch {}
     }
 
     this.broadcast('BRANCH_TEST_LAUNCHED', data);
+    this.broadcast('ACTIVE_LAUNCH_UPDATED', data);
     this.broadcast('STATION_COMMAND', {
       consultancyId: data.consultancyId,
       command: 'START_TEST',

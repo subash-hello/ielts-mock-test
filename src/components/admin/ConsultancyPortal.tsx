@@ -348,6 +348,14 @@ export const ConsultancyPortal: React.FC<ConsultancyPortalProps> = ({
       }
     });
 
+    const targetCidOnMount = consultancy?.id || consultancyId;
+    ConsultancyService.syncStationsFromCloud(targetCidOnMount).then((synced) => {
+      if (synced && synced.length > 0) setStations(synced);
+    }).catch(() => {});
+    ConsultancyService.syncActiveLaunchFromCloud(targetCidOnMount).then((l) => {
+      if (l) setActiveLaunchedTest(l);
+    }).catch(() => {});
+
     const interval = setInterval(() => {
       const targetCid = consultancy?.id || consultancyId;
       setStations(ConsultancyService.getStations(targetCid));
@@ -355,6 +363,13 @@ export const ConsultancyPortal: React.FC<ConsultancyPortalProps> = ({
       setStudents(ConsultancyService.getStudents(targetCid));
       setTestResults(ConsultancyService.getResults(targetCid));
       setActiveLaunchedTest(ConsultancyService.getActiveLaunchedTest(targetCid));
+
+      ConsultancyService.syncStationsFromCloud(targetCid).then((synced) => {
+        if (synced && synced.length > 0) setStations(synced);
+      }).catch(() => {});
+      ConsultancyService.syncActiveLaunchFromCloud(targetCid).then((l) => {
+        if (l) setActiveLaunchedTest(l);
+      }).catch(() => {});
     }, 3000);
 
     return () => {
