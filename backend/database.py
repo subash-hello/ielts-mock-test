@@ -54,9 +54,16 @@ def init_db():
         credits_used INTEGER,
         created_at TEXT,
         valid_until TEXT,
-        assigned_test_ids TEXT
+        assigned_test_ids TEXT,
+        active_module_tests TEXT DEFAULT '{}'
     );
     """)
+
+    # Auto-migration for existing consultancies table
+    try:
+        cursor.execute("ALTER TABLE consultancies ADD COLUMN active_module_tests TEXT DEFAULT '{}'")
+    except sqlite3.OperationalError:
+        pass
 
     # 3. Stations table
     cursor.execute("""

@@ -10,6 +10,7 @@ interface ConfirmationModalProps {
   isDestructive?: boolean;
   affectedCount?: number;
   affectedLabel?: string;
+  warningNote?: string;
   onConfirm: () => void;
   onCancel: () => void;
 }
@@ -23,6 +24,7 @@ export const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
   isDestructive = true,
   affectedCount,
   affectedLabel = 'affected items',
+  warningNote,
   onConfirm,
   onCancel,
 }) => {
@@ -56,6 +58,13 @@ export const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
         <p className="text-sm text-[#5B6B82] leading-relaxed">
           {message}
         </p>
+
+        {warningNote && (
+          <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-xs font-semibold text-red-800 flex items-start gap-2">
+            <AlertTriangle className="w-4 h-4 text-red-600 shrink-0 mt-0.5" />
+            <span>{warningNote}</span>
+          </div>
+        )}
 
         <div className="flex items-center justify-end gap-3 pt-3 border-t border-[#5B6B82]/15">
           <button

@@ -16,7 +16,7 @@ interface AdminLoginViewProps {
 }
 
 export const AdminLoginView: React.FC<AdminLoginViewProps> = ({
-  initialEmail = 'admin@mock.com',
+  initialEmail = '',
   onSuccess,
   onCancel
 }) => {
@@ -105,24 +105,6 @@ export const AdminLoginView: React.FC<AdminLoginViewProps> = ({
             </p>
           </div>
 
-          {/* Quick Helper Badge */}
-          <div className="p-3 bg-blue-50/80 border border-blue-200 rounded-xl flex items-center justify-between text-xs text-blue-900">
-            <div>
-              <span className="font-bold block">Super Admin Access:</span>
-              <span className="font-mono text-[11px] text-blue-700">admin@mock.com &bull; adminpass123</span>
-            </div>
-            <button
-              type="button"
-              onClick={() => {
-                setEmail('admin@mock.com');
-                setPassword('adminpass123');
-              }}
-              className="px-2.5 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded-md text-[11px] font-bold cursor-pointer transition shadow-2xs"
-            >
-              Fill
-            </button>
-          </div>
-
           <form onSubmit={handleLogin} className="space-y-4 text-xs">
             {/* Email Field */}
             <div>
@@ -136,7 +118,7 @@ export const AdminLoginView: React.FC<AdminLoginViewProps> = ({
                   required
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  placeholder="admin@mock.com"
+                  placeholder="admin@example.com"
                   className="w-full bg-white border border-slate-300 focus:border-blue-600 focus:ring-1 focus:ring-blue-600 text-slate-900 pl-10 pr-4 py-2.5 rounded-lg outline-none text-xs"
                 />
               </div>
@@ -154,7 +136,7 @@ export const AdminLoginView: React.FC<AdminLoginViewProps> = ({
                   required
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  placeholder="adminpass123"
+                  placeholder="Enter administrator password"
                   className="w-full bg-white border border-slate-300 focus:border-blue-600 focus:ring-1 focus:ring-blue-600 text-slate-900 pl-10 pr-10 py-2.5 rounded-lg outline-none text-xs font-mono"
                 />
                 <button

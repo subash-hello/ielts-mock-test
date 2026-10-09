@@ -51,6 +51,7 @@ CREATE TABLE IF NOT EXISTS public.consultancies (
   test_credits INTEGER DEFAULT 300,
   credits_used INTEGER DEFAULT 0,
   assigned_test_ids JSONB DEFAULT '[]'::jsonb,
+  active_module_tests JSONB DEFAULT '{}'::jsonb,
   logo_url TEXT,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
   valid_until TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now() + interval '1 year') NOT NULL,

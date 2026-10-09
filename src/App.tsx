@@ -480,6 +480,20 @@ export const App: React.FC = () => {
     return () => clearInterval(timer);
   }, [activeRoute, currentTest, isExamPausedByTeacher]);
 
+  // Prevent accidental browser tab close or reload during live exam
+  useEffect(() => {
+    if (activeRoute !== 'kiosk-exam') return;
+
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      e.preventDefault();
+      e.returnValue = 'Are you sure you want to exit? Your exam will NOT be submitted.';
+      return e.returnValue;
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, [activeRoute]);
+
   // Breather intermission between Full Mock sections (Blueprint: 10-second breather screen)
   const handleProceedToNextFullMockSection = () => {
     if (!activeFullMock) return;
@@ -1185,6 +1199,7 @@ export const App: React.FC = () => {
       {/* 4. TEST SELECTION (Blueprint Screen 6.3: /kiosk/test) */}
       {activeRoute === 'kiosk-test' && (
         <TestSelectionView
+          consultancy={activeConsultancy}
           availableTests={tests}
           studentName={activeCandidateInfo?.name || 'Candidate'}
           stationName={terminalStationName}
@@ -1204,6 +1219,7 @@ export const App: React.FC = () => {
           test={currentTest}
           fullMock={selectedFullMock}
           stationName={terminalStationName}
+          consultancyName={activeConsultancy?.name}
           onStart={() => {
             startExamExecution(currentTest, selectedFullMock);
           }}
@@ -1564,7 +1580,6 @@ export const App: React.FC = () => {
       {activeRoute === 'super-admin' && (
         (!adminUser || adminUser.role !== 'super_admin') ? (
           <AdminLoginView
-            initialEmail="admin@mock.com"
             onSuccess={(user) => {
               setAdminUser(user);
               ConsultancyService.setCurrentAdmin(user);
@@ -1595,9 +1610,10 @@ export const App: React.FC = () => {
       {/* Exit Exam Confirmation Modal */}
       <ConfirmationModal
         isOpen={showExitExamModal}
-        title="Exit Examination?"
-        message="Are you sure you want to exit? Your exam session will be interrupted and your station will be returned to idle."
-        confirmLabel="Exit Test"
+        title="Exit Examination Without Submitting?"
+        message="Are you sure you want to exit? Your current test session will end and your workstation will return to the idle start screen."
+        warningNote="This test will NOT be submitted. No band score or result report will be generated. All current answers will be discarded."
+        confirmLabel="Exit Without Submitting"
         cancelLabel="Continue Test"
         isDestructive={true}
         onConfirm={() => {

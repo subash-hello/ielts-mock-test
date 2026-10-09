@@ -21,6 +21,15 @@ def row_to_dict(row) -> dict:
     else:
         d["assignedTestIds"] = []
 
+    # Map active_module_tests
+    if "active_module_tests" in d and d["active_module_tests"]:
+        try:
+            d["activeModuleTests"] = json.loads(d["active_module_tests"])
+        except Exception:
+            d["activeModuleTests"] = {}
+    else:
+        d["activeModuleTests"] = {}
+
     # Map snake_case to camelCase for frontend compatibility
     d["branchCode"] = d.get("branch_code", "")
     d["accessCode"] = d.get("access_code", "")
@@ -73,12 +82,14 @@ def save_consultancy(c: ConsultancyCreate):
     cid = c.id if c.id else c.branch_code.lower().replace(" ", "-")
     now_iso = datetime.utcnow().isoformat() + "Z"
 
+    active_mods_json = json.dumps(c.active_module_tests or c.activeModuleTests or {})
+
     cursor.execute("""
     INSERT INTO consultancies (
         id, name, branch, admin_email, phone, branch_code, access_code,
         exam_password, admin_password, status, computer_limit, test_credits,
-        credits_used, created_at, valid_until, assigned_test_ids
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'active', ?, ?, 0, ?, ?, ?)
+        credits_used, created_at, valid_until, assigned_test_ids, active_module_tests
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'active', ?, ?, 0, ?, ?, ?, ?)
     ON CONFLICT(id) DO UPDATE SET
         name=excluded.name,
         branch=excluded.branch,
@@ -90,7 +101,8 @@ def save_consultancy(c: ConsultancyCreate):
         admin_password=excluded.admin_password,
         computer_limit=excluded.computer_limit,
         test_credits=excluded.test_credits,
-        assigned_test_ids=excluded.assigned_test_ids
+        assigned_test_ids=excluded.assigned_test_ids,
+        active_module_tests=excluded.active_module_tests
     """, (
         cid,
         c.name,
@@ -105,7 +117,8 @@ def save_consultancy(c: ConsultancyCreate):
         c.test_credits,
         now_iso,
         "",
-        json.dumps(c.assigned_test_ids or [])
+        json.dumps(c.assigned_test_ids or []),
+        active_mods_json
     ))
 
     conn.commit()

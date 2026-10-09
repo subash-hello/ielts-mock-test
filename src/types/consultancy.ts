@@ -18,6 +18,12 @@ export interface Consultancy {
   createdAt: string;
   validUntil: string;
   assignedTestIds?: string[]; // Test IDs the consultancy has enabled for students
+  activeModuleTests?: {
+    listening?: string;
+    reading?: string;
+    writing?: string;
+    full?: string;
+  };
 }
 
 export interface AdminUser {

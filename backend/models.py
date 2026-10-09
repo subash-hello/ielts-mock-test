@@ -45,6 +45,8 @@ class ConsultancyCreate(BaseModel):
     computer_limit: int = 20
     test_credits: int = 500
     assigned_test_ids: Optional[List[str]] = []
+    active_module_tests: Optional[Dict[str, str]] = {}
+    activeModuleTests: Optional[Dict[str, str]] = None
 
 # --- Stations ---
 class StationHeartbeat(BaseModel):

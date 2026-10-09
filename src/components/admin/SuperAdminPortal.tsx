@@ -721,7 +721,7 @@ export const SuperAdminPortal: React.FC<SuperAdminPortalProps> = ({
                     type="text"
                     value={formData.adminPassword}
                     onChange={(e) => setFormData({ ...formData, adminPassword: e.target.value })}
-                    placeholder="admin123"
+                    placeholder="Enter director password"
                     className="w-full px-3 py-2 bg-white border border-[#5B6B82]/30 rounded-lg text-xs font-mono font-bold text-[#0F1E33] focus:outline-none focus:border-[#C9A24B]"
                   />
                 </div>

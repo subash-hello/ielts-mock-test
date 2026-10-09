@@ -751,6 +751,7 @@ export class ConsultancyService {
       testCredits: row.test_credits !== undefined ? Number(row.test_credits) : 300,
       creditsUsed: row.credits_used !== undefined ? Number(row.credits_used) : 0,
       assignedTestIds: Array.isArray(row.assigned_test_ids) ? row.assigned_test_ids : [],
+      activeModuleTests: row.active_module_tests || row.activeModuleTests || undefined,
       logoUrl: row.logo_url || undefined,
       createdAt: row.created_at || new Date().toISOString(),
       validUntil: row.valid_until || new Date(Date.now() + 365 * 86400000).toISOString()
@@ -773,6 +774,7 @@ export class ConsultancyService {
       test_credits: c.testCredits !== undefined ? c.testCredits : 300,
       credits_used: c.creditsUsed !== undefined ? c.creditsUsed : 0,
       assigned_test_ids: c.assignedTestIds || [],
+      active_module_tests: c.activeModuleTests || null,
       logo_url: c.logoUrl || null,
       created_at: c.createdAt || new Date().toISOString(),
       valid_until: c.validUntil || new Date(Date.now() + 365 * 86400000).toISOString(),
@@ -938,7 +940,8 @@ export class ConsultancyService {
           admin_password: consultancy.adminPassword || 'admin123',
           computer_limit: consultancy.computerLimit ?? 20,
           test_credits: consultancy.testCredits ?? 500,
-          assigned_test_ids: consultancy.assignedTestIds || []
+          assigned_test_ids: consultancy.assignedTestIds || [],
+          active_module_tests: consultancy.activeModuleTests || {}
         }),
         signal: AbortSignal.timeout(5000)
       });
@@ -2187,6 +2190,67 @@ export class ConsultancyService {
     // Also save separately for redundancy
     localStorage.setItem(`ielts_assigned_tests_${consultancyId}`, JSON.stringify(testIds));
     this.broadcast('ASSIGNED_TESTS_UPDATED', { consultancyId, testIds });
+  }
+
+  public static getActiveModuleTests(consultancyId: string): {
+    listening?: string;
+    reading?: string;
+    writing?: string;
+    full?: string;
+  } {
+    const consultancy = this.getConsultancyById(consultancyId);
+    const assignedIds = this.getAssignedTestIds(consultancyId);
+
+    // 1. Reading
+    let reading = consultancy?.activeModuleTests?.reading;
+    if (!reading || (assignedIds.length > 0 && !assignedIds.includes(reading))) {
+      reading = assignedIds.find((id) => id.includes('reading')) || 'cambridge-16-test-1-reading';
+    }
+
+    // 2. Listening
+    let listening = consultancy?.activeModuleTests?.listening;
+    if (!listening || (assignedIds.length > 0 && !assignedIds.includes(listening))) {
+      listening = assignedIds.find((id) => id.includes('listening')) || 'cambridge-16-test-1-listening';
+    }
+
+    // 3. Writing
+    let writing = consultancy?.activeModuleTests?.writing;
+    if (!writing || (assignedIds.length > 0 && !assignedIds.includes(writing))) {
+      writing = assignedIds.find((id) => id.includes('writing')) || 'cambridge-16-test-1-writing';
+    }
+
+    // 4. Full
+    let full = consultancy?.activeModuleTests?.full;
+    if (!full) {
+      full = 'cambridge-16-test-1-full';
+    }
+
+    return { listening, reading, writing, full };
+  }
+
+  public static setActiveModuleTest(
+    consultancyId: string,
+    module: 'listening' | 'reading' | 'writing' | 'full',
+    testId: string
+  ): void {
+    const consultancy = this.getConsultancyById(consultancyId);
+    if (!consultancy) return;
+
+    const currentModules = this.getActiveModuleTests(consultancyId);
+    const updated = {
+      ...currentModules,
+      [module]: testId
+    };
+
+    const assigned = this.getAssignedTestIds(consultancyId);
+    if (!assigned.includes(testId)) {
+      assigned.push(testId);
+    }
+
+    consultancy.activeModuleTests = updated;
+    consultancy.assignedTestIds = assigned;
+    this.saveConsultancy(consultancy);
+    this.broadcast('MODULE_TEST_ASSIGNED', { consultancyId, module, testId });
   }
 
   // --- LAB STATIONS MANAGEMENT ---
