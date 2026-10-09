@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Building2,
   Plus,
@@ -77,8 +77,23 @@ export const SuperAdminPortal: React.FC<SuperAdminPortalProps> = ({
     setVisiblePasswords((prev) => ({ ...prev, [key]: !prev[key] }));
   };
 
+  useEffect(() => {
+    ConsultancyService.syncFromBackend().then((fresh) => {
+      if (fresh && fresh.length > 0) setConsultancies(fresh);
+    }).catch(() => {});
+    const unsub = ConsultancyService.subscribe((event) => {
+      if (event.type === 'CONSULTANCY_UPDATED' || event.type === 'CONSULTANCY_CREATED') {
+        setConsultancies(ConsultancyService.getConsultancies());
+      }
+    });
+    return () => unsub();
+  }, []);
+
   const reloadData = () => {
     setConsultancies(ConsultancyService.getConsultancies());
+    ConsultancyService.syncFromBackend().then((fresh) => {
+      if (fresh && fresh.length > 0) setConsultancies(fresh);
+    }).catch(() => {});
   };
 
   const handleCopy = (text: string, key: string) => {

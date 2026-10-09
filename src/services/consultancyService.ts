@@ -9,6 +9,7 @@ import type {
 } from '../types/consultancy';
 import type { TestResult } from '../types/ielts';
 import { supabase } from '../lib/supabase';
+import { BACKEND_BASE_URL } from './backendApi';
 
 // Initial pre-configured consultancies for immediate out-of-the-box demonstration
 const DEFAULT_CONSULTANCIES: Consultancy[] = [
@@ -912,6 +913,7 @@ export class ConsultancyService {
   }
 
   private static async pushConsultancyToSupabase(consultancy: Consultancy): Promise<void> {
+    this.pushConsultancyToBackend(consultancy).catch(() => {});
     if (!supabase) return;
     try {
       const row = this.mapConsultancyToRow(consultancy);
@@ -919,7 +921,34 @@ export class ConsultancyService {
     } catch {}
   }
 
+  public static async pushConsultancyToBackend(consultancy: Consultancy): Promise<void> {
+    if (!BACKEND_BASE_URL) return;
+    try {
+      await fetch(`${BACKEND_BASE_URL}/api/consultancies`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          id: consultancy.id,
+          name: consultancy.name,
+          branch: consultancy.branch || 'Central',
+          admin_email: consultancy.adminEmail || '',
+          phone: consultancy.phone || '',
+          branch_code: consultancy.branchCode || consultancy.accessCode || consultancy.id,
+          exam_password: consultancy.examPassword || '1234',
+          admin_password: consultancy.adminPassword || 'admin123',
+          computer_limit: consultancy.computerLimit ?? 20,
+          test_credits: consultancy.testCredits ?? 500,
+          assigned_test_ids: consultancy.assignedTestIds || []
+        }),
+        signal: AbortSignal.timeout(5000)
+      });
+    } catch (err) {
+      console.warn('[ConsultancyService] pushConsultancyToBackend warning:', err);
+    }
+  }
+
   private static async deleteConsultancyFromSupabase(id: string): Promise<void> {
+    this.deleteConsultancyFromBackend(id).catch(() => {});
     if (!supabase) return;
     try {
       const clean = id.toLowerCase().trim();
@@ -930,6 +959,60 @@ export class ConsultancyService {
       await supabase.from('consultancy_reports').delete().eq('consultancy_id', clean);
       await supabase.from('consultancy_active_launches').delete().eq('consultancy_id', clean);
     } catch {}
+  }
+
+  public static async deleteConsultancyFromBackend(id: string): Promise<void> {
+    if (!BACKEND_BASE_URL || !id) return;
+    try {
+      const clean = id.trim().toLowerCase();
+      await fetch(`${BACKEND_BASE_URL}/api/consultancies/${encodeURIComponent(clean)}`, {
+        method: 'DELETE',
+        signal: AbortSignal.timeout(5000)
+      });
+    } catch (err) {
+      console.warn('[ConsultancyService] deleteConsultancyFromBackend warning:', err);
+    }
+  }
+
+  public static async syncFromBackend(): Promise<Consultancy[]> {
+    if (typeof window === 'undefined') return this.getConsultancies();
+    try {
+      const url = `${BACKEND_BASE_URL}/api/consultancies`;
+      const res = await fetch(url, {
+        headers: { 'Accept': 'application/json' },
+        signal: AbortSignal.timeout(5000)
+      });
+      if (res.ok) {
+        const rawList = await res.json();
+        if (Array.isArray(rawList) && rawList.length > 0) {
+          const mapped: Consultancy[] = rawList.map((r: any) => ({
+            id: r.id,
+            name: r.name,
+            branch: r.branch || 'Central',
+            adminEmail: r.adminEmail || r.admin_email || '',
+            phone: r.phone || '',
+            accessCode: r.accessCode || r.branchCode || r.branch_code || r.id,
+            branchCode: r.branchCode || r.accessCode || r.branch_code || r.id,
+            examPassword: r.examPassword || r.exam_password || '1234',
+            adminPassword: r.adminPassword || r.admin_password || 'admin123',
+            status: r.status || 'active',
+            computerLimit: r.computerLimit ?? r.computer_limit ?? 20,
+            testCredits: r.testCredits ?? r.test_credits ?? 500,
+            creditsUsed: r.creditsUsed ?? r.credits_used ?? 0,
+            assignedTestIds: r.assignedTestIds || r.assigned_test_ids || [],
+            createdAt: r.createdAt || r.created_at || new Date().toISOString(),
+            validUntil: r.validUntil || r.valid_until || ''
+          }));
+
+          localStorage.setItem('ielts_consultancies', JSON.stringify(mapped));
+          this.broadcast('CONSULTANCY_UPDATED', mapped);
+          return mapped;
+        }
+      }
+    } catch (err) {
+      console.warn('[ConsultancyService] syncFromBackend fallback:', err);
+    }
+    return this.getConsultancies();
   }
 
   private static async pushStationToSupabase(station: LabStation): Promise<void> {
@@ -4097,9 +4180,11 @@ export class ConsultancyService {
   }
 }
 
-// Automatically trigger background Supabase sync on application startup
+// Automatically trigger background backend and Supabase sync on application startup
 if (typeof window !== 'undefined') {
   setTimeout(() => {
+    ConsultancyService.syncFromBackend().catch(() => {});
     ConsultancyService.syncFromSupabase().catch(() => {});
-  }, 100);
+  }, 50);
 }
+

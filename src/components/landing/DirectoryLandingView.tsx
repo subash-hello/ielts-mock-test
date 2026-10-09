@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   ArrowRight,
   ChevronRight
@@ -20,9 +20,36 @@ export const DirectoryLandingView: React.FC<DirectoryLandingViewProps> = ({
   onOpenConsultancyPortal,
 }) => {
   const [directCode, setDirectCode] = useState('');
-  const [consultancies] = useState<Consultancy[]>(() =>
+  const [consultancies, setConsultancies] = useState<Consultancy[]>(() =>
     ConsultancyService.getConsultancies()
   );
+
+  useEffect(() => {
+    // 1. Initial local load
+    setConsultancies(ConsultancyService.getConsultancies());
+
+    // 2. Fetch authoritative branches from central Hugging Face backend
+    ConsultancyService.syncFromBackend().then((synced) => {
+      if (synced && synced.length > 0) {
+        setConsultancies(synced);
+      }
+    }).catch(() => {});
+
+    // 3. Subscribe to real-time updates across tabs and sync
+    const unsubscribe = ConsultancyService.subscribe((event) => {
+      if (
+        event.type === 'CONSULTANCY_UPDATED' ||
+        event.type === 'CONSULTANCY_CREATED' ||
+        event.type === 'WINDOW_FOCUSED'
+      ) {
+        setConsultancies(ConsultancyService.getConsultancies());
+      }
+    });
+
+    return () => {
+      unsubscribe();
+    };
+  }, []);
 
   const handleDirectSubmit = (e: React.FormEvent) => {
     e.preventDefault();

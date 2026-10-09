@@ -47,6 +47,7 @@ import { SettingsView } from './components/consultancy/SettingsView';
 
 // Super Admin & Public Lookup (Blueprint Screen 6.11 - 6.12)
 import { SuperAdminPortal } from './components/admin/SuperAdminPortal';
+import { AdminLoginView } from './components/admin/AdminLoginView';
 import { PublicResultLookupView } from './components/results/PublicResultLookupView';
 
 import { Pause, CheckCircle2, Clock, MessageSquare } from 'lucide-react';
@@ -1555,27 +1556,27 @@ export const App: React.FC = () => {
 
       {/* 9. SUPER ADMIN PORTAL (Blueprint Screen 6.11: /admin) */}
       {activeRoute === 'super-admin' && (
-        <SuperAdminPortal
-          onBackToApp={() => navigateTo('/')}
-          onOpenConsultancy={(cid) => {
-            let current = ConsultancyService.getCurrentAdmin();
-            if (!current) {
-              current = {
-                id: 'super-admin-user',
-                name: 'System Super Administrator',
-                email: 'admin@ieltsplatform.com',
-                role: 'super_admin'
-              };
-              ConsultancyService.setCurrentAdmin(current);
-              setAdminUser(current);
-            }
-            setSelectedConsultancyId(cid);
-            setConsultancySubTab('dashboard');
-            setActiveRoute('consultancy');
-            navigateTo('/consultancy/dashboard');
-          }}
-          onLogout={handleLogout}
-        />
+        (!adminUser || adminUser.role !== 'super_admin') ? (
+          <AdminLoginView
+            initialEmail="admin@mock.com"
+            onSuccess={(user) => {
+              setAdminUser(user);
+              ConsultancyService.setCurrentAdmin(user);
+            }}
+            onCancel={() => navigateTo('/')}
+          />
+        ) : (
+          <SuperAdminPortal
+            onBackToApp={() => navigateTo('/')}
+            onOpenConsultancy={(cid) => {
+              setSelectedConsultancyId(cid);
+              setConsultancySubTab('dashboard');
+              setActiveRoute('consultancy');
+              navigateTo('/consultancy/dashboard');
+            }}
+            onLogout={handleLogout}
+          />
+        )
       )}
 
       {/* 10. PUBLIC RESULT LOOKUP (Blueprint Screen 6.12: /result) */}
