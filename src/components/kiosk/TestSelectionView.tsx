@@ -5,11 +5,12 @@ import {
   PenTool,
   Target,
   ArrowLeft,
-  Building2,
   ArrowRight,
   ShieldCheck,
   Sparkles,
-  Radio
+  Radio,
+  Monitor,
+  Volume2
 } from 'lucide-react';
 import type { IELTSMockTest, FullMockTest } from '../../types/ielts';
 import type { Consultancy } from '../../types/consultancy';
@@ -41,34 +42,186 @@ export const TestSelectionView: React.FC<TestSelectionViewProps> = ({
     return stationAssigned || branchActive || null;
   });
 
+  // Audio Test Tone generator (440Hz standard)
+  const [isAudioTesting, setIsAudioTesting] = useState(false);
+  const playAudioTest = () => {
+    if (typeof window === 'undefined') return;
+    try {
+      setIsAudioTesting(true);
+      const audioCtx = new (window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext)();
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(440, audioCtx.currentTime);
+      gain.gain.setValueAtTime(0.18, audioCtx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 1.2);
+
+      osc.connect(gain);
+      gain.connect(audioCtx.destination);
+      osc.start();
+      osc.stop(audioCtx.currentTime + 1.2);
+
+      setTimeout(() => setIsAudioTesting(false), 1200);
+    } catch {
+      setIsAudioTesting(false);
+    }
+  };
+
   useEffect(() => {
     const syncLaunch = () => {
       if (!consultancy?.id) return;
       const stationAssigned = ConsultancyService.getStationAssignedTest(consultancy.id, stationName);
       const branchActive = ConsultancyService.getActiveLaunchedTest(consultancy.id);
-      setActiveLaunch(stationAssigned || branchActive || null);
+      const resolved = stationAssigned || branchActive || null;
+      setActiveLaunch(resolved);
+
+      // Keep station heartbeat updated on invigilator radar
+      if (!resolved) {
+        ConsultancyService.updateStationHeartbeat(consultancy.id, stationName, {
+          status: 'idle',
+          currentCandidate: {
+            candidateId: '004128',
+            name: studentName,
+          }
+        });
+      }
     };
 
     syncLaunch();
+
+    // Query backend for active broadcast if available
+    if (consultancy?.id) {
+      ConsultancyService.syncActiveLaunchFromBackend(consultancy.id)
+        .then(() => syncLaunch())
+        .catch(() => {});
+    }
+
     const unsub = ConsultancyService.subscribe((event) => {
       if (
         event.type === 'BRANCH_TEST_LAUNCHED' ||
         event.type === 'STATION_COMMAND' ||
         event.type === 'STATION_UPDATED' ||
         event.type === 'MODULE_TEST_ASSIGNED' ||
+        event.type === 'ADMIN_FORCE_RESET_TEST' ||
         event.type === 'STORAGE_SYNC'
       ) {
         syncLaunch();
       }
     });
 
-    const interval = setInterval(syncLaunch, 800);
+    const interval = setInterval(syncLaunch, 500);
     return () => {
       unsub();
       clearInterval(interval);
     };
-  }, [consultancy?.id, stationName]);
+  }, [consultancy?.id, stationName, studentName]);
 
+  // ================= CONDITION: WAITING SIGN UNTIL CONSULTANCY LAUNCHES EXAM =================
+  if (!activeLaunch) {
+    return (
+      <div className="min-h-screen bg-[#FAF8F3] flex flex-col items-center justify-center p-4 sm:p-6 selection:bg-[#C9A24B]/30">
+        <div className="max-w-2xl w-full space-y-6 animate-in fade-in">
+          {/* Header Navigation */}
+          <div className="flex items-center justify-between">
+            <button
+              onClick={onBack}
+              className="inline-flex items-center gap-1.5 text-xs text-[#5B6B82] hover:text-[#0F1E33] transition"
+            >
+              <ArrowLeft className="w-4 h-4" />
+              <span>Change Name</span>
+            </button>
+            <div className="text-right flex items-center gap-2">
+              <span className="text-xs font-mono font-semibold text-[#0F1E33] bg-white px-2.5 py-1 rounded-md border border-[#5B6B82]/20">
+                {stationName}
+              </span>
+              <span className="text-xs text-[#5B6B82]">· {studentName}</span>
+            </div>
+          </div>
+
+          {/* Waiting Sign Card */}
+          <div className="paper-card p-8 sm:p-12 text-center space-y-6 shadow-md border border-[#5B6B82]/20 relative overflow-hidden">
+            {/* Top pulsing accent border */}
+            <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-transparent via-[#C9A24B] to-transparent animate-pulse" />
+
+            {/* Animated Waiting Radar Symbol */}
+            <div className="relative w-24 h-24 mx-auto flex items-center justify-center">
+              <span className="w-full h-full rounded-full bg-[#C9A24B]/20 animate-ping absolute" />
+              <span className="w-20 h-20 rounded-full bg-[#0F1E33]/5 border-2 border-[#C9A24B]/40 animate-pulse absolute" />
+              <div className="w-16 h-16 rounded-2xl bg-[#0F1E33] text-[#C9A24B] flex items-center justify-center relative z-10 shadow-lg">
+                <Monitor className="w-8 h-8" />
+              </div>
+            </div>
+
+            {/* Headings & Status */}
+            <div className="space-y-3 max-w-lg mx-auto">
+              <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-bold tracking-wide">
+                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                <span>Station {stationName} Synchronized to Invigilator Radar</span>
+              </div>
+
+              <h1 className="font-display text-2xl sm:text-3xl font-black text-[#0F1E33] tracking-tight">
+                Waiting for Invigilator to Launch Exam
+              </h1>
+
+              <p className="text-xs sm:text-sm text-[#5B6B82] leading-relaxed">
+                Welcome, <strong className="text-[#0F1E33]">{studentName}</strong>. Please remain seated at your workstation. Your exam invigilator{consultancy?.name ? ` at ${consultancy.name}` : ''} will authorize and launch the mock test session from the admin control desk.
+              </p>
+            </div>
+
+            {/* Standby Protocol Card */}
+            <div className="bg-white border border-[#5B6B82]/15 rounded-2xl p-5 text-left text-xs max-w-lg mx-auto space-y-3 shadow-xs">
+              <div className="font-bold text-[#0F1E33] flex items-center justify-between border-b border-[#5B6B82]/10 pb-2">
+                <span className="flex items-center gap-1.5 text-xs">
+                  <ShieldCheck className="w-4 h-4 text-[#2E7D4F]" />
+                  <span>Workstation Protocol Checklist</span>
+                </span>
+                <span className="text-[10px] uppercase font-bold tracking-wider text-emerald-800 bg-emerald-100 px-2 py-0.5 rounded-full flex items-center gap-1">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                  Standby Mode
+                </span>
+              </div>
+
+              <ul className="space-y-2.5 text-[#5B6B82] text-xs">
+                <li className="flex items-start gap-2">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 mt-1.5 shrink-0" />
+                  <span>Candidate verified: <strong className="text-[#0F1E33]">{studentName}</strong> ({stationName})</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 mt-1.5 shrink-0" />
+                  <span>Official Cambridge exam papers remain securely locked until released by the branch admin.</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="w-1.5 h-1.5 rounded-full bg-[#C9A24B] mt-1.5 shrink-0" />
+                  <span>Once launched, the <strong>Listening, Reading, Writing, and Full Mock</strong> module options will automatically appear here on this screen.</span>
+                </li>
+              </ul>
+            </div>
+
+            {/* Audio Check / Headphones button */}
+            <div className="pt-1 flex flex-wrap items-center justify-center gap-3">
+              <button
+                type="button"
+                onClick={playAudioTest}
+                className="px-4 py-2.5 rounded-xl bg-white hover:bg-slate-50 border border-[#5B6B82]/25 text-[#0F1E33] font-bold text-xs shadow-xs transition flex items-center gap-2 cursor-pointer hover:border-[#0F1E33]"
+              >
+                <Volume2 className="w-4 h-4 text-[#C9A24B]" />
+                <span>{isAudioTesting ? 'Playing Test Tone (440Hz)...' : 'Check Headphones / Audio Tone'}</span>
+              </button>
+            </div>
+
+            {/* Live radar scanner note */}
+            <p className="text-[11px] text-[#5B6B82]/80 flex items-center justify-center gap-1.5 pt-1">
+              <Radio className="w-3.5 h-3.5 text-emerald-600 animate-pulse" />
+              <span>Invigilator radar telemetry is live. The screen will automatically unlock upon exam launch.</span>
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // ================= EXAM IS LAUNCHED BY CONSULTANCY: MODULE SELECTION VIEW =================
   // Helper to extract Cambridge book and test number
   const parseBookAndTest = (testId?: string): { book: number; testNumber: number } | null => {
     if (!testId) return null;
@@ -148,7 +301,7 @@ export const TestSelectionView: React.FC<TestSelectionViewProps> = ({
 
   return (
     <div className="min-h-screen bg-[#FAF8F3] flex flex-col items-center justify-center p-4 sm:p-6 selection:bg-[#C9A24B]/30">
-      <div className="max-w-3xl w-full space-y-6">
+      <div className="max-w-3xl w-full space-y-6 animate-in fade-in">
         {/* Header Navigation */}
         <div className="flex items-center justify-between">
           <button
@@ -170,12 +323,12 @@ export const TestSelectionView: React.FC<TestSelectionViewProps> = ({
         <div className="bg-[#0F1E33] text-white p-4 sm:p-5 rounded-2xl shadow-md border border-[#0F1E33] flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="flex items-center gap-3.5">
             <div className="w-11 h-11 rounded-xl bg-[#C9A24B]/20 border border-[#C9A24B]/40 flex items-center justify-center text-[#C9A24B] shrink-0">
-              {activeLaunch ? <Radio className="w-5 h-5 animate-pulse text-[#C9A24B]" /> : <Building2 className="w-5 h-5 text-[#C9A24B]" />}
+              <Radio className="w-5 h-5 animate-pulse text-[#C9A24B]" />
             </div>
             <div>
               <div className="flex items-center gap-2">
                 <span className="text-[10px] font-bold uppercase tracking-wider text-[#C9A24B] bg-[#C9A24B]/20 px-2 py-0.5 rounded">
-                  {activeLaunch ? 'Live Consultancy Launch' : 'Assigned Exam Paper'}
+                  Live Consultancy Launch
                 </span>
                 <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
                 <span className="text-[11px] text-emerald-300 font-semibold">Ready</span>

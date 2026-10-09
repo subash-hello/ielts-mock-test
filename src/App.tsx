@@ -1154,6 +1154,16 @@ export const App: React.FC = () => {
               consultancyId: activeConsultancy.id
             });
 
+            // Register candidate at station on invigilator radar
+            ConsultancyService.updateStationHeartbeat(activeConsultancy.id, terminalStationName, {
+              status: 'idle',
+              currentCandidate: {
+                candidateId: candidate.candidateId,
+                name: candidate.name,
+                targetBand: candidate.targetBand,
+              }
+            });
+
             // If invigilator individually pre-assigned a single specific non-full module to this station, go to confirmation
             const stationObj = ConsultancyService.getStations(activeConsultancy.id).find((s) => s.name === terminalStationName);
             const isStationSpecificallySingle = stationObj && stationObj.status === 'assigned' && Boolean(stationObj.assignedTestId) && !stationObj.isFullMock && !stationObj.assignedTestId?.endsWith('-full');

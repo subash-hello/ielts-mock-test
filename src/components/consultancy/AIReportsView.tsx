@@ -24,6 +24,7 @@ export const AIReportsView: React.FC<AIReportsViewProps> = ({
   const [search, setSearch] = useState('');
   const [selectedReport, setSelectedReport] = useState<SavedAIReport | null>(null);
   const [deletingReport, setDeletingReport] = useState<SavedAIReport | null>(null);
+  const [showDeleteAllModal, setShowDeleteAllModal] = useState(false);
 
   const handleDeleteConfirm = () => {
     if (!deletingReport) return;
@@ -34,6 +35,12 @@ export const AIReportsView: React.FC<AIReportsViewProps> = ({
       deletingReport.completedAt
     );
     setDeletingReport(null);
+    onRefresh();
+  };
+
+  const handleDeleteAllConfirm = () => {
+    ConsultancyService.deleteAllReports(consultancy.id);
+    setShowDeleteAllModal(false);
     onRefresh();
   };
 
@@ -59,14 +66,28 @@ export const AIReportsView: React.FC<AIReportsViewProps> = ({
             Deep diagnostic skill breakdowns and CEFR benchmark analyses powered by Master IELTS AI
           </p>
         </div>
-        <button
-          onClick={onRefresh}
-          className="btn-texture inline-flex items-center gap-1.5 px-3 py-1.5 bg-white border border-[#5B6B82]/30 text-xs font-semibold text-[#0F1E33] hover:border-[#C9A24B]"
-          title="Reload AI reports list"
-        >
-          <RotateCcw className="w-3.5 h-3.5 text-[#5B6B82]" />
-          <span>Refresh</span>
-        </button>
+        <div className="flex items-center gap-2">
+          {reports.length > 0 && (
+            <button
+              type="button"
+              onClick={() => setShowDeleteAllModal(true)}
+              className="btn-texture inline-flex items-center gap-1.5 px-3 py-1.5 bg-red-50 hover:bg-red-100 border border-red-200 text-xs font-semibold text-red-700 transition cursor-pointer"
+              title="Delete all AI diagnostic reports"
+            >
+              <Trash2 className="w-3.5 h-3.5 text-red-600" />
+              <span>Delete All</span>
+            </button>
+          )}
+          <button
+            type="button"
+            onClick={onRefresh}
+            className="btn-texture inline-flex items-center gap-1.5 px-3 py-1.5 bg-white border border-[#5B6B82]/30 text-xs font-semibold text-[#0F1E33] hover:border-[#C9A24B]"
+            title="Reload AI reports list"
+          >
+            <RotateCcw className="w-3.5 h-3.5 text-[#5B6B82]" />
+            <span>Refresh</span>
+          </button>
+        </div>
       </div>
 
       {/* Search */}
@@ -189,6 +210,48 @@ export const AIReportsView: React.FC<AIReportsViewProps> = ({
                 className="btn-texture px-5 py-2 bg-[#C0392B] hover:bg-[#A93226] text-white text-xs font-bold"
               >
                 Delete Report
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete All Confirmation Modal */}
+      {showDeleteAllModal && (
+        <div className="fixed inset-0 bg-[#0F1E33]/70 backdrop-blur-xs z-50 flex items-center justify-center p-4">
+          <div className="paper-card max-w-md w-full p-6 space-y-4 bg-[#FAF8F3] border border-red-200 shadow-xl animate-in fade-in">
+            <div className="flex items-center gap-3 text-red-700">
+              <div className="w-10 h-10 rounded-xl bg-red-100 flex items-center justify-center shrink-0">
+                <Trash2 className="w-5 h-5 text-red-600" />
+              </div>
+              <div>
+                <h3 className="font-display text-lg font-bold text-[#0F1E33]">
+                  Delete All Diagnostic Reports?
+                </h3>
+                <p className="text-xs text-[#5B6B82]">
+                  Permanent Deletion Warning
+                </p>
+              </div>
+            </div>
+
+            <p className="text-xs text-[#5B6B82] leading-relaxed">
+              Are you sure you want to permanently delete all <strong className="text-[#0F1E33]">{reports.length}</strong> candidate diagnostic reports for <strong className="text-[#0F1E33]">{consultancy.name}</strong>? This action cannot be reversed.
+            </p>
+
+            <div className="flex items-center justify-end gap-2 pt-2">
+              <button
+                type="button"
+                onClick={() => setShowDeleteAllModal(false)}
+                className="btn-texture px-4 py-2 bg-transparent text-xs text-[#5B6B82] border border-[#5B6B82]/30 cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleDeleteAllConfirm}
+                className="btn-texture px-5 py-2 bg-[#C0392B] hover:bg-[#A93226] text-white text-xs font-bold shadow-xs cursor-pointer"
+              >
+                Delete All Reports
               </button>
             </div>
           </div>

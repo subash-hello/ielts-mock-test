@@ -306,16 +306,42 @@ export const ResultsView: React.FC<ResultsViewProps> = ({
         </div>
       )}
 
-      {/* Search Input */}
-      <div className="relative max-w-sm w-full">
-        <Search className="w-4 h-4 text-[#5B6B82] absolute left-3 top-1/2 -translate-y-1/2" />
-        <input
-          type="text"
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          placeholder="Search by student name or candidate ID..."
-          className="w-full pl-9 pr-4 py-2 bg-white border border-[#5B6B82]/30 rounded-lg text-xs text-[#0F1E33] focus:outline-none focus:border-[#C9A24B]"
-        />
+      {/* Search & Actions Toolbar */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div className="relative max-w-sm w-full">
+          <Search className="w-4 h-4 text-[#5B6B82] absolute left-3 top-1/2 -translate-y-1/2" />
+          <input
+            type="text"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Search by student name or candidate ID..."
+            className="w-full pl-9 pr-4 py-2 bg-white border border-[#5B6B82]/30 rounded-lg text-xs text-[#0F1E33] focus:outline-none focus:border-[#C9A24B]"
+          />
+        </div>
+
+        {results.length > 0 && (
+          <button
+            type="button"
+            onClick={() => {
+              setConfirmModalConfig({
+                isOpen: true,
+                title: 'Delete All Test Results?',
+                message: `Are you sure you want to permanently delete all ${results.length} candidate test scorecards and submissions for ${consultancy.name}? This action cannot be reversed.`,
+                isDestructive: true,
+                onConfirm: () => {
+                  ConsultancyService.clearAllResults(consultancy.id);
+                  setConfirmModalConfig((prev) => ({ ...prev, isOpen: false }));
+                  onRefresh();
+                },
+              });
+            }}
+            className="btn-texture inline-flex items-center gap-1.5 px-3 py-1.5 bg-red-50 hover:bg-red-100 border border-red-200 text-xs font-semibold text-red-700 transition cursor-pointer self-start sm:self-auto"
+            title="Delete all test submissions and scorecards"
+          >
+            <Trash2 className="w-3.5 h-3.5 text-red-600" />
+            <span>Delete All Results</span>
+          </button>
+        )}
       </div>
 
       {/* Results Table (Blueprint 6.10) */}

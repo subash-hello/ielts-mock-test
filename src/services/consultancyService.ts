@@ -3666,6 +3666,15 @@ export class ConsultancyService {
     this.broadcast('REPORTS_CLEARED_FOR_STUDENT', { consultancyId: canonical, candidateId });
   }
 
+  public static deleteAllReports(consultancyId: string): void {
+    const canonical = this.getCanonicalConsultancyId(consultancyId);
+    const aliases = this.getConsultancyAliases(consultancyId);
+    for (const key of aliases) {
+      localStorage.setItem(`ielts_reports_${key}`, JSON.stringify([]));
+    }
+    this.broadcast('ALL_REPORTS_DELETED', { consultancyId: canonical });
+  }
+
   // --- LAB WORKSTATION TELEMETRY & SUBMISSION SYNC ENGINE ---
   public static requestStationSync(consultancyId: string): void {
     const canonical = this.getCanonicalConsultancyId(consultancyId);
