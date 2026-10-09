@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Plus,
   Trash2,
@@ -26,6 +26,12 @@ export const CandidatesView: React.FC<CandidatesViewProps> = ({
   const [search, setSearch] = useState('');
   const [showAddModal, setShowAddModal] = useState(false);
   const [editingStudent, setEditingStudent] = useState<ConsultancyStudent | null>(null);
+
+  useEffect(() => {
+    ConsultancyService.syncStudentsFromBackend(consultancy.id).then(() => {
+      onRefresh();
+    }).catch(() => {});
+  }, [consultancy.id]);
 
   // Form state
   const [name, setName] = useState('');

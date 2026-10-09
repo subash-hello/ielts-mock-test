@@ -39,39 +39,57 @@ export const BranchLoginView: React.FC<BranchLoginViewProps> = ({
 
   useEffect(() => {
     setIsLoading(true);
-    // Find branch by branchCode
-    const found = ConsultancyService.getConsultancyByBranchCode(branchCode);
-    setConsultancy(found || null);
-    if (found) {
-      // Check if this device is an already configured & remembered student lab PC
-      const isExplicitReset = typeof window !== 'undefined' && (
-        new URLSearchParams(window.location.search).get('reset') === 'true' ||
-        window.location.hash.includes('reset')
-      );
+    const resolveBranch = (c?: Consultancy | null) => {
+      const found = c || ConsultancyService.getConsultancyByBranchCode(branchCode);
+      setConsultancy(found || null);
+      if (found) {
+        // Check if this device is an already configured & remembered student lab PC
+        const isExplicitReset = typeof window !== 'undefined' && (
+          new URLSearchParams(window.location.search).get('reset') === 'true' ||
+          window.location.hash.includes('reset')
+        );
 
-      const rememberedStation = initialStationId || localStorage.getItem('ielts_terminal_pc') || sessionStorage.getItem('ielts_terminal_pc');
-      const rememberedBranch = localStorage.getItem('ielts_terminal_branch');
-      const rememberedRole = localStorage.getItem('ielts_device_role') as 'student' | 'invigilator' | null;
+        const rememberedStation = initialStationId || localStorage.getItem('ielts_terminal_pc') || sessionStorage.getItem('ielts_terminal_pc');
+        const rememberedBranch = localStorage.getItem('ielts_terminal_branch');
+        const rememberedRole = localStorage.getItem('ielts_device_role') as 'student' | 'invigilator' | null;
 
-      const isMatchingBranch = !rememberedBranch ||
-        rememberedBranch.toUpperCase() === (found.branchCode || found.accessCode || found.id).toUpperCase();
+        const isMatchingBranch = !rememberedBranch ||
+          rememberedBranch.toUpperCase() === (found.branchCode || found.accessCode || found.id).toUpperCase();
 
-      if (!isExplicitReset && rememberedStation && isMatchingBranch && rememberedRole !== 'invigilator') {
-        const formatted = rememberedStation.trim().toUpperCase().startsWith('PC-')
-          ? rememberedStation.trim().toUpperCase()
-          : `PC-${rememberedStation.trim().toUpperCase().replace(/^PC/i, '')}`;
-        setIsLoading(false);
-        onEnterStudentKiosk(found, formatted);
-        return;
+        if (!isExplicitReset && rememberedStation && isMatchingBranch && rememberedRole !== 'invigilator') {
+          const formatted = rememberedStation.trim().toUpperCase().startsWith('PC-')
+            ? rememberedStation.trim().toUpperCase()
+            : `PC-${rememberedStation.trim().toUpperCase().replace(/^PC/i, '')}`;
+          setIsLoading(false);
+          onEnterStudentKiosk(found, formatted);
+          return;
+        }
+
+        // Station is currently locked awaiting invigilator/student PIN.
+        // Ensure workstation telemetry reflects idle with no active candidate (resolves stale QA-Monitor display)
+        ConsultancyService.resetStation(found.id, stationName);
+        ConsultancyService.setCurrentCandidateSession(null);
+        localStorage.removeItem('ielts_active_kiosk_exam_session');
       }
+      setIsLoading(false);
+    };
 
-      // Station is currently locked awaiting invigilator/student PIN.
-      // Ensure workstation telemetry reflects idle with no active candidate (resolves stale QA-Monitor display)
-      ConsultancyService.resetStation(found.id, stationName);
-      ConsultancyService.setCurrentCandidateSession(null);
-      localStorage.removeItem('ielts_active_kiosk_exam_session');
+    const initial = ConsultancyService.getConsultancyByBranchCode(branchCode);
+    if (initial) {
+      resolveBranch(initial);
+    } else {
+      ConsultancyService.syncFromBackend().then((list) => {
+        const remote = (list || []).find(
+          (b) =>
+            (b.branchCode && b.branchCode.toUpperCase() === branchCode.trim().toUpperCase()) ||
+            (b.accessCode && b.accessCode.toUpperCase() === branchCode.trim().toUpperCase()) ||
+            (b.id && b.id.toLowerCase() === branchCode.trim().toLowerCase())
+        );
+        resolveBranch(remote);
+      }).catch(() => {
+        resolveBranch(null);
+      });
     }
-    setIsLoading(false);
   }, [branchCode, stationName, initialStationId, onEnterStudentKiosk]);
 
   const handleSubmit = (e: React.FormEvent) => {

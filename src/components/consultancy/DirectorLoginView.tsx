@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Lock,
   Building2,
@@ -33,8 +33,29 @@ export const DirectorLoginView: React.FC<DirectorLoginViewProps> = ({
   const [isLoading, setIsLoading] = useState(false);
   const [isShaking, setIsShaking] = useState(false);
   const [showSwitchBranch, setShowSwitchBranch] = useState(false);
+  const [allBranches, setAllBranches] = useState<Consultancy[]>(() => ConsultancyService.getConsultancies());
 
-  const allBranches = ConsultancyService.getConsultancies();
+  useEffect(() => {
+    ConsultancyService.syncFromBackend().then((synced) => {
+      if (synced && synced.length > 0) {
+        setAllBranches(synced);
+      }
+    }).catch(() => {});
+
+    const unsub = ConsultancyService.subscribe((event) => {
+      if (
+        event.type === 'CONSULTANCY_UPDATED' ||
+        event.type === 'CONSULTANCY_CREATED' ||
+        event.type === 'CONSULTANCY_DELETED' ||
+        event.type === 'STORAGE_SYNC' ||
+        event.type === 'WINDOW_FOCUSED'
+      ) {
+        setAllBranches(ConsultancyService.getConsultancies());
+      }
+    });
+
+    return () => unsub();
+  }, []);
 
   const handleSelectBranch = (b: Consultancy) => {
     setIdentifier(b.branchCode || b.accessCode || b.adminEmail || b.id);

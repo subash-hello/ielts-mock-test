@@ -26,15 +26,27 @@ def result_row_to_dict(row) -> dict:
     return {
         "id": d["id"],
         "consultancyId": d.get("consultancy_id", ""),
+        "consultancyName": scores.get("consultancyName", ""),
         "candidateName": d.get("candidate_name", ""),
+        "candidateId": d.get("candidate_number") or d.get("candidate_name", ""),
         "candidateNumber": d.get("candidate_number", ""),
         "testId": d.get("test_id", ""),
         "testTitle": d.get("test_title", ""),
-        "module": d.get("module", ""),
+        "module": d.get("module", "reading"),
+        "book": scores.get("book", 16),
+        "testNumber": scores.get("testNumber", 1),
+        "bandScore": d.get("overall_band", 0.0),
         "overallBand": d.get("overall_band", 0.0),
+        "totalQuestions": scores.get("totalQuestions", 40),
+        "correctCount": scores.get("correctCount", 0),
+        "timeTakenSeconds": scores.get("timeTakenSeconds", 0),
+        "answers": scores.get("answers", {}),
+        "writingSubmission": scores.get("writingSubmission"),
         "scores": scores,
         "trfNumber": d.get("trf_number", ""),
-        "submittedAt": d.get("submitted_at", "")
+        "completedAt": d.get("submitted_at", ""),
+        "submittedAt": d.get("submitted_at", ""),
+        "isPublished": True
     }
 
 

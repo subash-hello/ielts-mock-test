@@ -10,15 +10,19 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse, JSONResponse
 
 from database import init_db, get_db
-from routers import tests, consultancies, stations, lab_control, results, ai_evaluator
+from routers import tests, consultancies, stations, lab_control, results, ai_evaluator, students
 
+# Ensure DB initialized on import
+try:
+    init_db()
+except Exception as e:
+    print("[WARN] DB init on import:", e)
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Startup: ensure SQLite database schema and preloaded tests are seeded
-    print("[INFO] Initializing Master IELTS AI Database...")
     init_db()
-    print("[OK] Master IELTS AI Database initialized successfully.")
+    print("[OK] Master IELTS AI Database ready.")
     yield
     print("[INFO] Shutting down Master IELTS AI Backend...")
 
@@ -45,6 +49,7 @@ app.include_router(consultancies.router)
 app.include_router(stations.router)
 app.include_router(lab_control.router)
 app.include_router(results.router)
+app.include_router(students.router)
 app.include_router(ai_evaluator.router)
 
 

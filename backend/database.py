@@ -125,6 +125,27 @@ def init_db():
     );
     """)
 
+    # 7. Students
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS students (
+        id TEXT PRIMARY KEY,
+        consultancy_id TEXT,
+        candidate_number TEXT,
+        full_name TEXT,
+        email TEXT,
+        phone TEXT,
+        target_band REAL DEFAULT 0,
+        enrolled_date TEXT,
+        tests_completed_count INTEGER DEFAULT 0,
+        highest_band REAL DEFAULT 0,
+        average_band REAL DEFAULT 0,
+        latest_result_id TEXT,
+        assigned_test_id TEXT,
+        assigned_test_title TEXT,
+        updated_at TEXT
+    );
+    """)
+
     conn.commit()
 
     # Seed data if empty

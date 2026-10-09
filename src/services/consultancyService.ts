@@ -1016,6 +1016,7 @@ export class ConsultancyService {
   }
 
   private static async pushStationToSupabase(station: LabStation): Promise<void> {
+    this.pushStationToBackend(station).catch(() => {});
     if (!supabase) return;
     try {
       const row = this.mapStationToRow(station);
@@ -1023,7 +1024,34 @@ export class ConsultancyService {
     } catch {}
   }
 
+  public static async pushStationToBackend(station: LabStation): Promise<void> {
+    if (!BACKEND_BASE_URL) return;
+    try {
+      const canonical = this.getCanonicalConsultancyId(station.consultancyId);
+      await fetch(`${BACKEND_BASE_URL}/api/consultancies/${encodeURIComponent(canonical)}/stations/heartbeat`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          station_id: station.id,
+          station_name: station.name,
+          consultancy_id: canonical,
+          status: station.status,
+          current_candidate: station.currentCandidate || null,
+          candidate_number: station.currentCandidate || null,
+          current_test_id: station.assignedTestId || null,
+          current_module: station.module || null,
+          answers_count: station.answeredCount || 0,
+          remaining_seconds: station.remainingSeconds || 0
+        }),
+        signal: AbortSignal.timeout(4000)
+      });
+    } catch (err) {
+      console.warn('[ConsultancyService] pushStationToBackend warning:', err);
+    }
+  }
+
   private static async deleteStationFromSupabase(consultancyId: string, stationIdentifier: string): Promise<void> {
+    this.deleteStationFromBackend(consultancyId, stationIdentifier).catch(() => {});
     if (!supabase) return;
     try {
       const canonical = this.getCanonicalConsultancyId(consultancyId);
@@ -1036,7 +1064,57 @@ export class ConsultancyService {
     } catch {}
   }
 
+  public static async deleteStationFromBackend(consultancyId: string, stationId: string): Promise<void> {
+    if (!BACKEND_BASE_URL) return;
+    try {
+      const canonical = this.getCanonicalConsultancyId(consultancyId);
+      await fetch(`${BACKEND_BASE_URL}/api/consultancies/${encodeURIComponent(canonical)}/stations/${encodeURIComponent(stationId)}`, {
+        method: 'DELETE',
+        signal: AbortSignal.timeout(4000)
+      });
+    } catch {}
+  }
+
+  public static async syncStationsFromBackend(consultancyId: string): Promise<LabStation[]> {
+    if (!BACKEND_BASE_URL || typeof window === 'undefined') return this.getStations(consultancyId);
+    try {
+      const canonical = this.getCanonicalConsultancyId(consultancyId);
+      const res = await fetch(`${BACKEND_BASE_URL}/api/consultancies/${encodeURIComponent(canonical)}/stations`, {
+        headers: { 'Accept': 'application/json' },
+        signal: AbortSignal.timeout(5000)
+      });
+      if (res.ok) {
+        const rawStations = await res.json();
+        if (Array.isArray(rawStations)) {
+          const mapped: LabStation[] = rawStations.map((r: any) => ({
+            id: r.id,
+            name: r.name || r.station_name || r.id,
+            consultancyId: canonical,
+            status: r.status || 'idle',
+            currentCandidate: r.currentCandidate || r.current_candidate || undefined,
+            assignedTestId: r.assignedTestId || r.currentTestId || r.current_test_id || undefined,
+            testTitle: r.testTitle || r.currentTestId || undefined,
+            module: r.module || r.currentModule || r.current_module || undefined,
+            answeredCount: r.answeredCount ?? r.answersCount ?? r.answers_count ?? 0,
+            remainingSeconds: r.remainingSeconds ?? r.remaining_seconds ?? undefined,
+            lastHeartbeat: r.lastHeartbeat || r.last_heartbeat || new Date().toISOString()
+          }));
+          const aliases = this.getConsultancyAliases(canonical);
+          for (const k of aliases) {
+            localStorage.setItem(`ielts_stations_${k}`, JSON.stringify(mapped));
+          }
+          this.broadcast('STATION_UPDATED', { consultancyId: canonical, stations: mapped });
+          return mapped;
+        }
+      }
+    } catch (err) {
+      console.warn('[ConsultancyService] syncStationsFromBackend fallback:', err);
+    }
+    return this.getStations(consultancyId);
+  }
+
   private static async pushStudentToSupabase(student: ConsultancyStudent): Promise<void> {
+    this.pushStudentToBackend(student).catch(() => {});
     if (!supabase) return;
     try {
       const row = this.mapStudentToRow(student);
@@ -1044,7 +1122,35 @@ export class ConsultancyService {
     } catch {}
   }
 
+  public static async pushStudentToBackend(student: ConsultancyStudent): Promise<void> {
+    if (!BACKEND_BASE_URL) return;
+    try {
+      const canonical = this.getCanonicalConsultancyId(student.consultancyId);
+      await fetch(`${BACKEND_BASE_URL}/api/consultancies/${encodeURIComponent(canonical)}/students`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          id: student.id,
+          candidate_number: student.candidateNumber,
+          full_name: student.fullName,
+          email: student.email || '',
+          phone: student.phone || '',
+          target_band: student.targetBand || 0,
+          enrolled_date: student.enrolledDate,
+          tests_completed_count: student.testsCompletedCount || 0,
+          highest_band: student.highestBand || 0,
+          average_band: student.averageBand || 0,
+          latest_result_id: student.latestResultId,
+          assigned_test_id: student.assignedTestId,
+          assigned_test_title: student.assignedTestTitle
+        }),
+        signal: AbortSignal.timeout(4000)
+      });
+    } catch {}
+  }
+
   private static async deleteStudentFromSupabase(consultancyId: string, studentId: string): Promise<void> {
+    this.deleteStudentFromBackend(consultancyId, studentId).catch(() => {});
     if (!supabase) return;
     try {
       const canonical = this.getCanonicalConsultancyId(consultancyId);
@@ -1056,7 +1162,42 @@ export class ConsultancyService {
     } catch {}
   }
 
+  public static async deleteStudentFromBackend(consultancyId: string, studentId: string): Promise<void> {
+    if (!BACKEND_BASE_URL) return;
+    try {
+      const canonical = this.getCanonicalConsultancyId(consultancyId);
+      await fetch(`${BACKEND_BASE_URL}/api/consultancies/${encodeURIComponent(canonical)}/students/${encodeURIComponent(studentId)}`, {
+        method: 'DELETE',
+        signal: AbortSignal.timeout(4000)
+      });
+    } catch {}
+  }
+
+  public static async syncStudentsFromBackend(consultancyId: string): Promise<ConsultancyStudent[]> {
+    if (!BACKEND_BASE_URL || typeof window === 'undefined') return this.getStudents(consultancyId);
+    try {
+      const canonical = this.getCanonicalConsultancyId(consultancyId);
+      const res = await fetch(`${BACKEND_BASE_URL}/api/consultancies/${encodeURIComponent(canonical)}/students`, {
+        headers: { 'Accept': 'application/json' },
+        signal: AbortSignal.timeout(5000)
+      });
+      if (res.ok) {
+        const rawList = await res.json();
+        if (Array.isArray(rawList)) {
+          const aliases = this.getConsultancyAliases(canonical);
+          for (const k of aliases) {
+            localStorage.setItem(`ielts_students_${k}`, JSON.stringify(rawList));
+          }
+          this.broadcast('STUDENT_UPDATED', { consultancyId: canonical });
+          return rawList;
+        }
+      }
+    } catch {}
+    return this.getStudents(consultancyId);
+  }
+
   private static async pushResultToSupabase(consultancyId: string, result: TestResult): Promise<void> {
+    this.pushResultToBackend(consultancyId, result).catch(() => {});
     if (!supabase) return;
     try {
       const canonical = this.getCanonicalConsultancyId(consultancyId);
@@ -1070,6 +1211,84 @@ export class ConsultancyService {
         }).eq('id', c.id);
       }
     } catch {}
+  }
+
+  public static async pushResultToBackend(consultancyId: string, result: TestResult): Promise<void> {
+    if (!BACKEND_BASE_URL) return;
+    try {
+      const canonical = this.getCanonicalConsultancyId(consultancyId);
+      const uid = `${result.testId}-${result.candidateId || 'cand'}-${result.completedAt || Date.now()}`;
+      await fetch(`${BACKEND_BASE_URL}/api/results`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          id: uid,
+          consultancy_id: canonical,
+          candidate_name: result.candidateName || 'Candidate',
+          candidate_number: result.candidateId || '',
+          test_id: result.testId,
+          test_title: result.testId,
+          module: result.module || 'reading',
+          overall_band: result.bandScore || 0,
+          scores: {
+            totalQuestions: result.totalQuestions,
+            correctCount: result.correctCount,
+            timeTakenSeconds: result.timeTakenSeconds,
+            answers: result.answers || {},
+            writingSubmission: result.writingSubmission,
+            book: result.book,
+            testNumber: result.testNumber,
+            consultancyName: result.consultancyName
+          }
+        }),
+        signal: AbortSignal.timeout(5000)
+      });
+    } catch (err) {
+      console.warn('[ConsultancyService] pushResultToBackend warning:', err);
+    }
+  }
+
+  public static async syncResultsFromBackend(consultancyId: string): Promise<TestResult[]> {
+    if (!BACKEND_BASE_URL || typeof window === 'undefined') return this.getResults(consultancyId);
+    try {
+      const canonical = this.getCanonicalConsultancyId(consultancyId);
+      const res = await fetch(`${BACKEND_BASE_URL}/api/results/consultancy/${encodeURIComponent(canonical)}`, {
+        headers: { 'Accept': 'application/json' },
+        signal: AbortSignal.timeout(5000)
+      });
+      if (res.ok) {
+        const rawResults = await res.json();
+        if (Array.isArray(rawResults)) {
+          const mapped: TestResult[] = rawResults.map((r: any) => ({
+            testId: r.testId || r.test_id,
+            book: r.book || 16,
+            testNumber: r.testNumber || 1,
+            module: r.module || 'reading',
+            totalQuestions: r.totalQuestions ?? 40,
+            correctCount: r.correctCount ?? 0,
+            bandScore: r.bandScore ?? r.overallBand ?? 0,
+            timeTakenSeconds: r.timeTakenSeconds ?? 0,
+            completedAt: r.completedAt || r.submittedAt || new Date().toISOString(),
+            answers: r.answers || {},
+            candidateName: r.candidateName || undefined,
+            candidateId: r.candidateId || r.candidateNumber || undefined,
+            consultancyId: canonical,
+            consultancyName: r.consultancyName || undefined,
+            isPublished: true,
+            writingSubmission: r.writingSubmission || undefined
+          }));
+          const aliases = this.getConsultancyAliases(canonical);
+          for (const k of aliases) {
+            localStorage.setItem(`ielts_results_${k}`, JSON.stringify(mapped));
+          }
+          this.broadcast('RESULT_SUBMITTED', { consultancyId: canonical });
+          return mapped;
+        }
+      }
+    } catch (err) {
+      console.warn('[ConsultancyService] syncResultsFromBackend fallback:', err);
+    }
+    return this.getResults(consultancyId);
   }
 
   private static async deleteResultFromSupabase(
@@ -1096,6 +1315,7 @@ export class ConsultancyService {
     isFullMock?: boolean,
     stoppedAt?: number
   ): Promise<void> {
+    this.pushActiveLaunchToBackend(consultancyId, testId, title).catch(() => {});
     if (!supabase) return;
     try {
       const canonical = this.getCanonicalConsultancyId(consultancyId);
@@ -1112,6 +1332,74 @@ export class ConsultancyService {
       };
       await supabase.from('consultancy_active_launches').upsert(row);
     } catch {}
+  }
+
+  public static async pushActiveLaunchToBackend(
+    consultancyId: string,
+    testId: string | null,
+    title?: string
+  ): Promise<void> {
+    if (!BACKEND_BASE_URL) return;
+    try {
+      const canonical = this.getCanonicalConsultancyId(consultancyId);
+      if (!testId) {
+        await fetch(`${BACKEND_BASE_URL}/api/consultancies/${encodeURIComponent(canonical)}/stop-launch`, {
+          method: 'POST',
+          signal: AbortSignal.timeout(4000)
+        });
+      } else {
+        await fetch(`${BACKEND_BASE_URL}/api/consultancies/${encodeURIComponent(canonical)}/launch`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            consultancy_id: canonical,
+            test_id: testId,
+            module: 'reading',
+            title: title || testId,
+            duration_minutes: 60,
+            exam_password: '1234'
+          }),
+          signal: AbortSignal.timeout(4000)
+        });
+      }
+    } catch (err) {
+      console.warn('[ConsultancyService] pushActiveLaunchToBackend warning:', err);
+    }
+  }
+
+  public static async syncActiveLaunchFromBackend(consultancyId: string): Promise<any> {
+    if (!BACKEND_BASE_URL || typeof window === 'undefined') return this.getActiveLaunchedTest(consultancyId);
+    try {
+      const canonical = this.getCanonicalConsultancyId(consultancyId);
+      const res = await fetch(`${BACKEND_BASE_URL}/api/consultancies/${encodeURIComponent(canonical)}/active-launch`, {
+        headers: { 'Accept': 'application/json' },
+        signal: AbortSignal.timeout(4000)
+      });
+      if (res.ok) {
+        const data = await res.json();
+        const aliases = this.getConsultancyAliases(canonical);
+        if (data.isActive && data.launch) {
+          const launchData = {
+            consultancyId: canonical,
+            testId: data.launch.testId,
+            title: data.launch.title,
+            launchedAt: data.launch.startedAt,
+            isFullMock: false
+          };
+          for (const k of aliases) {
+            localStorage.setItem(`ielts_active_launch_${k}`, JSON.stringify(launchData));
+          }
+          this.broadcast('ACTIVE_LAUNCH_UPDATED', launchData);
+          return launchData;
+        } else {
+          for (const k of aliases) {
+            localStorage.removeItem(`ielts_active_launch_${k}`);
+          }
+          return null;
+        }
+      }
+    } catch {}
+    return this.getActiveLaunchedTest(consultancyId);
   }
 
   public static async syncFromSupabase(): Promise<void> {
@@ -2082,6 +2370,7 @@ export class ConsultancyService {
       }
       this.broadcast('STATION_HEARTBEAT', list[existingIdx]);
       this.broadcast('STATION_UPDATED', list[existingIdx]);
+      this.pushStationToBackend(list[existingIdx]).catch(() => {});
     } else {
       const newStation: LabStation = {
         id: `${canonical}-${normSearch.toLowerCase().replace(/[^a-z0-9]/g, '-')}`,
@@ -2098,6 +2387,7 @@ export class ConsultancyService {
       }
       this.broadcast('STATION_HEARTBEAT', newStation);
       this.broadcast('STATION_UPDATED', newStation);
+      this.pushStationToBackend(newStation).catch(() => {});
     }
   }
 

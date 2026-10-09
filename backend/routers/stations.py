@@ -46,8 +46,13 @@ def station_row_to_dict(row) -> dict:
         "currentCandidate": d.get("current_candidate"),
         "candidateNumber": d.get("candidate_number"),
         "currentTestId": d.get("current_test_id"),
+        "assignedTestId": d.get("current_test_id"),
         "currentModule": d.get("current_module"),
+        "module": d.get("current_module"),
         "answersCount": d.get("answers_count", 0),
+        "answeredCount": d.get("answers_count", 0),
+        "currentQuestion": max(1, (d.get("answers_count") or 0) + 1),
+        "totalQuestions": 40,
         "remainingSeconds": d.get("remaining_seconds", 0),
         "isActive": bool(d.get("is_active", 1)),
         "lastHeartbeat": d.get("last_heartbeat", "")

@@ -135,7 +135,27 @@ export const StudentTerminalView: React.FC<StudentTerminalViewProps> = ({
     return 'PC-01';
   });
 
-  const allConsultancies = ConsultancyService.getConsultancies();
+  const [allConsultancies, setAllConsultancies] = useState<Consultancy[]>(() => ConsultancyService.getConsultancies());
+
+  useEffect(() => {
+    ConsultancyService.syncFromBackend().then((fresh) => {
+      if (fresh && fresh.length > 0) {
+        setAllConsultancies(fresh);
+      }
+    }).catch(() => {});
+
+    const unsub = ConsultancyService.subscribe((event) => {
+      if (
+        event.type === 'CONSULTANCY_UPDATED' ||
+        event.type === 'CONSULTANCY_CREATED' ||
+        event.type === 'CONSULTANCY_DELETED' ||
+        event.type === 'STORAGE_SYNC'
+      ) {
+        setAllConsultancies(ConsultancyService.getConsultancies());
+      }
+    });
+    return () => unsub();
+  }, []);
 
   const [loginError, setLoginError] = useState<string | null>(null);
 
@@ -412,14 +432,29 @@ export const StudentTerminalView: React.FC<StudentTerminalViewProps> = ({
       setTimeout(() => {
         ConsultancyService.pushLocalResultsToCloud(consultancy.id);
       }, 500);
+
+      // Query central backend for any active exam broadcast
+      ConsultancyService.syncActiveLaunchFromBackend(consultancy.id)
+        .then(() => syncActiveTest())
+        .catch(() => {});
     }
 
-    // High-frequency responsive fallback interval (200ms) for instant test appearance
+    // High-frequency responsive fallback interval (200ms) for instant local test appearance
     const interval = setInterval(syncActiveTest, 200);
+
+    // Cross-device/cross-browser polling: poll central backend every 3.5 seconds
+    const backendInterval = setInterval(() => {
+      if (consultancy?.id) {
+        ConsultancyService.syncActiveLaunchFromBackend(consultancy.id)
+          .then(() => syncActiveTest())
+          .catch(() => {});
+      }
+    }, 3500);
 
     return () => {
       unsubscribe();
       clearInterval(interval);
+      clearInterval(backendInterval);
     };
   }, [consultancy, currentStation, pcNumber, tests]);
 

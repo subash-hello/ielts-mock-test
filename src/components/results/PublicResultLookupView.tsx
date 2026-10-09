@@ -9,6 +9,7 @@ import {
   PenTool
 } from 'lucide-react';
 import { ConsultancyService } from '../../services/consultancyService';
+import { BACKEND_BASE_URL } from '../../services/backendApi';
 import type { TestResult } from '../../types/ielts';
 import { formatAppTimestamp, formatTimeSpent } from '../../utils/formatters';
 import { AIDiagnosticReportModal } from './AIDiagnosticReportModal';
@@ -50,6 +51,23 @@ export const PublicResultLookupView: React.FC<PublicResultLookupViewProps> = ({
 
     setMatchedResults(candidateEntries);
     setHasSearched(true);
+
+    // Query live backend database for global candidate lookup
+    if (BACKEND_BASE_URL) {
+      fetch(`${BACKEND_BASE_URL}/api/results/${encodeURIComponent(clean)}`, {
+        signal: AbortSignal.timeout(5000)
+      })
+        .then((res) => (res.ok ? res.json() : null))
+        .then((remote) => {
+          if (remote && remote.testId) {
+            setMatchedResults((prev) => {
+              const exists = prev.some((p) => p.testId === remote.testId && p.completedAt === remote.completedAt);
+              return exists ? prev : [remote, ...prev];
+            });
+          }
+        })
+        .catch(() => {});
+    }
   };
 
   const handleSubmit = (e: React.FormEvent) => {

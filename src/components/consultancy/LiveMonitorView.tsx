@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Clock,
   MessageSquare,
@@ -26,6 +26,20 @@ export const LiveMonitorView: React.FC<LiveMonitorViewProps> = ({
   const [selectedStation, setSelectedStation] = useState<LabStation | null>(null);
   const [messageText, setMessageText] = useState('');
   const [sentNotice, setSentNotice] = useState(false);
+
+  useEffect(() => {
+    ConsultancyService.syncStationsFromBackend(consultancy.id).then(() => {
+      onRefresh();
+    }).catch(() => {});
+
+    const interval = setInterval(() => {
+      ConsultancyService.syncStationsFromBackend(consultancy.id).then(() => {
+        onRefresh();
+      }).catch(() => {});
+    }, 4000);
+
+    return () => clearInterval(interval);
+  }, [consultancy.id]);
 
   const activeBatchName = ConsultancyService.getActiveBatchName(consultancy.id);
 

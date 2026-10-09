@@ -38,6 +38,12 @@ export const ResultsView: React.FC<ResultsViewProps> = ({
   const [statusFilter, setStatusFilter] = useState<'all' | 'published' | 'submitted' | 'writing_pending'>(initialFilter);
   const [selectedScorecard, setSelectedScorecard] = useState<TestResult | null>(null);
 
+  useEffect(() => {
+    ConsultancyService.syncResultsFromBackend(consultancy.id).then(() => {
+      onRefresh();
+    }).catch(() => {});
+  }, [consultancy.id]);
+
   // Writing Evaluation Modal state
   const [writingModalResult, setWritingModalResult] = useState<TestResult | null>(initialWritingModalResult);
   const [writingGradeForm, setWritingGradeForm] = useState<{

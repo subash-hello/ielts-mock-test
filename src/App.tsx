@@ -1062,6 +1062,7 @@ export const App: React.FC = () => {
   };
 
   const activeConsultancy = ConsultancyService.getConsultancyById(selectedConsultancyId) ||
+    (currentBranchCode ? ConsultancyService.getConsultancyByBranchCode(currentBranchCode) : undefined) ||
     ConsultancyService.getConsultancies()[0];
 
   const isDirectorAuthenticated = Boolean(
@@ -1411,6 +1412,11 @@ export const App: React.FC = () => {
             consultancy={activeConsultancy}
             onSuccess={(user, targetConsultancy) => {
               setAdminUser(user);
+              if (user.role === 'super_admin') {
+                setActiveRoute('super-admin');
+                navigateTo('/admin');
+                return;
+              }
               if (targetConsultancy) {
                 setSelectedConsultancyId(targetConsultancy.id);
               }
