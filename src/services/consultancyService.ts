@@ -1034,23 +1034,25 @@ export class ConsultancyService {
             }
           }
 
-          // 2. Add local items that are NOT deleted (preserves default consultancies like Apex, Edwise, Kangaroo)
-          for (const loc of currentLocal) {
-            const id = (loc.id || '').toLowerCase().trim();
-            const branch = (loc.branchCode || '').toLowerCase().trim();
-            const access = (loc.accessCode || '').toLowerCase().trim();
-            if (!deletedIds.includes(id) && !deletedIds.includes(branch) && !deletedIds.includes(access)) {
-              if (!map.has(id)) {
+          // Backend is the authoritative source of truth. If remoteList has consultancies, use it.
+          // Only if backend is completely empty (initial setup) do we seed default consultancies.
+          let finalConsultancies: Consultancy[] = [];
+          if (map.size > 0) {
+            finalConsultancies = Array.from(map.values());
+          } else {
+            for (const loc of currentLocal) {
+              const id = (loc.id || '').toLowerCase().trim();
+              if (!deletedIds.includes(id)) {
                 map.set(id, loc);
                 this.pushConsultancyToBackend(loc).catch(() => {});
               }
             }
+            finalConsultancies = Array.from(map.values());
           }
 
-          const merged = Array.from(map.values());
-          localStorage.setItem('ielts_consultancies', JSON.stringify(merged));
-          this.broadcast('CONSULTANCY_UPDATED', merged);
-          return merged;
+          localStorage.setItem('ielts_consultancies', JSON.stringify(finalConsultancies));
+          this.broadcast('CONSULTANCY_UPDATED', finalConsultancies);
+          return finalConsultancies;
         }
       }
     } catch (err) {
@@ -1455,20 +1457,11 @@ export class ConsultancyService {
       if (!cErr && Array.isArray(dbConsultancies) && dbConsultancies.length > 0) {
         const deletedIds = this.getDeletedConsultancyIds();
         const remoteConsultancies = dbConsultancies.map((r: any) => this.mapRowToConsultancy(r));
-        const currentLocal = this.getConsultancies();
-
         const map = new Map<string, Consultancy>();
         for (const rem of remoteConsultancies) {
           const cid = rem.id.toLowerCase().trim();
           if (!deletedIds.includes(cid)) {
             map.set(cid, rem);
-          }
-        }
-        for (const loc of currentLocal) {
-          const cid = loc.id.toLowerCase().trim();
-          if (!map.has(cid) && !deletedIds.includes(cid)) {
-            map.set(cid, loc);
-            this.pushConsultancyToSupabase(loc).catch(() => {});
           }
         }
         const merged = Array.from(map.values());
