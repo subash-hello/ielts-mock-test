@@ -78,11 +78,16 @@ export const SuperAdminPortal: React.FC<SuperAdminPortalProps> = ({
   };
 
   useEffect(() => {
-    ConsultancyService.syncFromBackend().then((fresh) => {
-      if (fresh && fresh.length > 0) setConsultancies(fresh);
+    ConsultancyService.syncFromBackend().then(() => {
+      setConsultancies(ConsultancyService.getConsultancies());
     }).catch(() => {});
     const unsub = ConsultancyService.subscribe((event) => {
-      if (event.type === 'CONSULTANCY_UPDATED' || event.type === 'CONSULTANCY_CREATED') {
+      if (
+        event.type === 'CONSULTANCY_UPDATED' ||
+        event.type === 'CONSULTANCY_CREATED' ||
+        event.type === 'CONSULTANCY_DELETED' ||
+        event.type === 'STORAGE_SYNC'
+      ) {
         setConsultancies(ConsultancyService.getConsultancies());
       }
     });
@@ -91,8 +96,8 @@ export const SuperAdminPortal: React.FC<SuperAdminPortalProps> = ({
 
   const reloadData = () => {
     setConsultancies(ConsultancyService.getConsultancies());
-    ConsultancyService.syncFromBackend().then((fresh) => {
-      if (fresh && fresh.length > 0) setConsultancies(fresh);
+    ConsultancyService.syncFromBackend().then(() => {
+      setConsultancies(ConsultancyService.getConsultancies());
     }).catch(() => {});
   };
 
@@ -193,10 +198,11 @@ export const SuperAdminPortal: React.FC<SuperAdminPortalProps> = ({
     }
   };
 
-  const handleConfirmDelete = () => {
+  const handleConfirmDelete = async () => {
     if (!deletingConsultancy) return;
-    ConsultancyService.deleteConsultancy(deletingConsultancy.id);
+    const target = deletingConsultancy;
     setDeletingConsultancy(null);
+    await ConsultancyService.deleteConsultancy(target.id);
     reloadData();
   };
 

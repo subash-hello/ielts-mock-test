@@ -29,10 +29,8 @@ export const DirectoryLandingView: React.FC<DirectoryLandingViewProps> = ({
     setConsultancies(ConsultancyService.getConsultancies());
 
     // 2. Fetch authoritative branches from central Hugging Face backend
-    ConsultancyService.syncFromBackend().then((synced) => {
-      if (synced && synced.length > 0) {
-        setConsultancies(synced);
-      }
+    ConsultancyService.syncFromBackend().then(() => {
+      setConsultancies(ConsultancyService.getConsultancies());
     }).catch(() => {});
 
     // 3. Subscribe to real-time updates across tabs and sync
@@ -40,6 +38,8 @@ export const DirectoryLandingView: React.FC<DirectoryLandingViewProps> = ({
       if (
         event.type === 'CONSULTANCY_UPDATED' ||
         event.type === 'CONSULTANCY_CREATED' ||
+        event.type === 'CONSULTANCY_DELETED' ||
+        event.type === 'STORAGE_SYNC' ||
         event.type === 'WINDOW_FOCUSED'
       ) {
         setConsultancies(ConsultancyService.getConsultancies());

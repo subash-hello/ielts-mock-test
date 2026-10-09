@@ -138,10 +138,8 @@ export const StudentTerminalView: React.FC<StudentTerminalViewProps> = ({
   const [allConsultancies, setAllConsultancies] = useState<Consultancy[]>(() => ConsultancyService.getConsultancies());
 
   useEffect(() => {
-    ConsultancyService.syncFromBackend().then((fresh) => {
-      if (fresh && fresh.length > 0) {
-        setAllConsultancies(fresh);
-      }
+    ConsultancyService.syncFromBackend().then(() => {
+      setAllConsultancies(ConsultancyService.getConsultancies());
     }).catch(() => {});
 
     const unsub = ConsultancyService.subscribe((event) => {

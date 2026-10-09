@@ -177,12 +177,23 @@ def use_credit(cid: str):
     return {"status": "success", "remainingCredits": available - 1}
 
 
-@router.delete("/{cid}")
-def delete_consultancy(cid: str):
-    """Delete consultancy."""
+@router.delete("/{cid_or_code}")
+def delete_consultancy(cid_or_code: str):
+    """Delete consultancy by ID, branch code, or access code (case-insensitive)."""
     conn = get_db()
     cursor = conn.cursor()
-    cursor.execute("DELETE FROM consultancies WHERE id = ?", (cid,))
+    cursor.execute("""
+    DELETE FROM consultancies 
+    WHERE LOWER(id) = LOWER(?) 
+       OR LOWER(branch_code) = LOWER(?) 
+       OR LOWER(access_code) = LOWER(?)
+    """, (cid_or_code, cid_or_code, cid_or_code))
+    
+    # Also clean up associated stations, active launches, and students
+    cursor.execute("DELETE FROM stations WHERE LOWER(consultancy_id) = LOWER(?)", (cid_or_code,))
+    cursor.execute("DELETE FROM active_launches WHERE LOWER(consultancy_id) = LOWER(?)", (cid_or_code,))
+    cursor.execute("DELETE FROM students WHERE LOWER(consultancy_id) = LOWER(?)", (cid_or_code,))
+    
     conn.commit()
     conn.close()
-    return {"status": "success", "message": f"Consultancy {cid} deleted."}
+    return {"status": "success", "message": f"Consultancy {cid_or_code} deleted."}

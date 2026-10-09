@@ -36,10 +36,8 @@ export const DirectorLoginView: React.FC<DirectorLoginViewProps> = ({
   const [allBranches, setAllBranches] = useState<Consultancy[]>(() => ConsultancyService.getConsultancies());
 
   useEffect(() => {
-    ConsultancyService.syncFromBackend().then((synced) => {
-      if (synced && synced.length > 0) {
-        setAllBranches(synced);
-      }
+    ConsultancyService.syncFromBackend().then(() => {
+      setAllBranches(ConsultancyService.getConsultancies());
     }).catch(() => {});
 
     const unsub = ConsultancyService.subscribe((event) => {

@@ -955,7 +955,7 @@ export class ConsultancyService {
     if (!supabase) return;
     try {
       const clean = id.toLowerCase().trim();
-      await supabase.from('consultancies').delete().eq('id', clean);
+      await supabase.from('consultancies').delete().or(`id.eq.${clean},branch_code.eq.${clean},access_code.eq.${clean}`);
       await supabase.from('consultancy_stations').delete().eq('consultancy_id', clean);
       await supabase.from('consultancy_students').delete().eq('consultancy_id', clean);
       await supabase.from('consultancy_results').delete().eq('consultancy_id', clean);
@@ -987,8 +987,9 @@ export class ConsultancyService {
       });
       if (res.ok) {
         const rawList = await res.json();
-        if (Array.isArray(rawList) && rawList.length > 0) {
-          const mapped: Consultancy[] = rawList.map((r: any) => ({
+        if (Array.isArray(rawList)) {
+          const deletedIds = this.getDeletedConsultancyIds();
+          const remoteList: Consultancy[] = rawList.map((r: any) => ({
             id: r.id,
             name: r.name,
             branch: r.branch || 'Central',
@@ -1003,13 +1004,53 @@ export class ConsultancyService {
             testCredits: r.testCredits ?? r.test_credits ?? 500,
             creditsUsed: r.creditsUsed ?? r.credits_used ?? 0,
             assignedTestIds: r.assignedTestIds || r.assigned_test_ids || [],
+            activeModuleTests: r.activeModuleTests || (typeof r.active_module_tests === 'string' ? JSON.parse(r.active_module_tests) : r.active_module_tests) || {},
             createdAt: r.createdAt || r.created_at || new Date().toISOString(),
             validUntil: r.validUntil || r.valid_until || ''
           }));
 
-          localStorage.setItem('ielts_consultancies', JSON.stringify(mapped));
-          this.broadcast('CONSULTANCY_UPDATED', mapped);
-          return mapped;
+          // Clean up remote items that are marked deleted locally
+          for (const rem of remoteList) {
+            const id = (rem.id || '').toLowerCase().trim();
+            const branch = (rem.branchCode || '').toLowerCase().trim();
+            const access = (rem.accessCode || '').toLowerCase().trim();
+            if (deletedIds.includes(id) || deletedIds.includes(branch) || deletedIds.includes(access)) {
+              this.deleteConsultancyFromBackend(id).catch(() => {});
+              if (branch) this.deleteConsultancyFromBackend(branch).catch(() => {});
+            }
+          }
+
+          // Build merged map starting with current active local items
+          const currentLocal = this.getConsultancies();
+          const map = new Map<string, Consultancy>();
+
+          // 1. Add remote items that are NOT deleted
+          for (const rem of remoteList) {
+            const id = (rem.id || '').toLowerCase().trim();
+            const branch = (rem.branchCode || '').toLowerCase().trim();
+            const access = (rem.accessCode || '').toLowerCase().trim();
+            if (!deletedIds.includes(id) && !deletedIds.includes(branch) && !deletedIds.includes(access)) {
+              map.set(id, rem);
+            }
+          }
+
+          // 2. Add local items that are NOT deleted (preserves default consultancies like Apex, Edwise, Kangaroo)
+          for (const loc of currentLocal) {
+            const id = (loc.id || '').toLowerCase().trim();
+            const branch = (loc.branchCode || '').toLowerCase().trim();
+            const access = (loc.accessCode || '').toLowerCase().trim();
+            if (!deletedIds.includes(id) && !deletedIds.includes(branch) && !deletedIds.includes(access)) {
+              if (!map.has(id)) {
+                map.set(id, loc);
+                this.pushConsultancyToBackend(loc).catch(() => {});
+              }
+            }
+          }
+
+          const merged = Array.from(map.values());
+          localStorage.setItem('ielts_consultancies', JSON.stringify(merged));
+          this.broadcast('CONSULTANCY_UPDATED', merged);
+          return merged;
         }
       }
     } catch (err) {
@@ -1570,30 +1611,10 @@ export class ConsultancyService {
   // --- CONSULTANCIES MANAGEMENT (SUPER ADMIN) ---
   public static getDeletedConsultancyIds(): string[] {
     try {
-      const raw = localStorage.getItem('ielts_deleted_consultancies');
-      let list: string[] = raw ? JSON.parse(raw) : [];
+      const raw = typeof window !== 'undefined' ? localStorage.getItem('ielts_deleted_consultancies') : null;
+      const list: string[] = raw ? JSON.parse(raw) : [];
       if (Array.isArray(list)) {
-        // Self-heal: Any active consultancy in storage must NEVER be marked deleted
-        if (typeof window !== 'undefined') {
-          const rawActive = localStorage.getItem('ielts_consultancies');
-          if (rawActive) {
-            try {
-              const active: Consultancy[] = JSON.parse(rawActive);
-              const activeKeys = new Set<string>();
-              active.forEach((c) => {
-                if (c.id) activeKeys.add(c.id.toLowerCase().trim());
-                if (c.branchCode) activeKeys.add(c.branchCode.toLowerCase().trim());
-                if (c.accessCode) activeKeys.add(c.accessCode.toLowerCase().trim());
-              });
-              const cleaned = list.filter((key) => !activeKeys.has(key.toLowerCase().trim()));
-              if (cleaned.length !== list.length) {
-                localStorage.setItem('ielts_deleted_consultancies', JSON.stringify(cleaned));
-                list = cleaned;
-              }
-            } catch {}
-          }
-        }
-        return list;
+        return list.map((k) => String(k).toLowerCase().trim()).filter(Boolean);
       }
       return [];
     } catch {
@@ -2103,7 +2124,7 @@ export class ConsultancyService {
     this.pushConsultancyToSupabase(list[existingIdx >= 0 ? existingIdx : 0]).catch(() => {});
   }
 
-  public static deleteConsultancy(id: string): void {
+  public static async deleteConsultancy(id: string): Promise<void> {
     if (!id) return;
     const cleanId = id.trim().toLowerCase();
 
@@ -2119,6 +2140,8 @@ export class ConsultancyService {
     const updated = current.filter((c) => {
       if (c.id && c.id.toLowerCase() === cleanId) return false;
       if (target && target.id && c.id && c.id.toLowerCase() === target.id.toLowerCase()) return false;
+      if (c.branchCode && c.branchCode.toLowerCase() === cleanId) return false;
+      if (target?.branchCode && c.branchCode && c.branchCode.toLowerCase() === target.branchCode.toLowerCase()) return false;
       return true;
     });
     localStorage.setItem('ielts_consultancies', JSON.stringify(updated));
@@ -2130,33 +2153,36 @@ export class ConsultancyService {
     if (target?.branchCode) toRemove.add(target.branchCode.toLowerCase().trim());
     if (target?.accessCode) toRemove.add(target.accessCode.toLowerCase().trim());
 
-    const deleted = this.getDeletedConsultancyIds().filter((d) => !toRemove.has(d.toLowerCase().trim()));
-    toRemove.forEach((key) => deleted.push(key));
+    const deleted = this.getDeletedConsultancyIds();
+    toRemove.forEach((key) => {
+      if (!deleted.includes(key)) deleted.push(key);
+    });
     localStorage.setItem('ielts_deleted_consultancies', JSON.stringify(deleted));
 
     // 3. Clean up related station and session keys
     try {
-      localStorage.removeItem(`ielts_stations_${id}`);
-      localStorage.removeItem(`ielts_assigned_tests_${id}`);
-      localStorage.removeItem(`ielts_students_${id}`);
-      localStorage.removeItem(`ielts_published_results_${id}`);
-      localStorage.removeItem(`ielts_launched_test_${id}`);
-      localStorage.removeItem(`ielts_stopped_test_${id}`);
-      if (target?.id) {
-        localStorage.removeItem(`ielts_stations_${target.id}`);
-        localStorage.removeItem(`ielts_assigned_tests_${target.id}`);
-        localStorage.removeItem(`ielts_students_${target.id}`);
-        localStorage.removeItem(`ielts_published_results_${target.id}`);
-        localStorage.removeItem(`ielts_launched_test_${target.id}`);
-        localStorage.removeItem(`ielts_stopped_test_${target.id}`);
-      }
+      toRemove.forEach((key) => {
+        localStorage.removeItem(`ielts_stations_${key}`);
+        localStorage.removeItem(`ielts_assigned_tests_${key}`);
+        localStorage.removeItem(`ielts_students_${key}`);
+        localStorage.removeItem(`ielts_published_results_${key}`);
+        localStorage.removeItem(`ielts_launched_test_${key}`);
+        localStorage.removeItem(`ielts_stopped_test_${key}`);
+      });
     } catch (e) {
       console.error('Error clearing consultancy storage keys:', e);
     }
 
     // 4. Broadcast deletion event
-    this.broadcast('CONSULTANCY_DELETED', id);
-    this.deleteConsultancyFromSupabase(cleanId).catch(() => {});
+    this.broadcast('CONSULTANCY_DELETED', { id: cleanId, targetId: target?.id, branchCode: target?.branchCode });
+
+    // 5. Delete from backend & Supabase across ALL alias keys
+    const deletePromises: Promise<any>[] = [];
+    toRemove.forEach((key) => {
+      deletePromises.push(this.deleteConsultancyFromBackend(key));
+      deletePromises.push(this.deleteConsultancyFromSupabase(key));
+    });
+    await Promise.allSettled(deletePromises);
   }
 
   // --- ASSIGNED TEST MANAGEMENT ---
