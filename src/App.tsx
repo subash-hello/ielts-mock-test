@@ -188,6 +188,19 @@ export const App: React.FC = () => {
   remainingSecondsRef.current = remainingSeconds;
   const currentTestRef = useRef(currentTest);
   currentTestRef.current = currentTest;
+  const activeCandidateInfoRef = useRef(activeCandidateInfo);
+  activeCandidateInfoRef.current = activeCandidateInfo;
+  const writingDraftRef = useRef<{
+    task1Essay: string;
+    task1WordCount: number;
+    task2Essay: string;
+    task2WordCount: number;
+  }>({
+    task1Essay: '',
+    task1WordCount: 0,
+    task2Essay: '',
+    task2WordCount: 0
+  });
   const examStartTimeRef = useRef<number | null>(null);
   const timeSpentSecondsRef = useRef<number>(0);
 
@@ -262,6 +275,7 @@ export const App: React.FC = () => {
           }
           if (savedExam.candidateInfo) {
             setActiveCandidateInfo(savedExam.candidateInfo);
+            activeCandidateInfoRef.current = savedExam.candidateInfo;
           }
           if (savedExam.terminalStationName) {
             setTerminalStationName(savedExam.terminalStationName);
@@ -275,6 +289,20 @@ export const App: React.FC = () => {
           setCurrentQuestion(savedExam.currentQuestion || 1);
           setActiveSectionIndex(savedExam.activeSectionIndex || 0);
           setAnswers(savedExam.answers || {});
+          answersRef.current = savedExam.answers || {};
+          if (savedExam.writingDraft) {
+            writingDraftRef.current = savedExam.writingDraft;
+          } else if (savedExam.answers && (savedExam.answers[1] || savedExam.answers[2])) {
+            const t1 = String(savedExam.answers[1] || '');
+            const t2 = String(savedExam.answers[2] || '');
+            const countW = (txt: string) => (txt.trim() ? txt.trim().split(/\s+/).filter(Boolean).length : 0);
+            writingDraftRef.current = {
+              task1Essay: t1,
+              task1WordCount: countW(t1),
+              task2Essay: t2,
+              task2WordCount: countW(t2)
+            };
+          }
           setReviewStatus(savedExam.reviewStatus || {});
           setRemainingSeconds(restoredRemaining);
           timeSpentSecondsRef.current = (savedExam.timeSpentSeconds || 0) + elapsedSinceLastUpdate;
@@ -443,9 +471,19 @@ export const App: React.FC = () => {
         event.type === 'CONSULTANCY_DELETED' ||
         event.type === 'STUDENT_UPDATED' ||
         event.type === 'RESULT_ADDED' ||
+        event.type === 'RESULT_SUBMITTED' ||
         event.type === 'RESULT_UPDATED' ||
         event.type === 'RESULT_DELETED' ||
+        event.type === 'RESULT_PUBLISHED' ||
+        event.type === 'RESULT_UNPUBLISHED' ||
+        event.type === 'ALL_RESULTS_PUBLISHED' ||
+        event.type === 'ALL_RESULTS_CLEARED' ||
+        event.type === 'REPORT_ADDED' ||
+        event.type === 'REPORT_UPDATED' ||
+        event.type === 'REPORT_DELETED' ||
+        event.type === 'ALL_REPORTS_DELETED' ||
         event.type === 'STATION_UPDATED' ||
+        event.type === 'STATION_HEARTBEAT' ||
         event.type === 'STATION_DELETED'
       ) {
         setGlobalSyncTick((t) => t + 1);
@@ -453,6 +491,20 @@ export const App: React.FC = () => {
     });
     return () => unsub();
   }, []);
+
+  // Periodic background cloud sync when in Consultancy Portal or Super Admin
+  useEffect(() => {
+    if (activeRoute !== 'consultancy' && activeRoute !== 'super-admin') return;
+    const cid = selectedConsultancyId || 'kiec-lalitpur';
+    const syncPortalData = () => {
+      ConsultancyService.syncResultsFromBackend(cid).catch(() => {});
+      ConsultancyService.syncStationsFromBackend(cid).catch(() => {});
+      ConsultancyService.syncStudentsFromBackend(cid).catch(() => {});
+    };
+    syncPortalData();
+    const interval = setInterval(syncPortalData, 6000);
+    return () => clearInterval(interval);
+  }, [activeRoute, selectedConsultancyId]);
 
   // QA-02: Authoritative Countdown Timer (does not reset on answers keystrokes)
   useEffect(() => {
@@ -505,6 +557,8 @@ export const App: React.FC = () => {
       setCurrentQuestion(1);
       setActiveSectionIndex(0);
       setAnswers({});
+      answersRef.current = {};
+      writingDraftRef.current = { task1Essay: '', task1WordCount: 0, task2Essay: '', task2WordCount: 0 };
       setReviewStatus({});
       setRemainingSeconds(readingTest.durationMinutes * 60);
       timeSpentSecondsRef.current = 0;
@@ -524,10 +578,11 @@ export const App: React.FC = () => {
             testId: readingTest.id,
             test: readingTest,
             fullMock: activeFullMock.fullMock,
-            candidateInfo: activeCandidateInfo,
+            candidateInfo: activeCandidateInfoRef.current,
             currentQuestion: 1,
             activeSectionIndex: 0,
             answers: {},
+            writingDraft: { task1Essay: '', task1WordCount: 0, task2Essay: '', task2WordCount: 0 },
             reviewStatus: {},
             remainingSeconds: readingTest.durationMinutes * 60,
             timeSpentSeconds: 0,
@@ -551,6 +606,8 @@ export const App: React.FC = () => {
       setCurrentQuestion(1);
       setActiveSectionIndex(0);
       setAnswers({});
+      answersRef.current = {};
+      writingDraftRef.current = { task1Essay: '', task1WordCount: 0, task2Essay: '', task2WordCount: 0 };
       setReviewStatus({});
       setRemainingSeconds(writingTest.durationMinutes * 60);
       timeSpentSecondsRef.current = 0;
@@ -570,10 +627,11 @@ export const App: React.FC = () => {
             testId: writingTest.id,
             test: writingTest,
             fullMock: activeFullMock.fullMock,
-            candidateInfo: activeCandidateInfo,
+            candidateInfo: activeCandidateInfoRef.current,
             currentQuestion: 1,
             activeSectionIndex: 0,
             answers: {},
+            writingDraft: { task1Essay: '', task1WordCount: 0, task2Essay: '', task2WordCount: 0 },
             reviewStatus: {},
             remainingSeconds: writingTest.durationMinutes * 60,
             timeSpentSeconds: 0,
@@ -615,11 +673,10 @@ export const App: React.FC = () => {
       const cId = activeCandidateInfo?.consultancyId || selectedConsultancyId;
       const currentAdmin = adminUser || ConsultancyService.getCurrentAdmin();
       const isDirectorOrAdminPortal = Boolean(currentAdmin) || activeRoute === 'consultancy' || activeRoute === 'super-admin';
-      const isCandidateKioskRoute =
-        activeRoute === 'kiosk-student' ||
-        activeRoute === 'kiosk-test' ||
-        activeRoute === 'kiosk-confirm' ||
-        activeRoute === 'branch-login';
+      // Only auto-transition if the student has already entered their name and is on kiosk-test or kiosk-confirm
+      const isReadyForAutoLaunch =
+        (activeRoute === 'kiosk-test' || activeRoute === 'kiosk-confirm') &&
+        Boolean(activeCandidateInfo?.name);
 
       if (event.type === 'BRANCH_TEST_LAUNCHED') {
         const payload = event.payload;
@@ -642,13 +699,11 @@ export const App: React.FC = () => {
             }
           }
         } else {
-          // Lab-wide broadcast test launch (Bug 1 fix): auto-deliver and auto-start the exam on candidate kiosks only!
-          // NEVER hijack the director portal, super admin portal, or active admin sessions.
-          if (isDirectorOrAdminPortal || !isCandidateKioskRoute) {
+          // Never hijack director portal, super admin, or a student who hasn't entered their name yet
+          if (isDirectorOrAdminPortal || !isReadyForAutoLaunch) {
             return;
           }
 
-          const targetCid = payload.consultancyId || selectedConsultancyId;
           const isTargetBranch =
             !payload?.consultancyId ||
             !cId ||
@@ -657,26 +712,20 @@ export const App: React.FC = () => {
 
           if (isTargetBranch) {
             const testId = payload.testId;
+            const isFull = Boolean(payload.isFullMock || testId.endsWith('-full'));
+            // If a full mock is launched while student is on kiosk-test, let TestSelectionView display the 4 module choices
+            if (isFull && activeRoute === 'kiosk-test') {
+              return;
+            }
             const matchedTest = tests.find((t) => t.id === testId) || allMockTests.find((t) => t.id === testId);
-            const isFull = payload.isFullMock || testId.endsWith('-full');
             const matchedFull = isFull && matchedTest
               ? allFullMockTests.find((fm) => fm.id === testId || fm.book === matchedTest.book)
               : undefined;
 
             if (matchedTest) {
-              const assignedStation = ConsultancyService.getStations(targetCid).find(
-                (s) => s.name === (terminalStationName || cStation)
-              );
-              const currentCand = activeCandidateInfo || {
-                name: assignedStation?.currentCandidate?.name || (terminalStationName ? `Candidate (${terminalStationName})` : 'Candidate'),
-                candidateId: assignedStation?.currentCandidate?.candidateId || ('00' + Math.floor(1000 + Math.random() * 9000)),
-                targetBand: assignedStation?.currentCandidate?.targetBand,
-                stationName: terminalStationName || cStation,
-                consultancyId: targetCid
-              };
-
-              setActiveCandidateInfo(currentCand);
-              startExamExecution(matchedTest, matchedFull);
+              setCurrentTest(matchedTest);
+              setSelectedFullMock(matchedFull);
+              setActiveRoute('kiosk-confirm');
             }
           }
         }
@@ -693,34 +742,27 @@ export const App: React.FC = () => {
         const isTargetBranch = !cmdCid || !cId || cmdCid === cId || cmdCid === currentBranchCode;
 
         if (command === 'START_TEST') {
-          // Never hijack director/admin portal tabs into an exam
-          if (isDirectorOrAdminPortal || !isCandidateKioskRoute) {
+          // Never hijack director/admin portal tabs or skip student name entry
+          if (isDirectorOrAdminPortal || !isReadyForAutoLaunch) {
             return;
           }
           const isTargetedToMe = (stationId || stationName) ? isTargetStation : isTargetBranch;
           if (isTargetedToMe) {
             const targetTestId = payload?.testId || testId || (event.payload as any)?.testId;
             if (targetTestId) {
+              const isFull = Boolean(payload?.isFullMock || (event.payload as any)?.isFullMock || targetTestId.endsWith('-full'));
+              if (isFull && activeRoute === 'kiosk-test') {
+                return;
+              }
               const matchedTest = tests.find((t) => t.id === targetTestId) || allMockTests.find((t) => t.id === targetTestId);
-              const isFull = payload?.isFullMock || (event.payload as any)?.isFullMock || targetTestId.endsWith('-full');
               const matchedFull = isFull && matchedTest
                 ? allFullMockTests.find((fm) => fm.id === targetTestId || fm.book === matchedTest.book)
                 : undefined;
 
               if (matchedTest) {
-                const assignedStation = ConsultancyService.getStations(cId).find(
-                  (s) => s.name === (terminalStationName || cStation)
-                );
-                const currentCand = activeCandidateInfo || {
-                  name: assignedStation?.currentCandidate?.name || (terminalStationName ? `Candidate (${terminalStationName})` : 'Candidate'),
-                  candidateId: assignedStation?.currentCandidate?.candidateId || ('00' + Math.floor(1000 + Math.random() * 9000)),
-                  targetBand: assignedStation?.currentCandidate?.targetBand,
-                  stationName: terminalStationName || cStation,
-                  consultancyId: cId
-                };
-
-                setActiveCandidateInfo(currentCand);
-                startExamExecution(matchedTest, matchedFull);
+                setCurrentTest(matchedTest);
+                setSelectedFullMock(matchedFull);
+                setActiveRoute('kiosk-confirm');
               }
             }
           }
@@ -891,6 +933,8 @@ export const App: React.FC = () => {
     setCurrentQuestion(1);
     setActiveSectionIndex(0);
     setAnswers({});
+    answersRef.current = {};
+    writingDraftRef.current = { task1Essay: '', task1WordCount: 0, task2Essay: '', task2WordCount: 0 };
     setReviewStatus({});
     setRemainingSeconds(testToRun.durationMinutes * 60);
     timeSpentSecondsRef.current = 0;
@@ -908,10 +952,11 @@ export const App: React.FC = () => {
           testId: testToRun.id,
           test: testToRun,
           fullMock,
-          candidateInfo: activeCandidateInfo,
+          candidateInfo: activeCandidateInfoRef.current || activeCandidateInfo,
           currentQuestion: 1,
           activeSectionIndex: 0,
           answers: {},
+          writingDraft: { task1Essay: '', task1WordCount: 0, task2Essay: '', task2WordCount: 0 },
           reviewStatus: {},
           remainingSeconds: testToRun.durationMinutes * 60,
           timeSpentSeconds: 0,
@@ -941,10 +986,33 @@ export const App: React.FC = () => {
     );
 
     const isWriting = activeTest.module === 'writing';
-    const { correctCount } = isWriting ? { correctCount: 0 } : evaluateTestAnswers(activeTest, curAnswers);
+
+    // Always capture writing essay drafts even if finishExam was triggered by timer expiry or force-submit
+    let resolvedWritingSub: WritingSubmission | undefined = writingSub;
+    if (isWriting && !resolvedWritingSub) {
+      const countW = (txt: string) => (txt.trim() ? txt.trim().split(/\s+/).filter(Boolean).length : 0);
+      const t1Essay = writingDraftRef.current.task1Essay || String(curAnswers[1] || '');
+      const t2Essay = writingDraftRef.current.task2Essay || String(curAnswers[2] || '');
+      resolvedWritingSub = {
+        task1Essay: t1Essay,
+        task1WordCount: writingDraftRef.current.task1WordCount || countW(t1Essay),
+        task2Essay: t2Essay,
+        task2WordCount: writingDraftRef.current.task2WordCount || countW(t2Essay)
+      };
+    }
+
+    const finalAnswers: CandidateAnswers = isWriting && resolvedWritingSub
+      ? {
+          ...curAnswers,
+          1: resolvedWritingSub.task1Essay,
+          2: resolvedWritingSub.task2Essay
+        }
+      : curAnswers;
+
+    const { correctCount } = isWriting ? { correctCount: 0 } : evaluateTestAnswers(activeTest, finalAnswers);
 
     const totalQuestions = isWriting ? 2 : (allQuestions.length || 40);
-    const bandScore = isWriting ? (writingSub?.overallWritingBand || 0) : calculateBandScore(activeTest.module, correctCount);
+    const bandScore = isWriting ? (resolvedWritingSub?.overallWritingBand || 0) : calculateBandScore(activeTest.module, correctCount);
 
     // QA-02: Authoritative wall-clock time spent calculation
     const calculatedTimeTaken = timeSpentSecondsRef.current > 0
@@ -952,9 +1020,12 @@ export const App: React.FC = () => {
       : (activeTest.durationMinutes * 60 - curRemaining);
     const timeTaken = Math.min(activeTest.durationMinutes * 60, Math.max(1, calculatedTimeTaken));
 
-    const studentName = activeCandidateInfo?.name || 'Candidate';
-    const candId = activeCandidateInfo?.candidateId || '00' + Math.floor(1000 + Math.random() * 9000);
-    const cid = selectedConsultancyId || 'kiec-lalitpur';
+    const savedCandSession = ConsultancyService.getCurrentCandidateSession();
+    const curCandInfo = activeCandidateInfoRef.current || activeCandidateInfo;
+    const studentName = curCandInfo?.name || savedCandSession?.candidateName || 'Candidate';
+    const candId = curCandInfo?.candidateId || savedCandSession?.candidateId || '00' + Math.floor(1000 + Math.random() * 9000);
+    const candTargetBand = curCandInfo?.targetBand ?? savedCandSession?.targetBand ?? 0;
+    const cid = selectedConsultancyId || curCandInfo?.consultancyId || savedCandSession?.consultancyId || 'kiec-lalitpur';
     const consultancy = ConsultancyService.getConsultancyById(cid);
 
     const newResult: TestResult = {
@@ -967,15 +1038,15 @@ export const App: React.FC = () => {
       bandScore,
       timeTakenSeconds: timeTaken,
       completedAt: new Date().toISOString(),
-      answers: curAnswers,
+      answers: finalAnswers,
       candidateName: studentName,
       candidateId: candId,
       stationName: terminalStationName,
       consultancyId: cid,
       consultancyName: consultancy?.name || 'Educational Consultancy Lab',
-      targetBand: activeCandidateInfo?.targetBand ?? 0,
+      targetBand: candTargetBand,
       isPublished: false,
-      writingSubmission: writingSub
+      writingSubmission: resolvedWritingSub
     };
 
     setActiveResult(newResult);
@@ -996,7 +1067,7 @@ export const App: React.FC = () => {
       completedAt: newResult.completedAt,
       consultancyId: cid,
       testId: activeTest.id,
-      answers: curAnswers,
+      answers: finalAnswers,
       isPublished: false
     });
 
@@ -1004,14 +1075,14 @@ export const App: React.FC = () => {
       status: 'submitted',
       remainingSeconds: 0,
       timeSpentSeconds: timeTaken,
-      answeredCount: Object.keys(curAnswers).length,
+      answeredCount: Object.keys(finalAnswers).filter((k) => Boolean(finalAnswers[Number(k)])).length,
       assignedTestId: activeTest.id,
       testTitle: activeTest.title,
       module: activeTest.module,
       currentCandidate: {
         candidateId: candId,
         name: studentName,
-        targetBand: activeCandidateInfo?.targetBand ?? 0
+        targetBand: candTargetBand
       }
     });
 
@@ -1054,7 +1125,30 @@ export const App: React.FC = () => {
     setActiveRoute('kiosk-done');
   };
 
+  const handleWritingDraftChange = (draft: {
+    task1Essay: string;
+    task1WordCount: number;
+    task2Essay: string;
+    task2WordCount: number;
+  }) => {
+    writingDraftRef.current = draft;
+    setAnswers((prev) => {
+      if (prev[1] === draft.task1Essay && prev[2] === draft.task2Essay) {
+        return prev;
+      }
+      const next: CandidateAnswers = {
+        ...prev,
+        1: draft.task1Essay,
+        2: draft.task2Essay
+      };
+      answersRef.current = next;
+      syncExamSessionToStorage({ answers: next, writingDraft: draft });
+      return next;
+    });
+  };
+
   const handleWritingSubmit = (submission: { task1Essay: string; task1WordCount: number; task2Essay: string; task2WordCount: number }) => {
+    writingDraftRef.current = submission;
     const writingSub: WritingSubmission = {
       task1Essay: submission.task1Essay,
       task1WordCount: submission.task1WordCount,
@@ -1072,6 +1166,7 @@ export const App: React.FC = () => {
     setCandidateSession(null);
     setAdminUser(null);
     setActiveCandidateInfo(null);
+    activeCandidateInfoRef.current = null;
     navigateTo('/');
   };
 
@@ -1146,13 +1241,29 @@ export const App: React.FC = () => {
           consultancyName={activeConsultancy.name}
           consultancyId={activeConsultancy.id}
           onContinue={(candidate) => {
-            setActiveCandidateInfo({
+            const candObj = {
               name: candidate.name,
               candidateId: candidate.candidateId,
               targetBand: candidate.targetBand,
               stationName: terminalStationName,
               consultancyId: activeConsultancy.id
-            });
+            };
+            setActiveCandidateInfo(candObj);
+            activeCandidateInfoRef.current = candObj;
+
+            // Persist candidate session so page reloads on kiosk-test or kiosk-confirm never lose student identity
+            const sessionObj: CandidateSession = {
+              stationName: terminalStationName,
+              branchCode: activeConsultancy.branchCode || activeConsultancy.accessCode || activeConsultancy.id,
+              consultancyId: activeConsultancy.id,
+              consultancyName: activeConsultancy.name,
+              candidateName: candidate.name,
+              candidateId: candidate.candidateId,
+              targetBand: candidate.targetBand || 7.0,
+              loggedInAt: new Date().toISOString()
+            };
+            ConsultancyService.setCurrentCandidateSession(sessionObj);
+            setCandidateSession(sessionObj);
 
             // Register candidate at station on invigilator radar
             ConsultancyService.updateStationHeartbeat(activeConsultancy.id, terminalStationName, {
@@ -1198,6 +1309,8 @@ export const App: React.FC = () => {
           consultancy={activeConsultancy}
           availableTests={tests}
           studentName={activeCandidateInfo?.name || 'Candidate'}
+          candidateId={activeCandidateInfo?.candidateId}
+          targetBand={activeCandidateInfo?.targetBand}
           stationName={terminalStationName}
           onSelectTest={(test, fullMock) => {
             setCurrentTest(test);
@@ -1292,6 +1405,9 @@ export const App: React.FC = () => {
               key={currentTest.id}
               test={currentTest}
               settings={settings}
+              initialTask1={writingDraftRef.current.task1Essay || String(answers[1] || '')}
+              initialTask2={writingDraftRef.current.task2Essay || String(answers[2] || '')}
+              onDraftChange={handleWritingDraftChange}
               onSubmitWriting={handleWritingSubmit}
             />
           ) : (

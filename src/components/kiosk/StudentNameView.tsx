@@ -31,6 +31,14 @@ export const StudentNameView: React.FC<StudentNameViewProps> = ({
     const list = ConsultancyService.getStudents(consultancyId);
     setCandidatesList(list);
 
+    ConsultancyService.syncStudentsFromBackend(consultancyId)
+      .then((synced) => {
+        if (Array.isArray(synced) && synced.length > 0) {
+          setCandidatesList(synced);
+        }
+      })
+      .catch(() => {});
+
     // Fresh candidate identification form on station idle (fixes QA-A1 & QA-A2)
     setStudentName('');
     setCandidateId('');

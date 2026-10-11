@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Monitor,
   Rocket,
@@ -40,6 +40,15 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   const [stationMessage, setStationMessage] = useState('');
   const [messageSentFeedback, setMessageSentFeedback] = useState(false);
 
+  useEffect(() => {
+    Promise.all([
+      ConsultancyService.syncResultsFromBackend(consultancy.id),
+      ConsultancyService.syncStationsFromBackend(consultancy.id)
+    ]).then(() => {
+      onRefresh();
+    }).catch(() => {});
+  }, [consultancy.id]);
+
   // Compute live lab stats (Blueprint 6.6)
   // An active station heartbeat is within last 45 seconds
   const now = Date.now();
@@ -68,9 +77,9 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   // Compute Today metrics
   const totalSubmissions = results.length;
   const pendingResults = results.filter((r) => !r.isPublished).length;
-  const isWritingTest = (r: TestResult) => r.module === 'writing' || !!r.writingSubmission;
+  const isWritingTest = (r: TestResult) => r.module === 'writing' || (r.testId && r.testId.includes('writing')) || !!r.writingSubmission;
   const isUngradedWriting = (r: TestResult) =>
-    isWritingTest(r) && (!r.writingSubmission?.overallWritingBand || r.writingSubmission.overallWritingBand === 0);
+    isWritingTest(r) && (!r.writingSubmission?.overallWritingBand || r.writingSubmission.overallWritingBand === 0) && (!r.bandScore || r.bandScore === 0);
   const pendingWritingResults = results.filter(isUngradedWriting);
 
   const scoredResults = results.filter((r) => r.bandScore > 0);

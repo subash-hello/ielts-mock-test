@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Sparkles,
   Search,
@@ -25,6 +25,14 @@ export const AIReportsView: React.FC<AIReportsViewProps> = ({
   const [selectedReport, setSelectedReport] = useState<SavedAIReport | null>(null);
   const [deletingReport, setDeletingReport] = useState<SavedAIReport | null>(null);
   const [showDeleteAllModal, setShowDeleteAllModal] = useState(false);
+
+  useEffect(() => {
+    ConsultancyService.syncResultsFromBackend(consultancy.id)
+      .then(() => {
+        onRefresh();
+      })
+      .catch(() => {});
+  }, [consultancy.id]);
 
   const handleDeleteConfirm = () => {
     if (!deletingReport) return;

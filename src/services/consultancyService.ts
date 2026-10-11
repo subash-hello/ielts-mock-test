@@ -1144,12 +1144,26 @@ export class ConsultancyService {
       if (res.ok) {
         const rawList = await res.json();
         if (Array.isArray(rawList)) {
+          // Reconcile any candidates from local/synced results so student roster is always complete
+          const localResults = this.getResults(canonical);
+          const mergedStudents: ConsultancyStudent[] = [...rawList];
+          for (const r of localResults) {
+            if (r.candidateId || r.candidateName) {
+              this.upsertStudentForResult(
+                mergedStudents,
+                canonical,
+                r.candidateId || '004128',
+                r,
+                r.candidateName
+              );
+            }
+          }
           const aliases = this.getConsultancyAliases(canonical);
           for (const k of aliases) {
-            localStorage.setItem(`ielts_students_${k}`, JSON.stringify(rawList));
+            localStorage.setItem(`ielts_students_${k}`, JSON.stringify(mergedStudents));
           }
           this.broadcast('STUDENT_UPDATED', { consultancyId: canonical });
-          return rawList;
+          return mergedStudents;
         }
       }
     } catch {}
@@ -1177,7 +1191,7 @@ export class ConsultancyService {
     if (!BACKEND_BASE_URL) return;
     try {
       const canonical = this.getCanonicalConsultancyId(consultancyId);
-      const uid = `${result.testId}-${result.candidateId || 'cand'}-${result.completedAt || Date.now()}`;
+      const uid = (result as any).id || `${result.testId}-${result.candidateId || 'cand'}-${result.completedAt || Date.now()}`;
       await fetch(`${BACKEND_BASE_URL}/api/results`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -1198,7 +1212,12 @@ export class ConsultancyService {
             writingSubmission: result.writingSubmission,
             book: result.book,
             testNumber: result.testNumber,
-            consultancyName: result.consultancyName
+            consultancyName: result.consultancyName,
+            stationName: result.stationName,
+            targetBand: result.targetBand,
+            isPublished: Boolean(result.isPublished),
+            publishedAt: result.publishedAt,
+            completedAt: result.completedAt
           }
         }),
         signal: AbortSignal.timeout(5000)
@@ -1219,28 +1238,199 @@ export class ConsultancyService {
       if (res.ok) {
         const rawResults = await res.json();
         if (Array.isArray(rawResults)) {
-          const mapped: TestResult[] = rawResults.map((r: any) => ({
-            testId: r.testId || r.test_id,
-            book: r.book || 16,
-            testNumber: r.testNumber || 1,
-            module: r.module || 'reading',
-            totalQuestions: r.totalQuestions ?? 40,
-            correctCount: r.correctCount ?? 0,
-            bandScore: r.bandScore ?? r.overallBand ?? 0,
-            timeTakenSeconds: r.timeTakenSeconds ?? 0,
-            completedAt: r.completedAt || r.submittedAt || new Date().toISOString(),
-            answers: r.answers || {},
-            candidateName: r.candidateName || undefined,
-            candidateId: r.candidateId || r.candidateNumber || undefined,
-            consultancyId: canonical,
-            consultancyName: r.consultancyName || undefined,
-            isPublished: true,
-            writingSubmission: r.writingSubmission || undefined
-          }));
-          const aliases = this.getConsultancyAliases(canonical);
-          for (const k of aliases) {
-            localStorage.setItem(`ielts_results_${k}`, JSON.stringify(mapped));
+          const existingLocal = this.getResults(canonical);
+          const countW = (txt?: string) => (txt && txt.trim() ? txt.trim().split(/\s+/).filter(Boolean).length : 0);
+
+          const mapped: TestResult[] = rawResults.map((r: any) => {
+            const scores = r.scores || {};
+            const testId = r.testId || r.test_id || '';
+            const mod = r.module || (testId.includes('writing') ? 'writing' : testId.includes('listening') ? 'listening' : 'reading');
+            const isWriting = mod === 'writing';
+            const ans = r.answers || scores.answers || {};
+            let writingSub = r.writingSubmission || scores.writingSubmission || undefined;
+
+            if (isWriting) {
+              const fbT1 = typeof ans[1] === 'string' ? ans[1] : typeof ans['1'] === 'string' ? ans['1'] : typeof ans['task1'] === 'string' ? ans['task1'] : '';
+              const fbT2 = typeof ans[2] === 'string' ? ans[2] : typeof ans['2'] === 'string' ? ans['2'] : typeof ans['task2'] === 'string' ? ans['task2'] : '';
+              if (!writingSub && (fbT1 || fbT2)) {
+                writingSub = {
+                  task1Essay: fbT1,
+                  task1WordCount: countW(fbT1),
+                  task2Essay: fbT2,
+                  task2WordCount: countW(fbT2)
+                };
+              } else if (writingSub) {
+                const t1 = writingSub.task1Essay || fbT1 || '';
+                const t2 = writingSub.task2Essay || fbT2 || '';
+                writingSub = {
+                  ...writingSub,
+                  task1Essay: t1,
+                  task1WordCount: writingSub.task1WordCount || countW(t1),
+                  task2Essay: t2,
+                  task2WordCount: writingSub.task2WordCount || countW(t2)
+                };
+              }
+            }
+
+            const completedAt = scores.completedAt || r.completedAt || r.submittedAt || new Date().toISOString();
+            const candidateId = r.candidateId || r.candidateNumber || undefined;
+            const bandVal = r.bandScore ?? r.overallBand ?? 0;
+
+            // Match against existing local record to preserve any richer local state (e.g., essay text, grading, publish state)
+            const localMatch = existingLocal.find(
+              (loc) =>
+                ((loc as any).id && r.id && (loc as any).id === r.id) ||
+                (loc.testId === testId &&
+                  loc.candidateId === candidateId &&
+                  (loc.completedAt === completedAt || loc.completedAt === r.submittedAt || (r.id && r.id.includes(loc.completedAt))))
+            );
+
+            if (localMatch?.writingSubmission) {
+              const locSub = localMatch.writingSubmission;
+              writingSub = {
+                task1Essay: writingSub?.task1Essay || locSub.task1Essay || '',
+                task1WordCount: writingSub?.task1WordCount || locSub.task1WordCount || 0,
+                task2Essay: writingSub?.task2Essay || locSub.task2Essay || '',
+                task2WordCount: writingSub?.task2WordCount || locSub.task2WordCount || 0,
+                task1Band: writingSub?.task1Band ?? locSub.task1Band,
+                task2Band: writingSub?.task2Band ?? locSub.task2Band,
+                overallWritingBand: writingSub?.overallWritingBand || locSub.overallWritingBand,
+                adminFeedback: writingSub?.adminFeedback || locSub.adminFeedback,
+                reviewedBy: writingSub?.reviewedBy || locSub.reviewedBy,
+                reviewedAt: writingSub?.reviewedAt || locSub.reviewedAt
+              };
+            }
+
+            const finalBand = (isWriting && writingSub?.overallWritingBand)
+              ? writingSub.overallWritingBand
+              : (bandVal || localMatch?.bandScore || 0);
+
+            const isUngradedWriting = isWriting && (!writingSub?.overallWritingBand || writingSub.overallWritingBand === 0) && (!finalBand || finalBand === 0);
+
+            let isPublished = false;
+            if (typeof scores.isPublished === 'boolean') {
+              isPublished = scores.isPublished;
+            } else if (isUngradedWriting) {
+              isPublished = false;
+            } else if (localMatch && typeof localMatch.isPublished === 'boolean') {
+              isPublished = localMatch.isPublished;
+            } else {
+              isPublished = Boolean(r.isPublished ?? false);
+            }
+
+            const bookMatch = testId.match(/cambridge-(\d+)-test-(\d+)/);
+            const resolvedBook = r.book || scores.book || (bookMatch ? parseInt(bookMatch[1], 10) : 16);
+            const resolvedTestNum = r.testNumber || scores.testNumber || (bookMatch ? parseInt(bookMatch[2], 10) : 1);
+
+            const resultObj: TestResult = {
+              testId,
+              book: resolvedBook,
+              testNumber: resolvedTestNum,
+              module: mod,
+              totalQuestions: r.totalQuestions ?? scores.totalQuestions ?? (isWriting ? 2 : 40),
+              correctCount: r.correctCount ?? scores.correctCount ?? 0,
+              bandScore: finalBand,
+              timeTakenSeconds: r.timeTakenSeconds ?? scores.timeTakenSeconds ?? 0,
+              completedAt,
+              answers: Object.keys(ans).length > 0 ? ans : (localMatch?.answers || {}),
+              candidateName: r.candidateName || localMatch?.candidateName || undefined,
+              candidateId: candidateId || localMatch?.candidateId || undefined,
+              stationName: r.stationName || scores.stationName || localMatch?.stationName || undefined,
+              targetBand: r.targetBand ?? scores.targetBand ?? localMatch?.targetBand ?? 0,
+              consultancyId: canonical,
+              consultancyName: r.consultancyName || scores.consultancyName || localMatch?.consultancyName || undefined,
+              isPublished,
+              publishedAt: r.publishedAt || scores.publishedAt || localMatch?.publishedAt || undefined,
+              writingSubmission: writingSub
+            };
+            (resultObj as any).id = r.id;
+            return resultObj;
+          });
+
+          // Preserve any very recent local results (within last 20s) that are still in-flight to the backend
+          const nowMs = Date.now();
+          for (const loc of existingLocal) {
+            const locTime = loc.completedAt ? new Date(loc.completedAt).getTime() : 0;
+            const isRecent = nowMs - locTime < 20000;
+            const alreadyInMapped = mapped.some(
+              (m) =>
+                ((m as any).id && (loc as any).id && (m as any).id === (loc as any).id) ||
+                (m.testId === loc.testId && m.candidateId === loc.candidateId && m.completedAt === loc.completedAt)
+            );
+            if (isRecent && !alreadyInMapped) {
+              mapped.unshift(loc);
+            }
           }
+
+          const aliases = this.getConsultancyAliases(canonical);
+          const serialized = JSON.stringify(mapped);
+          for (const k of aliases) {
+            localStorage.setItem(`ielts_results_${k}`, serialized);
+          }
+
+          // Auto-reconcile student roster & AI reports from synced results
+          try {
+            const students = this.getStudents(canonical);
+            let studentsChanged = false;
+            for (const m of mapped) {
+              if (m.candidateId || m.candidateName) {
+                this.upsertStudentForResult(
+                  students,
+                  canonical,
+                  m.candidateId || '004128',
+                  m,
+                  m.candidateName
+                );
+                studentsChanged = true;
+              }
+            }
+            if (studentsChanged) {
+              const stdSerialized = JSON.stringify(students);
+              for (const k of aliases) {
+                localStorage.setItem(`ielts_students_${k}`, stdSerialized);
+              }
+            }
+
+            const reports = this.getReports(canonical);
+            let reportsChanged = false;
+            for (const m of mapped) {
+              const existsIdx = reports.findIndex(
+                (rep) => rep.testId === m.testId && rep.candidateId === m.candidateId && rep.completedAt === m.completedAt
+              );
+              const modLabel = m.module === 'reading' ? 'Reading' : m.module === 'writing' ? 'Writing' : 'Listening';
+              const reportItem: SavedAIReport = {
+                studentName: m.candidateName || 'Candidate',
+                candidateId: m.candidateId || '004128',
+                testTitle: `Cambridge ${m.book || 16} Test ${m.testNumber || 1} (${modLabel})`,
+                module: m.module,
+                bandScore: m.bandScore || 0,
+                correctCount: m.correctCount || 0,
+                totalQuestions: m.totalQuestions || (m.module === 'writing' ? 2 : 40),
+                timeTakenSeconds: m.timeTakenSeconds || 0,
+                completedAt: m.completedAt,
+                consultancyId: canonical,
+                testId: m.testId,
+                answers: m.answers,
+                isPublished: m.isPublished
+              };
+              if (existsIdx >= 0) {
+                if (reports[existsIdx].bandScore !== reportItem.bandScore || reports[existsIdx].isPublished !== reportItem.isPublished) {
+                  reports[existsIdx] = { ...reports[existsIdx], ...reportItem };
+                  reportsChanged = true;
+                }
+              } else {
+                reports.unshift(reportItem);
+                reportsChanged = true;
+              }
+            }
+            if (reportsChanged) {
+              const repSerialized = JSON.stringify(reports);
+              for (const k of aliases) {
+                localStorage.setItem(`ielts_reports_${k}`, repSerialized);
+              }
+            }
+          } catch {}
+
           this.broadcast('RESULT_SUBMITTED', { consultancyId: canonical });
           return mapped;
         }
@@ -1257,6 +1447,7 @@ export class ConsultancyService {
     candidateId?: string,
     completedAt?: string
   ): Promise<void> {
+    this.deleteResultFromBackend(consultancyId, testId, candidateId, completedAt).catch(() => {});
     if (!supabase) return;
     try {
       const canonical = this.getCanonicalConsultancyId(consultancyId);
@@ -1264,6 +1455,27 @@ export class ConsultancyService {
       if (candidateId) query = query.eq('candidate_id', candidateId);
       if (completedAt) query = query.eq('completed_at', completedAt);
       await query;
+    } catch {}
+  }
+
+  public static async deleteResultFromBackend(
+    consultancyId: string,
+    testId?: string,
+    candidateId?: string,
+    completedAt?: string
+  ): Promise<void> {
+    if (!BACKEND_BASE_URL) return;
+    try {
+      const canonical = this.getCanonicalConsultancyId(consultancyId);
+      const params = new URLSearchParams();
+      if (testId) params.set('test_id', testId);
+      if (candidateId) params.set('candidate_number', candidateId);
+      if (completedAt) params.set('completed_at', completedAt);
+      const qs = params.toString();
+      await fetch(`${BACKEND_BASE_URL}/api/results/consultancy/${encodeURIComponent(canonical)}${qs ? `?${qs}` : ''}`, {
+        method: 'DELETE',
+        signal: AbortSignal.timeout(5000)
+      });
     } catch {}
   }
 
@@ -3335,12 +3547,24 @@ export class ConsultancyService {
     if (student) {
       if (!student.latestResultId || student.latestResultId !== result.testId) {
         student.testsCompletedCount = (student.testsCompletedCount || 0) + 1;
-        student.highestBand = Math.max(student.highestBand || 0, result.bandScore);
-        student.averageBand = Number(
-          (((student.averageBand || result.bandScore) * (student.testsCompletedCount - 1) + result.bandScore) /
-            student.testsCompletedCount).toFixed(1)
-        );
+        if (result.bandScore > 0) {
+          student.highestBand = Math.max(student.highestBand || 0, result.bandScore);
+          student.averageBand =
+            student.averageBand && student.averageBand > 0
+              ? Number(
+                  (
+                    (student.averageBand * Math.max(1, student.testsCompletedCount - 1) + result.bandScore) /
+                    student.testsCompletedCount
+                  ).toFixed(1)
+                )
+              : result.bandScore;
+        }
         student.latestResultId = result.testId;
+      } else if (result.bandScore > 0 && (!student.highestBand || result.bandScore > student.highestBand)) {
+        student.highestBand = Math.max(student.highestBand || 0, result.bandScore);
+        if (!student.averageBand || student.averageBand === 0) {
+          student.averageBand = result.bandScore;
+        }
       }
       if (result.targetBand && (!student.targetBand || student.targetBand === 0)) {
         student.targetBand = result.targetBand;
@@ -3663,6 +3887,7 @@ export class ConsultancyService {
     const list = this.getResults(canonical);
     let updated = false;
     const now = new Date().toISOString();
+    const updatedItems: TestResult[] = [];
 
     for (const item of list) {
       const matchTest = item.testId === testId;
@@ -3672,6 +3897,7 @@ export class ConsultancyService {
         item.isPublished = true;
         item.publishedAt = now;
         updated = true;
+        updatedItems.push(item);
       }
     }
 
@@ -3681,6 +3907,9 @@ export class ConsultancyService {
         localStorage.setItem(`ielts_results_${key}`, serialized);
       }
       this.broadcast('RESULT_PUBLISHED', { consultancyId: canonical, testId, candidateId });
+      for (const item of updatedItems) {
+        this.pushResultToSupabase(canonical, item).catch(() => {});
+      }
     }
   }
 
@@ -3689,6 +3918,7 @@ export class ConsultancyService {
     const aliases = this.getConsultancyAliases(consultancyId);
     const list = this.getResults(canonical);
     let updated = false;
+    const updatedItems: TestResult[] = [];
 
     for (const item of list) {
       const matchTest = item.testId === testId;
@@ -3698,6 +3928,7 @@ export class ConsultancyService {
         item.isPublished = false;
         item.publishedAt = undefined;
         updated = true;
+        updatedItems.push(item);
       }
     }
 
@@ -3707,6 +3938,9 @@ export class ConsultancyService {
         localStorage.setItem(`ielts_results_${key}`, serialized);
       }
       this.broadcast('RESULT_UNPUBLISHED', { consultancyId: canonical, testId, candidateId });
+      for (const item of updatedItems) {
+        this.pushResultToSupabase(canonical, item).catch(() => {});
+      }
     }
   }
 
@@ -3726,6 +3960,9 @@ export class ConsultancyService {
       localStorage.setItem(`ielts_results_${key}`, serialized);
     }
     this.broadcast('ALL_RESULTS_PUBLISHED', { consultancyId: canonical });
+    for (const item of list) {
+      this.pushResultToSupabase(canonical, item).catch(() => {});
+    }
   }
 
   // Delete a specific test result
@@ -3789,9 +4026,9 @@ export class ConsultancyService {
           const remainingForCand = updated.filter((r) => r.candidateId === candidateId);
           std.testsCompletedCount = remainingForCand.length;
           if (remainingForCand.length > 0) {
-            const bands = remainingForCand.map((r) => r.bandScore || 0);
-            std.highestBand = Math.max(...bands);
-            std.averageBand = Number((bands.reduce((a, b) => a + b, 0) / bands.length).toFixed(1));
+            const bands = remainingForCand.map((r) => r.bandScore || 0).filter((b) => b > 0);
+            std.highestBand = bands.length > 0 ? Math.max(...bands) : 0;
+            std.averageBand = bands.length > 0 ? Number((bands.reduce((a, b) => a + b, 0) / bands.length).toFixed(1)) : 0;
             std.latestResultId = remainingForCand[0].testId;
           } else {
             std.highestBand = 0;
@@ -3803,6 +4040,7 @@ export class ConsultancyService {
             localStorage.setItem(`ielts_students_${key}`, stdSerialized);
           }
           this.broadcast('STUDENT_UPDATED', { consultancyId: canonical, candidateId });
+          this.pushStudentToSupabase(std).catch(() => {});
         }
       } catch {}
     }
@@ -3864,6 +4102,7 @@ export class ConsultancyService {
       }
     } catch {}
     this.broadcast('ALL_RESULTS_CLEARED', { consultancyId: canonical });
+    this.deleteResultFromBackend(canonical).catch(() => {});
   }
 
   public static deleteReport(
@@ -3966,6 +4205,7 @@ export class ConsultancyService {
           consultancyId: canonical,
           result: res
         });
+        this.pushResultToSupabase(canonical, res).catch(() => {});
         if (res.candidateId || res.candidateName) {
           this.broadcast('STUDENT_UPDATED', {
             consultancyId: canonical,
@@ -4026,11 +4266,12 @@ export class ConsultancyService {
             (r) => r.candidateId === candId || (r.candidateName && r.candidateName.toLowerCase() === name.toLowerCase())
           );
           const testsCompletedCount = candResults.length;
-          const highestBand = testsCompletedCount > 0
-            ? Math.max(...candResults.map((r) => r.bandScore || 0))
+          const scoredBands = candResults.map((r) => r.bandScore || 0).filter((b) => b > 0);
+          const highestBand = scoredBands.length > 0
+            ? Math.max(...scoredBands)
             : (st.currentCandidate.targetBand || 0);
-          const averageBand = testsCompletedCount > 0
-            ? Math.round((candResults.reduce((a, b) => a + (b.bandScore || 0), 0) / testsCompletedCount) * 10) / 10
+          const averageBand = scoredBands.length > 0
+            ? Math.round((scoredBands.reduce((a, b) => a + b, 0) / scoredBands.length) * 10) / 10
             : (st.currentCandidate.targetBand || 0);
 
           student = {
@@ -4149,36 +4390,57 @@ export class ConsultancyService {
     let updatedResult: TestResult | null = null;
     const now = new Date().toISOString();
 
-    for (const item of list) {
+    let targetItem = list.find((item) => {
       const matchTest = item.testId === testId;
       const matchCand = !candidateId || item.candidateId === candidateId;
       const matchTime = !completedAt || item.completedAt === completedAt;
+      return matchTest && matchCand && matchTime;
+    });
 
-      if (matchTest && matchCand && matchTime) {
-        if (!item.writingSubmission) {
-          item.writingSubmission = {
-            task1Essay: '',
-            task1WordCount: 0,
-            task2Essay: '',
-            task2WordCount: 0
-          };
+    if (!targetItem) {
+      targetItem = list.find((item) => {
+        const matchTest = item.testId === testId;
+        const matchCand = !candidateId || item.candidateId === candidateId;
+        return matchTest && matchCand;
+      });
+    }
+
+    if (targetItem) {
+      const ans1 = String(targetItem.answers?.[1] ?? (targetItem.answers as Record<string, string>)?.['1'] ?? '');
+      const ans2 = String(targetItem.answers?.[2] ?? (targetItem.answers as Record<string, string>)?.['2'] ?? '');
+      const countWords = (txt: string) => (txt.trim() ? txt.trim().split(/\s+/).length : 0);
+
+      if (!targetItem.writingSubmission) {
+        targetItem.writingSubmission = {
+          task1Essay: ans1,
+          task1WordCount: countWords(ans1),
+          task2Essay: ans2,
+          task2WordCount: countWords(ans2)
+        };
+      } else {
+        if (!targetItem.writingSubmission.task1Essay && ans1) {
+          targetItem.writingSubmission.task1Essay = ans1;
+          targetItem.writingSubmission.task1WordCount = countWords(ans1);
         }
-        item.writingSubmission.task1Band = evaluation.task1Band;
-        item.writingSubmission.task2Band = evaluation.task2Band;
-        item.writingSubmission.overallWritingBand = evaluation.overallWritingBand;
-        item.writingSubmission.adminFeedback = evaluation.adminFeedback;
-        item.writingSubmission.reviewedBy = evaluation.reviewedBy || 'Academic Admin';
-        item.writingSubmission.reviewedAt = now;
-        item.bandScore = evaluation.overallWritingBand;
-
-        if (publishImmediately) {
-          item.isPublished = true;
-          item.publishedAt = now;
+        if (!targetItem.writingSubmission.task2Essay && ans2) {
+          targetItem.writingSubmission.task2Essay = ans2;
+          targetItem.writingSubmission.task2WordCount = countWords(ans2);
         }
-
-        updatedResult = item;
-        break;
       }
+      targetItem.writingSubmission.task1Band = evaluation.task1Band;
+      targetItem.writingSubmission.task2Band = evaluation.task2Band;
+      targetItem.writingSubmission.overallWritingBand = evaluation.overallWritingBand;
+      targetItem.writingSubmission.adminFeedback = evaluation.adminFeedback;
+      targetItem.writingSubmission.reviewedBy = evaluation.reviewedBy || 'Academic Admin';
+      targetItem.writingSubmission.reviewedAt = now;
+      targetItem.bandScore = evaluation.overallWritingBand;
+
+      if (publishImmediately) {
+        targetItem.isPublished = true;
+        targetItem.publishedAt = now;
+      }
+
+      updatedResult = targetItem;
     }
 
     if (updatedResult) {
@@ -4230,6 +4492,7 @@ export class ConsultancyService {
               candidateNumber: candidateId,
               student: std
             });
+            this.pushStudentToSupabase(std).catch(() => {});
           }
         } catch {}
       }
@@ -4256,7 +4519,7 @@ export class ConsultancyService {
         }
       } catch {}
 
-      // 5. Broadcast events for live views
+      // 5. Broadcast events for live views and persist to backend
       this.broadcast('RESULT_UPDATED', {
         consultancyId: canonical,
         testId,
@@ -4271,6 +4534,8 @@ export class ConsultancyService {
           candidateId
         });
       }
+
+      this.pushResultToSupabase(canonical, updatedResult).catch(() => {});
     }
 
     return updatedResult;

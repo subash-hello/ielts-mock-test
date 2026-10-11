@@ -14,6 +14,7 @@ import {
 import type { Consultancy } from '../../types/consultancy';
 import type { TestResult } from '../../types/ielts';
 import { ConsultancyService } from '../../services/consultancyService';
+import { allMockTests } from '../../data/mockTests';
 import { formatAppTimestamp, formatTimeSpent } from '../../utils/formatters';
 import { ConfirmationModal } from '../common/ConfirmationModal';
 
@@ -39,9 +40,16 @@ export const ResultsView: React.FC<ResultsViewProps> = ({
   const [selectedScorecard, setSelectedScorecard] = useState<TestResult | null>(null);
 
   useEffect(() => {
-    ConsultancyService.syncResultsFromBackend(consultancy.id).then(() => {
-      onRefresh();
-    }).catch(() => {});
+    const syncNow = () => {
+      ConsultancyService.syncResultsFromBackend(consultancy.id)
+        .then(() => {
+          onRefresh();
+        })
+        .catch(() => {});
+    };
+    syncNow();
+    const interval = setInterval(syncNow, 5000);
+    return () => clearInterval(interval);
   }, [consultancy.id]);
 
   // Writing Evaluation Modal state
@@ -89,9 +97,35 @@ export const ResultsView: React.FC<ResultsViewProps> = ({
     }
   }, [initialWritingModalResult]);
 
-  const isWritingTest = (r: TestResult) => r.module === 'writing' || !!r.writingSubmission;
-  const isUngradedWriting = (r: TestResult) =>
-    isWritingTest(r) && (!r.writingSubmission?.overallWritingBand || r.writingSubmission.overallWritingBand === 0);
+  const countWords = (txt?: string) => (txt && txt.trim() ? txt.trim().split(/\s+/).filter(Boolean).length : 0);
+
+  const getResolvedWritingSubmission = (res: TestResult) => {
+    const sub = res.writingSubmission;
+    const ans = (res.answers || {}) as Record<string, any>;
+    const fallbackT1 = typeof ans[1] === 'string' ? ans[1] : typeof ans['1'] === 'string' ? ans['1'] : typeof ans['task1'] === 'string' ? ans['task1'] : '';
+    const fallbackT2 = typeof ans[2] === 'string' ? ans[2] : typeof ans['2'] === 'string' ? ans['2'] : typeof ans['task2'] === 'string' ? ans['task2'] : '';
+    const t1Essay = sub?.task1Essay || fallbackT1 || '';
+    const t2Essay = sub?.task2Essay || fallbackT2 || '';
+    return {
+      task1Essay: t1Essay,
+      task1WordCount: sub?.task1WordCount || countWords(t1Essay),
+      task2Essay: t2Essay,
+      task2WordCount: sub?.task2WordCount || countWords(t2Essay),
+      task1Band: sub?.task1Band,
+      task2Band: sub?.task2Band,
+      overallWritingBand: sub?.overallWritingBand || (res.module === 'writing' && res.bandScore > 0 ? res.bandScore : undefined),
+      adminFeedback: sub?.adminFeedback,
+      reviewedBy: sub?.reviewedBy,
+      reviewedAt: sub?.reviewedAt
+    };
+  };
+
+  const isWritingTest = (r: TestResult) => r.module === 'writing' || (r.testId && r.testId.includes('writing')) || !!r.writingSubmission;
+  const isUngradedWriting = (r: TestResult) => {
+    if (!isWritingTest(r)) return false;
+    const sub = getResolvedWritingSubmission(r);
+    return (!sub.overallWritingBand || sub.overallWritingBand === 0) && (!r.bandScore || r.bandScore === 0);
+  };
 
   const pendingWritingCount = results.filter(isUngradedWriting).length;
   const publishedCount = results.filter((r) => r.isPublished === true).length;
@@ -114,21 +148,24 @@ export const ResultsView: React.FC<ResultsViewProps> = ({
 
   // Open writing grading modal
   const handleOpenWritingGradeModal = (res: TestResult) => {
-    const sub = res.writingSubmission;
-    const t1 = sub?.task1Band ?? 6.0;
-    const t2 = sub?.task2Band ?? 6.0;
+    const sub = getResolvedWritingSubmission(res);
+    const t1 = sub.task1Band ?? 6.0;
+    const t2 = sub.task2Band ?? 6.0;
     const calculatedOverall = Math.round(((t1 + 2 * t2) / 3) * 2) / 2;
-    const overall = sub?.overallWritingBand || calculatedOverall;
+    const overall = sub.overallWritingBand || calculatedOverall;
 
     setWritingGradeForm({
       task1Band: t1,
       task2Band: t2,
       overallWritingBand: overall,
-      isManualOverride: sub?.overallWritingBand !== undefined && sub.overallWritingBand !== calculatedOverall,
-      adminFeedback: sub?.adminFeedback || '',
-      reviewedBy: sub?.reviewedBy || 'Academic Examiner'
+      isManualOverride: sub.overallWritingBand !== undefined && sub.overallWritingBand !== calculatedOverall,
+      adminFeedback: sub.adminFeedback || '',
+      reviewedBy: sub.reviewedBy || 'Academic Examiner'
     });
-    setWritingModalResult(res);
+    setWritingModalResult({
+      ...res,
+      writingSubmission: sub
+    });
   };
 
   // Save Writing Grade
@@ -374,6 +411,7 @@ export const ResultsView: React.FC<ResultsViewProps> = ({
                   const timestampStr = formatAppTimestamp(res.completedAt);
                   const isWriting = isWritingTest(res);
                   const isUngraded = isUngradedWriting(res);
+                  const writingSub = isWriting ? getResolvedWritingSubmission(res) : null;
 
                   return (
                     <tr key={`${res.candidateId}-${res.testId}-${i}`} className="hover:bg-white/60 transition">
@@ -408,9 +446,9 @@ export const ResultsView: React.FC<ResultsViewProps> = ({
                             <span className="font-mono font-bold text-sm text-[#0F1E33] bg-[#C9A24B]/15 px-2.5 py-0.5 rounded-md w-fit">
                               Band {res.bandScore > 0 ? res.bandScore.toFixed(1) : '—'}
                             </span>
-                            {isWriting && res.writingSubmission?.overallWritingBand ? (
+                            {isWriting && writingSub?.overallWritingBand ? (
                               <span className="text-[10px] text-[#5B6B82] font-mono mt-0.5">
-                                T1: {res.writingSubmission.task1Band?.toFixed(1) ?? '—'} · T2: {res.writingSubmission.task2Band?.toFixed(1) ?? '—'}
+                                T1: {writingSub.task1Band?.toFixed(1) ?? '—'} · T2: {writingSub.task2Band?.toFixed(1) ?? '—'}
                               </span>
                             ) : null}
                           </div>
@@ -421,9 +459,9 @@ export const ResultsView: React.FC<ResultsViewProps> = ({
                       <td className="py-3.5 px-4 font-mono text-[#5B6B82]">
                         {isWriting ? (
                           <div className="text-[11px]">
-                            <span>T1: {res.writingSubmission?.task1WordCount || 0}w</span>
+                            <span>T1: {writingSub?.task1WordCount || 0}w</span>
                             <span className="mx-1 text-slate-300">•</span>
-                            <span>T2: {res.writingSubmission?.task2WordCount || 0}w</span>
+                            <span>T2: {writingSub?.task2WordCount || 0}w</span>
                           </div>
                         ) : (
                           `${res.correctCount || 0} / ${res.totalQuestions || 40}`
@@ -533,7 +571,17 @@ export const ResultsView: React.FC<ResultsViewProps> = ({
       </div>
 
       {/* WRITING EVALUATION & MANUAL GRADING MODAL */}
-      {writingModalResult && (
+      {writingModalResult && (() => {
+        const modalSub = getResolvedWritingSubmission(writingModalResult);
+        const matchedWritingTest = allMockTests.find(
+          (t) =>
+            t.id === writingModalResult.testId ||
+            (t.module === 'writing' && t.book === writingModalResult.book && t.testNumber === writingModalResult.testNumber)
+        );
+        const task1Prompt = matchedWritingTest?.sections?.[0]?.questionGroups?.[0]?.questions?.[0]?.prompt;
+        const task2Prompt = matchedWritingTest?.sections?.[1]?.questionGroups?.[0]?.questions?.[0]?.prompt;
+
+        return (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-5 bg-[#0F1E33]/70 backdrop-blur-xs animate-in fade-in">
           <div className="bg-[#FAF8F3] border border-[#5B6B82]/30 rounded-2xl shadow-2xl max-w-4xl w-full max-h-[92vh] flex flex-col overflow-hidden text-[#0F1E33]">
             {/* Modal Header */}
@@ -585,12 +633,12 @@ export const ResultsView: React.FC<ResultsViewProps> = ({
                     <span className="font-bold text-sm text-[#0F1E33]">Task 1 Response (Report / Summary / Letter)</span>
                     <span
                       className={`text-[11px] font-semibold px-2 py-0.5 rounded-full border ${
-                        (writingModalResult.writingSubmission?.task1WordCount || 0) >= 150
+                        (modalSub.task1WordCount || 0) >= 150
                           ? 'bg-emerald-50 text-emerald-800 border-emerald-300'
                           : 'bg-red-50 text-red-800 border-red-300'
                       }`}
                     >
-                      {writingModalResult.writingSubmission?.task1WordCount || 0} words (Min: 150)
+                      {modalSub.task1WordCount || 0} words (Min: 150)
                     </span>
                   </div>
 
@@ -616,9 +664,16 @@ export const ResultsView: React.FC<ResultsViewProps> = ({
                   </div>
                 </div>
 
+                {task1Prompt && (
+                  <div className="bg-slate-50 border-l-4 border-[#C9A24B] p-3 rounded-r-lg text-[11px] text-slate-700 leading-relaxed">
+                    <span className="font-bold uppercase tracking-wider text-[10px] text-[#0F1E33] block mb-0.5">Task 1 Prompt:</span>
+                    {task1Prompt}
+                  </div>
+                )}
+
                 <div className="bg-[#FAF8F3] border border-[#5B6B82]/15 rounded-xl p-4 max-h-52 overflow-y-auto whitespace-pre-wrap font-sans text-xs text-[#0F1E33] leading-relaxed select-text">
-                  {writingModalResult.writingSubmission?.task1Essay || (
-                    <span className="text-[#5B6B82] italic">No essay response text recorded for Task 1.</span>
+                  {modalSub.task1Essay || (
+                    <span className="text-[#5B6B82] italic">No essay response text recorded for Task 1 (candidate submitted 0 words for Task 1).</span>
                   )}
                 </div>
               </div>
@@ -630,12 +685,12 @@ export const ResultsView: React.FC<ResultsViewProps> = ({
                     <span className="font-bold text-sm text-[#0F1E33]">Task 2 Response (Discursive Essay)</span>
                     <span
                       className={`text-[11px] font-semibold px-2 py-0.5 rounded-full border ${
-                        (writingModalResult.writingSubmission?.task2WordCount || 0) >= 250
+                        (modalSub.task2WordCount || 0) >= 250
                           ? 'bg-emerald-50 text-emerald-800 border-emerald-300'
                           : 'bg-red-50 text-red-800 border-red-300'
                       }`}
                     >
-                      {writingModalResult.writingSubmission?.task2WordCount || 0} words (Min: 250)
+                      {modalSub.task2WordCount || 0} words (Min: 250)
                     </span>
                   </div>
 
@@ -661,9 +716,16 @@ export const ResultsView: React.FC<ResultsViewProps> = ({
                   </div>
                 </div>
 
+                {task2Prompt && (
+                  <div className="bg-slate-50 border-l-4 border-[#0F1E33] p-3 rounded-r-lg text-[11px] text-slate-700 leading-relaxed">
+                    <span className="font-bold uppercase tracking-wider text-[10px] text-[#0F1E33] block mb-0.5">Task 2 Prompt:</span>
+                    {task2Prompt}
+                  </div>
+                )}
+
                 <div className="bg-[#FAF8F3] border border-[#5B6B82]/15 rounded-xl p-4 max-h-56 overflow-y-auto whitespace-pre-wrap font-sans text-xs text-[#0F1E33] leading-relaxed select-text">
-                  {writingModalResult.writingSubmission?.task2Essay || (
-                    <span className="text-[#5B6B82] italic">No essay response text recorded for Task 2.</span>
+                  {modalSub.task2Essay || (
+                    <span className="text-[#5B6B82] italic">No essay response text recorded for Task 2 (candidate submitted 0 words for Task 2).</span>
                   )}
                 </div>
               </div>
@@ -766,7 +828,8 @@ export const ResultsView: React.FC<ResultsViewProps> = ({
             </div>
           </div>
         </div>
-      )}
+        );
+      })()}
 
       {/* Scorecard Modal */}
       {selectedScorecard && (

@@ -21,6 +21,8 @@ interface TestSelectionViewProps {
   consultancy?: Consultancy;
   availableTests: IELTSMockTest[];
   studentName: string;
+  candidateId?: string;
+  targetBand?: number;
   stationName: string;
   onSelectTest: (test: IELTSMockTest, fullMock?: FullMockTest) => void;
   onBack: () => void;
@@ -30,6 +32,8 @@ export const TestSelectionView: React.FC<TestSelectionViewProps> = ({
   consultancy,
   availableTests,
   studentName,
+  candidateId,
+  targetBand,
   stationName,
   onSelectTest,
   onBack,
@@ -88,14 +92,16 @@ export const TestSelectionView: React.FC<TestSelectionViewProps> = ({
 
     // Keep station heartbeat updated on invigilator radar every 3 seconds
     const sendHeartbeat = () => {
+      const savedCand = ConsultancyService.getCurrentCandidateSession();
       ConsultancyService.updateStationHeartbeat(targetCid, stationName, {
         status: activeLaunch ? 'assigned' : 'idle',
         assignedTestId: activeLaunch?.testId,
         testTitle: activeLaunch?.title,
         isFullMock: activeLaunch?.isFullMock,
         currentCandidate: {
-          candidateId: '004128',
-          name: studentName,
+          candidateId: candidateId || savedCand?.candidateId || '004128',
+          name: studentName || savedCand?.candidateName || 'Candidate',
+          targetBand: targetBand ?? savedCand?.targetBand
         }
       });
     };

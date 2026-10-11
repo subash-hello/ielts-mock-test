@@ -17,6 +17,14 @@ import type { IELTSMockTest, ExamSettings } from '../../types/ielts';
 interface WritingExamViewProps {
   test: IELTSMockTest;
   settings: ExamSettings;
+  initialTask1?: string;
+  initialTask2?: string;
+  onDraftChange?: (draft: {
+    task1Essay: string;
+    task1WordCount: number;
+    task2Essay: string;
+    task2WordCount: number;
+  }) => void;
   onSubmitWriting: (submission: {
     task1Essay: string;
     task1WordCount: number;
@@ -28,11 +36,14 @@ interface WritingExamViewProps {
 export const WritingExamView: React.FC<WritingExamViewProps> = ({
   test,
   settings,
+  initialTask1 = '',
+  initialTask2 = '',
+  onDraftChange,
   onSubmitWriting
 }) => {
   const [activeTab, setActiveTab] = useState<1 | 2>(1);
-  const [task1Text, setTask1Text] = useState('');
-  const [task2Text, setTask2Text] = useState('');
+  const [task1Text, setTask1Text] = useState(initialTask1);
+  const [task2Text, setTask2Text] = useState(initialTask2);
   const [isZoomModalOpen, setIsZoomModalOpen] = useState(false);
   const [isConfirmSubmitOpen, setIsConfirmSubmitOpen] = useState(false);
 
@@ -85,6 +96,15 @@ export const WritingExamView: React.FC<WritingExamViewProps> = ({
 
   const task1Words = countWords(task1Text);
   const task2Words = countWords(task2Text);
+
+  useEffect(() => {
+    onDraftChange?.({
+      task1Essay: task1Text,
+      task1WordCount: task1Words,
+      task2Essay: task2Text,
+      task2WordCount: task2Words
+    });
+  }, [task1Text, task2Text, task1Words, task2Words]);
 
   const handleOpenSubmitDialog = () => {
     setIsConfirmSubmitOpen(true);
