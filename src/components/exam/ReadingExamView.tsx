@@ -411,7 +411,7 @@ export const ReadingExamView: React.FC<ReadingExamViewProps> = ({
         {lines.map((line, lIdx) => {
           if (!line.trim()) return <div key={lIdx} className="h-2" />;
           const isBullet = line.trim().startsWith('•') || line.trim().startsWith('-');
-          const parts = line.split(/(\{\{\s*\d+\s*\}\}|\[\s*\d+\s*\])/g);
+          const parts = line.split(/(\{\{?\s*\d+\s*\}?\}|\[\s*\d+\s*\])/g);
 
           return (
             <div
@@ -421,9 +421,9 @@ export const ReadingExamView: React.FC<ReadingExamViewProps> = ({
               }`}
             >
               {parts.map((part, pIdx) => {
-                const match = part.match(/(?:\{\{|\b\[)\s*(\d+)\s*(?:\}\}|\])/);
+                const match = part.match(/(?:\{\{?\s*(\d+)\s*\}?\}|\[\s*(\d+)\s*\])/);
                 if (match) {
-                  const qNum = parseInt(match[1], 10);
+                  const qNum = parseInt(match[1] || match[2], 10);
                   const qObj = group.questions.find((q) => q.questionNumber === qNum);
                   const qOptions = qObj?.options || groupOptions;
                   const val = (answers[qNum] as string) || '';

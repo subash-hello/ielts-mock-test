@@ -70,7 +70,11 @@ export const ListeningExamView: React.FC<ListeningExamViewProps> = ({
     }
 
     // 4. Remote upstream fallback
-    if (book === 19) {
+    if (book === 16) {
+      list.push(
+        `https://engnovatemedia.com/wp-content/uploads/2023/07/cambridge-ielts-16-academic-listening-test-${testNum}-part-${secNum}.mp3`
+      );
+    } else if (book === 19) {
       list.push(
         `https://ieltstrainingonline.com/wp-content/uploads/2024/07/cam19-test${testNum}-part${secNum}.m4a`
       );
@@ -274,11 +278,19 @@ export const ListeningExamView: React.FC<ListeningExamViewProps> = ({
               return <div key={lIdx} className="h-1.5" />;
             }
 
-            const hasPlaceholder = /(\{\{\s*\d+\s*\}\}|\[\s*\d+\s*\])/.test(line);
+            const hasPlaceholder = /(\{\{?\s*\d+\s*\}?\}|\[\s*\d+\s*\])/.test(line);
 
             if (!hasPlaceholder) {
               const isBullet = line.startsWith('–') || line.startsWith('-') || line.startsWith('•') || line.startsWith('●') || line.startsWith('*');
               const cleanLine = line.replace(/^[–\-•●*]\s*/, '').trim();
+
+              if (cleanLine === '↓' || cleanLine === '⬇') {
+                return (
+                  <div key={lIdx} className="text-slate-400 font-bold text-base py-0.5 pl-6 select-none">
+                    ↓
+                  </div>
+                );
+              }
 
               // Check if it's the main heading (first non-empty line or matches summaryTitle)
               const isMainTitle = lIdx === 0 || cleanLine === group.summaryTitle;
@@ -328,7 +340,7 @@ export const ListeningExamView: React.FC<ListeningExamViewProps> = ({
             // Line with placeholders
             const isBullet = line.startsWith('–') || line.startsWith('-') || line.startsWith('•') || line.startsWith('●') || line.startsWith('*');
             const cleanContent = line.replace(/^[–\-•●*]\s*/, '').trim();
-            const parts = cleanContent.split(/(\{\{\s*\d+\s*\}\}|\[\s*\d+\s*\])/g);
+            const parts = cleanContent.split(/(\{\{?\s*\d+\s*\}?\}|\[\s*\d+\s*\])/g);
 
             return (
               <div
@@ -341,7 +353,7 @@ export const ListeningExamView: React.FC<ListeningExamViewProps> = ({
                   <span className="text-slate-500 font-bold select-none mr-0.5">•</span>
                 )}
                 {parts.map((part, pIdx) => {
-                  const match = part.match(/(?:\{\{\s*(\d+)\s*\}\}|\[\s*(\d+)\s*\])/);
+                  const match = part.match(/(?:\{\{?\s*(\d+)\s*\}?\}|\[\s*(\d+)\s*\])/);
                   if (match) {
                     const qNum = parseInt(match[1] || match[2], 10);
                     const val = (answers[qNum] as string) || '';
@@ -436,7 +448,7 @@ export const ListeningExamView: React.FC<ListeningExamViewProps> = ({
           const showNewPrefix = prefix && prefix !== lastPrefix;
           if (prefix) lastPrefix = prefix;
 
-          const parts = promptText.split(/(\[\s*\d+\s*\]|\{\{\s*\d+\s*\}\}|_{2,})/);
+          const parts = promptText.split(/(\[\s*\d+\s*\]|\{\{?\s*\d+\s*\}?\}|_{2,})/);
 
           return (
             <React.Fragment key={qNum}>
@@ -454,7 +466,7 @@ export const ListeningExamView: React.FC<ListeningExamViewProps> = ({
 
                 {parts.length > 1 ? (
                   parts.map((p, pIdx) => {
-                    const isBlank = /^(?:\[\s*\d+\s*\]|\{\{\s*\d+\s*\}\}|_{2,})$/.test(p.trim());
+                    const isBlank = /^(?:\[\s*\d+\s*\]|\{\{?\s*\d+\s*\}?\}|_{2,})$/.test(p.trim());
                     if (isBlank) {
                       return (
                         <span key={pIdx} className="inline-flex items-center align-middle mx-1 my-0.5">
@@ -1382,7 +1394,10 @@ export const ListeningExamView: React.FC<ListeningExamViewProps> = ({
                 {/* Instructions Text directly on white canvas */}
                 <div className="text-xs sm:text-sm text-slate-800 space-y-1 mb-4">
                   <p className="font-normal text-slate-800">
-                    {group.instructions.replace(/\b(ONE WORD AND\/OR A NUMBER|ONE WORD ONLY|NO MORE THAN [A-Z\s]+ WORDS?)\b/gi, '').trim()}
+                    {group.instructions
+                      .replace(/Write\s+(?:ONE WORD AND\/OR A NUMBER|ONE WORD ONLY|NO MORE THAN [A-Z0-9\s]+ WORDS?(?:\s+AND\/OR A NUMBER)?)\s+for each answer\.?/gi, '')
+                      .replace(/\b(ONE WORD AND\/OR A NUMBER|ONE WORD ONLY|NO MORE THAN [A-Z\s]+ WORDS?)\b/gi, '')
+                      .trim()}
                   </p>
                   {group.wordLimitRule && (
                     <p className="font-bold text-slate-900">

@@ -1620,62 +1620,83 @@ export const cambridge16Test2Listening: IELTSMockTest = {
   module: "listening",
   title: "Cambridge 16 Academic Listening Test 2",
   durationMinutes: 35,
-  audioUrl: "/audio/cam18-test2-part1.mp3",
+  audioUrl: "/audio/cam16-test2-part1.mp3",
   sections: [
     {
       sectionNumber: 1,
       title: "Listening Part 1",
-      subtitle: "Copying and Printing Service Order",
-      audioUrl: "/audio/cam18-test2-part1.mp3",
+      subtitle: "Copying photos to digital format",
+      audioUrl: "/audio/cam16-test2-part1.mp3",
       transcript: `
-        CLERK: Good morning, Metroprint Services. How can I help you?
-        CUSTOMER: Hello! I need to place an urgent print order for our company\'s annual conference brochures.
-        CLERK: Certainly! Let me take down your specifications. What is your company name?
-        CUSTOMER: It\'s Apex Architectural Design.
-        CLERK: And your name?
-        CUSTOMER: Mark Patterson. That\'s P-A-T-T-E-R-S-O-N.
-        CLERK: Thank you, Mr. Patterson. And how many copies of the brochure do you require?
-        CUSTOMER: We need 250 booklets in total.
-        CLERK: What size and paper weight were you thinking of?
-        CUSTOMER: Standard A4 portrait. For the inner pages, we\'d like 120 gsm matte paper, and for the cover, something thicker—perhaps 250 gsm gloss.
-        CLERK: That\'s a very popular combination. How would you like the booklets bound?
-        CUSTOMER: Spiral binding in silver wire, please.
-        CLERK: And when do you need them delivered by?
-        CUSTOMER: By Friday the 18th of October at the latest.
+        EMPLOYEE: Picturerep. Can I help you?
+        WOMAN: Oh, hi. I saw your advertisement about copying pictures to disk and I'd like a bit more information about what you do.
+        EMPLOYEE: Sure. What would you like to know?
+        WOMAN: Well, I've got a box full of old family photos that's been up in the attic for years, some of them must be 50 or 60 years old, and I'd like to get them converted to digital format.
+        EMPLOYEE: Sure, we can do that for you.
+        WOMAN: Right. And what about size? The photos are all sorts of sizes – are there any restrictions?
+        EMPLOYEE: Well the maximum size of photo we can do with our normal service is 30 centimetres. And each picture must be at least 4 centimetres, that's the minimum we can cope with.
+        WOMAN: That should be fine. And some of them are in a frame – should I take them out before I send them?
+        EMPLOYEE: Yes please, we can't copy them otherwise. And also the photos must all be separate, they mustn't be stuck into an album.
+        WOMAN: OK, that's not a problem. So can you give me an idea of how much this will cost? I've got about 360 photos, I think.
+        EMPLOYEE: We charge £195 for 300 to 400 photos for the basic service.
+        WOMAN: OK. And does that include the disk?
+        EMPLOYEE: Yes, one disk – but you can get extra ones for £5 each.
+        WOMAN: That's good. So do I need to pay when I send you the photos?
+        EMPLOYEE: No, we won't need anything until we've actually copied the pictures. Then we'll let you know how much it is, and once we've received the payment, we'll send the parcel off to you.
+        WOMAN: Right. Is there anything else you can do to the photos while you're copying them?
+        EMPLOYEE: Well, when you place your order, you can tell us whether you want the photos saved in separate folders on the disk. You can suggest a name for each folder – for example, some customers call one 'Grandparents' for instance.
+        WOMAN: Oh yes, that's a good idea.
+        EMPLOYEE: And if you'd like us to, we can make some improvements to the quality of the photos – as part of the standard service, we can improve the colour and the contrast, as that makes a big difference to old photos.
+        WOMAN: And what about photos that are very fragile?
+        EMPLOYEE: Well, if any of the photos are very fragile, we wouldn't put them through our normal scanner – we'd do them by hand, so they wouldn't get damaged.
+        WOMAN: Oh, that's good to know. And what about if there's something in the picture that I don't want?
+        EMPLOYEE: For an extra charge, we can remove an object from a photo, or even alter the background completely if you want.
+        WOMAN: Really? And what if a photo is out of focus? Can you fix that?
+        EMPLOYEE: No, I'm afraid if a photo isn't properly in focus, there's nothing we can do to change that.
+        WOMAN: OK. How long does an order take?
+        EMPLOYEE: We aim to get the copying done in 10 days.
+        WOMAN: Fine. And how should I send the photos?
+        EMPLOYEE: We recommend you put them in a cardboard box – please don't use a plastic one as they often break in the post.
       `,
       questionGroups: [
         {
           id: "c16-l2-qg1",
-          type: "form_completion",
+          type: "note_completion",
           title: "Questions 1 – 10",
           instructions: "Complete the notes below. Write ONE WORD AND/OR A NUMBER for each answer.",
-          summaryTitle: "Print Order Form",
+          summaryTitle: "Copying photos to digital format",
           wordLimitRule: "ONE WORD AND/OR A NUMBER",
           clozeTemplate: `
-Metroprint Services Customer Order:
-Company name: Apex {1} Design
-Client name: Mark {2}
-Number of booklets: {3} copies
-Dimensions: Standard {4} size
-Paper specifications:
-• Inner pages: 120 gsm {5} finish
-• Cover: 250 gsm {6} finish
-Binding style: {7} binding with silver wire
-Delivery deadline: Friday {8} October
-Delivery address: 45 {9} Avenue, Leeds
-Payment method: Company {10} card
+Copying photos to digital format
+Name of company: Picturerep
+Requirements
+• Maximum size of photos is 30 cm, minimum size 4 cm.
+• Photos must not be in a {{1}} or an album.
+Cost
+• The cost for 360 photos is £{{2}} (including one disk).
+• Before the complete order is sent, {{3}} is required.
+Services included in the price
+• Photos can be placed in a folder, e.g. with the name {{4}}.
+• The {{5}} and contrast can be improved if necessary.
+• Photos which are very fragile will be scanned by {{6}}.
+Possible extra services
+• It may be possible to remove an object from a photo, or change the {{7}}.
+• A photo which is not correctly in {{8}} cannot be fixed.
+Other information
+• Orders are completed within {{9}}.
+• Send the photos in a box (not {{10}}).
           `,
           questions: [
-            { questionNumber: 1, prompt: "Company name: Apex [ 1 ] Design", correctAnswer: "Architectural", acceptedVariants: ["architectural"], explanation: "Customer: 'Apex Architectural Design.'", passageEvidence: { paragraph: "Part 1", quote: "Apex Architectural Design" } },
-            { questionNumber: 2, prompt: "Client name: Mark [ 2 ]", correctAnswer: "Patterson", acceptedVariants: ["patterson"], explanation: "Customer spells name: P-A-T-T-E-R-S-O-N.", passageEvidence: { paragraph: "Part 1", quote: "Patterson" } },
-            { questionNumber: 3, prompt: "Number of booklets: [ 3 ] copies", correctAnswer: "250", explanation: "Customer: 'We need 250 booklets in total.'", passageEvidence: { paragraph: "Part 1", quote: "250 booklets" } },
-            { questionNumber: 4, prompt: "Dimensions: Standard [ 4 ] size", correctAnswer: "A4", explanation: "Customer: 'Standard A4 portrait.'", passageEvidence: { paragraph: "Part 1", quote: "A4 portrait" } },
-            { questionNumber: 5, prompt: "Inner pages: 120 gsm [ 5 ] finish", correctAnswer: "matte", acceptedVariants: ["matt"], explanation: "Customer: '120 gsm matte paper.'", passageEvidence: { paragraph: "Part 1", quote: "120 gsm matte" } },
-            { questionNumber: 6, prompt: "Cover: 250 gsm [ 6 ] finish", correctAnswer: "gloss", acceptedVariants: ["glossy"], explanation: "Customer: '250 gsm gloss.'", passageEvidence: { paragraph: "Part 1", quote: "250 gsm gloss" } },
-            { questionNumber: 7, prompt: "Binding style: [ 7 ] binding", correctAnswer: "spiral", acceptedVariants: ["wire"], explanation: "Customer: 'Spiral binding in silver wire.'", passageEvidence: { paragraph: "Part 1", quote: "Spiral binding" } },
-            { questionNumber: 8, prompt: "Delivery deadline: Friday [ 8 ] October", correctAnswer: "18th", acceptedVariants: ["18"], explanation: "Customer: 'Friday the 18th of October.'", passageEvidence: { paragraph: "Part 1", quote: "18th of October" } },
-            { questionNumber: 9, prompt: "Delivery address: 45 [ 9 ] Avenue", correctAnswer: "Kingston", acceptedVariants: ["kingston"], explanation: "Customer provides address: 45 Kingston Avenue.", passageEvidence: { paragraph: "Part 1", quote: "Kingston Avenue" } },
-            { questionNumber: 10, prompt: "Payment method: Company [ 10 ] card", correctAnswer: "credit", explanation: "Customer confirms payment with company credit card.", passageEvidence: { paragraph: "Part 1", quote: "credit card" } }
+            { questionNumber: 1, prompt: "Photos must not be in a [ 1 ] or an album.", correctAnswer: "frame", explanation: "Woman: 'some of them are in a frame – should I take them out?' Employee: 'Yes please, we can't copy them otherwise.'", passageEvidence: { paragraph: "Part 1", quote: "in a frame" } },
+            { questionNumber: 2, prompt: "The cost for 360 photos is £[ 2 ] (including one disk).", correctAnswer: "195", explanation: "Employee: 'We charge £195 for 300 to 400 photos for the basic service.'", passageEvidence: { paragraph: "Part 1", quote: "£195" } },
+            { questionNumber: 3, prompt: "Before the complete order is sent, [ 3 ] is required.", correctAnswer: "payment", explanation: "Employee: 'once we've received the payment, we'll send the parcel off to you.'", passageEvidence: { paragraph: "Part 1", quote: "received the payment" } },
+            { questionNumber: 4, prompt: "Photos can be placed in a folder, e.g. with the name [ 4 ].", correctAnswer: "Grandparents", acceptedVariants: ["grandparents"], explanation: "Employee: 'some customers call one Grandparents for instance.'", passageEvidence: { paragraph: "Part 1", quote: "Grandparents" } },
+            { questionNumber: 5, prompt: "The [ 5 ] and contrast can be improved if necessary.", correctAnswer: "colour", acceptedVariants: ["color"], explanation: "Employee: 'we can improve the colour and the contrast.'", passageEvidence: { paragraph: "Part 1", quote: "improve the colour and the contrast" } },
+            { questionNumber: 6, prompt: "Photos which are very fragile will be scanned by [ 6 ].", correctAnswer: "hand", explanation: "Employee: 'if any of the photos are very fragile... we'd do them by hand.'", passageEvidence: { paragraph: "Part 1", quote: "by hand" } },
+            { questionNumber: 7, prompt: "It may be possible to remove an object from a photo, or change the [ 7 ].", correctAnswer: "background", explanation: "Employee: 'remove an object from a photo, or even alter the background completely.'", passageEvidence: { paragraph: "Part 1", quote: "alter the background" } },
+            { questionNumber: 8, prompt: "A photo which is not correctly in [ 8 ] cannot be fixed.", correctAnswer: "focus", explanation: "Employee: 'if a photo isn't properly in focus, there's nothing we can do.'", passageEvidence: { paragraph: "Part 1", quote: "properly in focus" } },
+            { questionNumber: 9, prompt: "Orders are completed within [ 9 ].", correctAnswer: "10 days", acceptedVariants: ["ten days"], explanation: "Employee: 'We aim to get the copying done in 10 days.'", passageEvidence: { paragraph: "Part 1", quote: "in 10 days" } },
+            { questionNumber: 10, prompt: "Send the photos in a box (not [ 10 ]).", correctAnswer: "plastic", explanation: "Employee: 'put them in a cardboard box – please don't use a plastic one.'", passageEvidence: { paragraph: "Part 1", quote: "plastic" } }
           ]
         }
       ]
@@ -1683,10 +1704,19 @@ Payment method: Company {10} card
     {
       sectionNumber: 2,
       title: "Listening Part 2",
-      subtitle: "Coastal Salt Marsh Conservation Project",
-      audioUrl: "/audio/cam18-test2-part2.mp3",
+      subtitle: "Changes at Dartfield House School",
+      audioUrl: "/audio/cam16-test2-part2.mp3",
       transcript: `
-        COORDINATOR: Welcome volunteers! Today we are introducing our new marshland restoration initiative along the estuary. Salt marshes provide essential defenses against sea-level surges and store four times more carbon per acre than tropical rainforests. Our principal goal this weekend is planting native cordgrass to anchor unstable silt beds. Please make sure you wear rubber waders, which we will issue shortly from the storage shed. Lunch will be provided at the visitor shelter at 12:30.
+        Good morning and welcome to Dartfield House school. I'd like to tell you about some of the changes that have taken place recently and plans for the future.
+        As you probably know, Dartfield House is located near Minster Park. Many people think the building used to be a large private house, or a tourist office, but in fact it was formerly the local council offices before being converted into a school.
+        Regarding our expansion plans: the lower school is currently on a separate site. We are building additional school buildings on the main site so all pupils will be together, and the old lower school site will be sold and used for new housing.
+        Now, some important changes to the school catering. Previously, pupils had to wait in long queues at lunchtime, which left them little time to eat or relax. So we have introduced three new food serving points around the school.
+        Each serving point has a different theme. We ask parents to talk to their children and help them decide in advance which serving point they are going to use each day. As for the existing canteen, food will no longer be served there, but pupils can still take their food into it to sit and eat.
+        The three new serving points are:
+        - World Adventures: this serves dishes from around the globe, with a daily change in menu.
+        - Street Life: here, pupils help to plan the menus themselves.
+        - Speedy Italian: this serves pasta and pizza, and is strictly vegetarian food only.
+        Finally, regarding optional after-school lessons: we continue to offer swimming, cycling, and theatre sound and lighting, and this term we have added two brand-new options: piano lessons and acting classes.
       `,
       questionGroups: [
         {
@@ -1695,24 +1725,55 @@ Payment method: Company {10} card
           title: "Questions 11 – 15",
           instructions: "Choose the correct letter, A, B or C.",
           questions: [
-            { questionNumber: 11, prompt: "What ecological advantage do salt marshes have compared to tropical rainforests?", options: ["A. They produce twice as much timber.", "B. They store four times more carbon per acre.", "C. They provide freshwater for cattle."], correctAnswer: "B", explanation: "Coordinator notes they store four times more carbon per acre than tropical rainforests.", passageEvidence: { paragraph: "Part 2", quote: "store four times more carbon per acre" } },
-            { questionNumber: 12, prompt: "What is the primary activity planned for volunteers this weekend?", options: ["A. Planting native cordgrass.", "B. Building concrete sea walls.", "C. Tagging migrating salmon."], correctAnswer: "A", explanation: "Coordinator: 'our principal goal this weekend is planting native cordgrass.'", passageEvidence: { paragraph: "Part 2", quote: "planting native cordgrass" } },
-            { questionNumber: 13, prompt: "What protective clothing will be issued to volunteers from the shed?", options: ["A. Rubber waders.", "B. Hard helmets.", "C. Neoprene diving suits."], correctAnswer: "A", explanation: "Coordinator instructs volunteers to wear rubber waders from the shed.", passageEvidence: { paragraph: "Part 2", quote: "wear rubber waders" } },
-            { questionNumber: 14, prompt: "Where will lunch be served at 12:30?", options: ["A. At the local village tavern.", "B. At the visitor shelter.", "C. On the boat pontoon."], correctAnswer: "B", explanation: "Coordinator: 'Lunch will be provided at the visitor shelter.'", passageEvidence: { paragraph: "Part 2", quote: "at the visitor shelter" } },
-            { questionNumber: 15, prompt: "What should volunteers do if they discover an injured coastal bird?", options: ["A. Carry it immediately to the car.", "B. Report its GPS coordinates to the ranger station.", "C. Offer it bread and clean water."], correctAnswer: "B", explanation: "Volunteers are trained to report GPS coordinates directly to rangers.", passageEvidence: { paragraph: "Part 2", quote: "report coordinates to ranger" } }
+            { questionNumber: 11, prompt: "Dartfield House school used to be", options: ["A. a tourist information centre.", "B. a private home.", "C. a local council building."], correctAnswer: "C", explanation: "It was formerly the local council offices before becoming a school.", passageEvidence: { paragraph: "Part 2", quote: "local council offices" } },
+            { questionNumber: 12, prompt: "What is planned with regard to the lower school?", options: ["A. All buildings on the main site will be improved.", "B. The lower school site will be used for new homes.", "C. Additional school buildings will be constructed on the lower school site."], correctAnswer: "B", explanation: "The old lower school site will be used for new housing.", passageEvidence: { paragraph: "Part 2", quote: "used for new housing" } },
+            { questionNumber: 13, prompt: "The catering has been changed because of", options: ["A. long queuing times.", "B. changes to the school timetable.", "C. dissatisfaction with the menus."], correctAnswer: "A", explanation: "Previously, pupils had to wait in long queues at lunchtime.", passageEvidence: { paragraph: "Part 2", quote: "long queues" } },
+            { questionNumber: 14, prompt: "Parents are asked to", options: ["A. help their children to decide in advance which serving point to use.", "B. make sure their children have enough money for food.", "C. advise their children on healthy food to eat."], correctAnswer: "A", explanation: "Parents are asked to help their children decide in advance which serving point to use.", passageEvidence: { paragraph: "Part 2", quote: "decide in advance which serving point" } },
+            { questionNumber: 15, prompt: "What does the speaker say about the existing canteen?", options: ["A. Food will still be served there.", "B. Only staff will have access to it.", "C. Pupils can take their food into it."], correctAnswer: "C", explanation: "Pupils can still take their food into the existing canteen to sit and eat.", passageEvidence: { paragraph: "Part 2", quote: "take their food into it" } }
           ]
         },
         {
           id: "c16-l2-qg3",
           type: "matching_features",
-          title: "Questions 16 – 20",
-          instructions: "Match each zone of the reserve with its primary rule, A – F.",
+          title: "Questions 16 – 18",
+          instructions: "What comment does the speaker make about each of the following serving points in the Food Hall? Choose THREE answers from the box and write the correct letter, A–D, next to Questions 16–18.",
+          summaryTitle: "Comments",
+          options: [
+            "A. pupils help to plan menus",
+            "B. only vegetarian food",
+            "C. different food every week",
+            "D. daily change in menu"
+          ],
           questions: [
-            { questionNumber: 16, prompt: "The Mudflats (Zone 1)", options: ["A. Dogs strictly prohibited", "B. Accessible only with a licensed guide", "C. Photography permitted without flash", "D. Mandatory footwear required", "E. Fishing permits required", "F. Closed during high tide"], correctAnswer: "B", explanation: "Mudflats are treacherous and accessible only with a licensed guide.", passageEvidence: { paragraph: "Part 2", quote: "accessible only with a licensed guide" } },
-            { questionNumber: 17, prompt: "The Bird Sanctuary (Zone 2)", options: ["A. Dogs strictly prohibited", "B. Accessible only with a licensed guide", "C. Photography permitted without flash", "D. Mandatory footwear required", "E. Fishing permits required", "F. Closed during high tide"], correctAnswer: "A", explanation: "Dogs are prohibited to prevent disturbing nesting birds.", passageEvidence: { paragraph: "Part 2", quote: "dogs strictly prohibited" } },
-            { questionNumber: 18, prompt: "The Tidal Channel (Zone 3)", options: ["A. Dogs strictly prohibited", "B. Accessible only with a licensed guide", "C. Photography permitted without flash", "D. Mandatory footwear required", "E. Fishing permits required", "F. Closed during high tide"], correctAnswer: "F", explanation: "The tidal channel is completely submerged and closed during high tide.", passageEvidence: { paragraph: "Part 2", quote: "closed during high tide" } },
-            { questionNumber: 19, prompt: "The Shingle Spit (Zone 4)", options: ["A. Dogs strictly prohibited", "B. Accessible only with a licensed guide", "C. Photography permitted without flash", "D. Mandatory footwear required", "E. Fishing permits required", "F. Closed during high tide"], correctAnswer: "D", explanation: "Sharp flint stones require mandatory heavy footwear.", passageEvidence: { paragraph: "Part 2", quote: "mandatory footwear required" } },
-            { questionNumber: 20, prompt: "The Observation Hide (Zone 5)", options: ["A. Dogs strictly prohibited", "B. Accessible only with a licensed guide", "C. Photography permitted without flash", "D. Mandatory footwear required", "E. Fishing permits required", "F. Closed during high tide"], correctAnswer: "C", explanation: "Photography is allowed, but flash is forbidden to protect wildlife.", passageEvidence: { paragraph: "Part 2", quote: "photography permitted without flash" } }
+            { questionNumber: 16, prompt: "World Adventures", options: ["A. pupils help to plan menus", "B. only vegetarian food", "C. different food every week", "D. daily change in menu"], correctAnswer: "D", explanation: "World Adventures has a daily change in menu.", passageEvidence: { paragraph: "Part 2", quote: "daily change in menu" } },
+            { questionNumber: 17, prompt: "Street Life", options: ["A. pupils help to plan menus", "B. only vegetarian food", "C. different food every week", "D. daily change in menu"], correctAnswer: "A", explanation: "At Street Life, pupils help to plan the menus.", passageEvidence: { paragraph: "Part 2", quote: "pupils help to plan the menus" } },
+            { questionNumber: 18, prompt: "Speedy Italian", options: ["A. pupils help to plan menus", "B. only vegetarian food", "C. different food every week", "D. daily change in menu"], correctAnswer: "B", explanation: "Speedy Italian serves strictly vegetarian food only.", passageEvidence: { paragraph: "Part 2", quote: "vegetarian food only" } }
+          ]
+        },
+        {
+          id: "c16-l2-qg4",
+          type: "multiple_choice_multi",
+          title: "Questions 19 and 20",
+          instructions: "Choose TWO letters, A–E.",
+          questions: [
+            {
+              questionNumber: 19,
+              prompt: "Which TWO optional after-school lessons are new?",
+              options: ["A. swimming", "B. piano", "C. acting", "D. cycling", "E. theatre sound and lighting"],
+              correctAnswer: "B",
+              acceptedVariants: ["B", "C"],
+              explanation: "Piano lessons and acting classes are the two new optional after-school lessons.",
+              passageEvidence: { paragraph: "Part 2", quote: "piano lessons and acting classes" }
+            },
+            {
+              questionNumber: 20,
+              prompt: "Which TWO optional after-school lessons are new?",
+              options: ["A. swimming", "B. piano", "C. acting", "D. cycling", "E. theatre sound and lighting"],
+              correctAnswer: "C",
+              acceptedVariants: ["B", "C"],
+              explanation: "Piano lessons and acting classes are the two new optional after-school lessons.",
+              passageEvidence: { paragraph: "Part 2", quote: "piano lessons and acting classes" }
+            }
           ]
         }
       ]
@@ -1720,39 +1781,74 @@ Payment method: Company {10} card
     {
       sectionNumber: 3,
       title: "Listening Part 3",
-      subtitle: "Precision Agriculture Drone Research",
-      audioUrl: "/audio/cam18-test2-part3.mp3",
+      subtitle: "Assignment on sleep and dreams",
+      audioUrl: "/audio/cam16-test2-part3.mp3",
       transcript: `
-        PROFESSOR: Welcome James and Maya. How is your postgraduate study on drone technology in East Anglian arable farms progressing?
-        MAYA: Very well, Professor. We\'ve conducted aerial multispectral imaging across four wheat farms over the summer.
-        JAMES: What\'s remarkable is that infrared cameras can detect crop fungal infections up to ten days before any visible yellowing appears on the leaves.
-        PROFESSOR: That allows farmers to apply localized fungicide rather than spraying an entire 100-hectare field.
+        SUSIE: So Luke, for our next psychology assignment we have to do something on sleep and dreams.
+        LUKE: Right. I've just read an article suggesting why we tend to forget most of our dreams soon after waking up. It said that if we remembered everything, we might get mixed up about what actually happened and what we dreamed.
+        SUSIE: Oh, that's interesting. And what about the idea that dreams can predict the future?
+        LUKE: Well, lots of people claim that happens, but I think it's just coincidence – we have so many dreams that occasionally one matches something that happens later.
+        SUSIE: Yes, I agree with you there. What about the study on pre-school children having a short nap in the afternoon?
+        LUKE: Did it show that naps are beneficial?
+        SUSIE: Well, actually, the researchers couldn't really reach any definite conclusions at all.
+        LUKE: Right. Well, let's plan our own study. In our last assignment we both lost marks on the self-assessment section, so we need to be careful with that this time.
+        SUSIE: Definitely. So for our methodology: let's recruit 12 students from the history department.
+        LUKE: Good idea, psychology students would guess what we're testing. And how should we collect their answers? Online or over the phone?
+        SUSIE: Let's get them to write their answers on paper.
+        LUKE: OK. And before we start, we'll need to check the ethical guidelines for working with humans.
+        SUSIE: Yes, we have to make sure that any risk is assessed and that stress is kept to a minimum for the participants.
+        LUKE: Then once we've collected the data, we'll calculate the correlation between sleep hours and dream recall and make a graph.
+        SUSIE: And the final step will be to evaluate the research.
       `,
       questionGroups: [
         {
-          id: "c16-l2-qg4",
+          id: "c16-l2-qg5",
           type: "multiple_choice",
-          title: "Questions 21 – 25",
+          title: "Questions 21 – 24",
           instructions: "Choose the correct letter, A, B or C.",
           questions: [
-            { questionNumber: 21, prompt: "What type of imaging sensors did James and Maya mount on their drones?", options: ["A. Thermal laser scanners", "B. Multispectral infrared cameras", "C. Ultra-high definition satellite antennas"], correctAnswer: "B", explanation: "James and Maya used multispectral infrared cameras to assess crop stress.", passageEvidence: { paragraph: "Part 3", quote: "multispectral infrared cameras" } },
-            { questionNumber: 22, prompt: "How far in advance can infrared sensors identify fungal infections in wheat?", options: ["A. Two hours before rain", "B. Up to ten days before visible symptoms emerge", "C. Three weeks after harvesting"], correctAnswer: "B", explanation: "James points out sensors detect fungus ten days before visible symptoms appear.", passageEvidence: { paragraph: "Part 3", quote: "up to ten days before any visible yellowing" } },
-            { questionNumber: 23, prompt: "What is the primary economic benefit for farmers using targeted drone spraying?", options: ["A. Reducing total chemical fungicide consumption by up to 70%", "B. Selling drone footage to television networks", "C. Eliminating the need to plant crops every spring"], correctAnswer: "A", explanation: "Targeted localized spraying drastically reduces chemical costs and environmental runoff.", passageEvidence: { paragraph: "Part 3", quote: "localized fungicide rather than spraying" } },
-            { questionNumber: 24, prompt: "What regulatory obstacle did the researchers encounter during their trials?", options: ["A. Severe aviation restrictions regarding flying near rural powerlines", "B. Complete bans on camera imports from Asia", "C. Protests from local tractor dealerships"], correctAnswer: "A", explanation: "Civil aviation authority rules limit drone proximity to electrical infrastructure.", passageEvidence: { paragraph: "Part 3", quote: "aviation restrictions" } },
-            { questionNumber: 25, prompt: "What is the next phase of their collaborative study?", options: ["A. Testing autonomous battery recharging docks in fields", "B. Publishing a novel about robot farming", "C. Converting all farms to timber forestry"], correctAnswer: "A", explanation: "Next phase evaluates solar-powered autonomous battery docking stations.", passageEvidence: { paragraph: "Part 3", quote: "battery recharging docks" } }
+            { questionNumber: 21, prompt: "Luke read that one reason why we often forget dreams is that", options: ["A. our memories cannot cope with too much information.", "B. we might otherwise be confused about what is real.", "C. we do not think they are important."], correctAnswer: "B", explanation: "Luke read that if we remembered everything, we might get confused about what actually happened and what we dreamed.", passageEvidence: { paragraph: "Part 3", quote: "mixed up about what actually happened" } },
+            { questionNumber: 22, prompt: "What do Luke and Susie agree about dreams predicting the future?", options: ["A. It may just be due to chance.", "B. It only happens with certain types of event.", "C. It happens more often than some people think."], correctAnswer: "A", explanation: "Both agree that dreams appearing to predict the future is just coincidence/chance.", passageEvidence: { paragraph: "Part 3", quote: "just coincidence" } },
+            { questionNumber: 23, prompt: "Susie says that a study on pre-school children having a short nap in the day", options: ["A. had controversial results.", "B. used faulty research methodology.", "C. failed to reach any clear conclusions."], correctAnswer: "C", explanation: "Susie states the study failed to reach any definite conclusions.", passageEvidence: { paragraph: "Part 3", quote: "couldn't really reach any definite conclusions" } },
+            { questionNumber: 24, prompt: "In their last assignment, both students had problems with", options: ["A. statistical analysis.", "B. making an action plan.", "C. self-assessment."], correctAnswer: "C", explanation: "Both students had problems with the self-assessment section in their last assignment.", passageEvidence: { paragraph: "Part 3", quote: "self-assessment section" } }
           ]
         },
         {
-          id: "c16-l2-qg5",
-          type: "multiple_choice_multi",
-          title: "Questions 26 – 30",
-          instructions: "Choose FIVE letters, A – H. Which FIVE advantages of agricultural drones are discussed?",
+          id: "c16-l2-qg6",
+          type: "note_completion",
+          title: "Questions 25 – 30",
+          instructions: "Complete the flow-chart below. Write ONE WORD ONLY for each answer.",
+          summaryTitle: "Assignment plan",
+          wordLimitRule: "ONE WORD ONLY",
+          clozeTemplate: `
+Assignment plan
+Decide on research question:
+Is there a relationship between hours of sleep and number of dreams?
+↓
+Decide on sample:
+Twelve students from the {{25}} department
+↓
+Decide on methodology:
+Self-reporting
+↓
+Decide on procedure:
+Answers on {{26}}
+↓
+Check ethical guidelines for working with {{27}}
+Ensure that risk is assessed and {{28}} is kept to a minimum
+↓
+Analyse the results
+Calculate the correlation and make a {{29}}
+↓
+{{30}} the research
+          `,
           questions: [
-            { questionNumber: 26, prompt: "Advantage 1", options: ["A. Reduced pesticide soil contamination", "B. Early soil moisture mapping", "C. Zero battery carbon emissions", "D. Ability to inspect steep hill terrain", "E. Identification of weed patches", "F. Complete replacement of human agronomists", "G. 24-hour continuous nighttime harvesting", "H. Accurate yield volume estimation"], correctAnswer: "A", explanation: "Minimizing chemical pesticides reduces soil contamination.", passageEvidence: { paragraph: "Part 3", quote: "soil contamination" } },
-            { questionNumber: 27, prompt: "Advantage 2", options: ["A. Reduced pesticide soil contamination", "B. Early soil moisture mapping", "C. Zero battery carbon emissions", "D. Ability to inspect steep hill terrain", "E. Identification of weed patches", "F. Complete replacement of human agronomists", "G. 24-hour continuous nighttime harvesting", "H. Accurate yield volume estimation"], correctAnswer: "B", explanation: "Moisture mapping optimizes irrigation cycles.", passageEvidence: { paragraph: "Part 3", quote: "moisture mapping" } },
-            { questionNumber: 28, prompt: "Advantage 3", options: ["A. Reduced pesticide soil contamination", "B. Early soil moisture mapping", "C. Zero battery carbon emissions", "D. Ability to inspect steep hill terrain", "E. Identification of weed patches", "F. Complete replacement of human agronomists", "G. 24-hour continuous nighttime harvesting", "H. Accurate yield volume estimation"], correctAnswer: "D", explanation: "Drones easily survey steep and inaccessible hillsides.", passageEvidence: { paragraph: "Part 3", quote: "steep hill terrain" } },
-            { questionNumber: 29, prompt: "Advantage 4", options: ["A. Reduced pesticide soil contamination", "B. Early soil moisture mapping", "C. Zero battery carbon emissions", "D. Ability to inspect steep hill terrain", "E. Identification of weed patches", "F. Complete replacement of human agronomists", "G. 24-hour continuous nighttime harvesting", "H. Accurate yield volume estimation"], correctAnswer: "E", explanation: "Weed patches are pinpointed for micro-herbicide delivery.", passageEvidence: { paragraph: "Part 3", quote: "weed patches" } },
-            { questionNumber: 30, prompt: "Advantage 5", options: ["A. Reduced pesticide soil contamination", "B. Early soil moisture mapping", "C. Zero battery carbon emissions", "D. Ability to inspect steep hill terrain", "E. Identification of weed patches", "F. Complete replacement of human agronomists", "G. 24-hour continuous nighttime harvesting", "H. Accurate yield volume estimation"], correctAnswer: "H", explanation: "Yield volume estimation allows forward contract marketing.", passageEvidence: { paragraph: "Part 3", quote: "yield estimation" } }
+            { questionNumber: 25, prompt: "Twelve students from the [ 25 ] department", correctAnswer: "history", explanation: "Susie suggests recruiting 12 students from the history department.", passageEvidence: { paragraph: "Part 3", quote: "history department" } },
+            { questionNumber: 26, prompt: "Answers on [ 26 ]", correctAnswer: "paper", explanation: "Susie: 'Let's get them to write their answers on paper.'", passageEvidence: { paragraph: "Part 3", quote: "answers on paper" } },
+            { questionNumber: 27, prompt: "Check ethical guidelines for working with [ 27 ]", correctAnswer: "humans", acceptedVariants: ["people"], explanation: "Luke: 'check the ethical guidelines for working with humans.'", passageEvidence: { paragraph: "Part 3", quote: "working with humans" } },
+            { questionNumber: 28, prompt: "Ensure that risk is assessed and [ 28 ] is kept to a minimum", correctAnswer: "stress", explanation: "Susie: 'make sure that any risk is assessed and that stress is kept to a minimum.'", passageEvidence: { paragraph: "Part 3", quote: "stress is kept to a minimum" } },
+            { questionNumber: 29, prompt: "Calculate the correlation and make a [ 29 ]", correctAnswer: "graph", explanation: "Luke: 'calculate the correlation... and make a graph.'", passageEvidence: { paragraph: "Part 3", quote: "make a graph" } },
+            { questionNumber: 30, prompt: "[ 30 ] the research", correctAnswer: "evaluate", explanation: "Susie: 'the final step will be to evaluate the research.'", passageEvidence: { paragraph: "Part 3", quote: "evaluate the research" } }
           ]
         }
       ]
@@ -1760,46 +1856,62 @@ Payment method: Company {10} card
     {
       sectionNumber: 4,
       title: "Listening Part 4",
-      subtitle: "The Historical Importance of Salt",
-      audioUrl: "/audio/cam18-test2-part4.mp3",
+      subtitle: "Health benefits of dance",
+      audioUrl: "/audio/cam16-test2-part4.mp3",
       transcript: `
-        HISTORIAN: Good morning. Today we examine how a simple mineral—sodium chloride, or common salt—shaped human civilization and world empires. Before refrigeration, salt was humanity\'s primary means of preserving food, especially fish and meat for winter survival. Roman soldiers were famously paid an allowance called a 'salarium', which gave rise to our modern English word 'salary'. In ancient China, state monopolies on salt production financed the construction of the Great Wall. In 18th-century France, an exorbitant tax on salt called the 'gabelle' stoked immense popular outrage, becoming one of the direct catalysts of the French Revolution.
+        Today we're going to look at the health benefits of dance.
+        Recent findings show that dance has wide-ranging benefits. An experiment on university students suggested that dance increases creativity. Furthermore, for those suffering from mental illness, researchers suggest dance could be used as a form of therapy.
+        There are specific benefits of dance for older people:
+        - First, it is accessible for people with low levels of fitness.
+        - It reduces the risk of heart disease.
+        - Better balance reduces the risk of accidents and falls.
+        - It improves brain function by making it work faster.
+        - It improves participants' general well-being and gives people more motivation to take exercise.
+        - Socially, dancing in groups can lessen the feeling of isolation, which is very common in older people.
+        Let's also look at the benefits of Zumba:
+        - A study at The University of Wisconsin showed that doing Zumba for 40 minutes uses up as many calories as other quite intense forms of exercise.
+        - The American Journal of Health Behavior study showed that women suffering from obesity benefited from doing Zumba, and Zumba became a habit for the participants.
       `,
       questionGroups: [
         {
-          id: "c16-l2-qg6",
-          type: "sentence_completion",
+          id: "c16-l2-qg7",
+          type: "note_completion",
           title: "Questions 31 – 40",
           instructions: "Complete the notes below. Write ONE WORD ONLY for each answer.",
-          summaryTitle: "The History of Salt in Civilization",
+          summaryTitle: "Health benefits of dance",
           wordLimitRule: "ONE WORD ONLY",
           clozeTemplate: `
-Ancient Era:
-• Prior to refrigeration, salt was essential to {31} meat and fish
-• Early trade routes were established specifically for salt {32}
-Roman Empire:
-• Roman legionaries received a salt allowance termed a {33}
-• This Latin word is the etymological origin of the word {34}
-• The Via Salaria was an important Roman {35} constructed to move salt inland
-Imperial China:
-• State revenue from salt financed the building of the {36} Wall
-• Government salt monopolies accounted for over half of state {37}
-Europe and Revolution:
-• In France, an intensely hated salt tax called the {38} provoked civil unrest
-• Anger over salt contributed directly to the outbreak of the French {39}
-• In 1930, Mahatma Gandhi led the historic Salt {40} in India to protest British colonial taxes
+Health benefits of dance
+Recent findings:
+• All forms of dance produce various hormones associated with feelings of happiness.
+• Dancing with others has a more positive impact than dancing alone.
+• An experiment on university students suggested that dance increases {{31}}.
+• For those with mental illness, dance could be used as a form of {{32}}.
+Benefits of dance for older people:
+• accessible for people with low levels of {{33}}
+• reduces the risk of heart disease
+• better {{34}} reduces the risk of accidents
+• improves {{35}} function by making it work faster
+• improves participants' general well-being
+• gives people more {{36}} to take exercise
+• can lessen the feeling of {{37}}, very common in older people
+Benefits of Zumba:
+• A study at The University of Wisconsin showed that doing Zumba for 40 minutes uses up as many {{38}} as other quite intense forms of exercise.
+• The American Journal of Health Behavior study showed that:
+  – women suffering from {{39}} benefited from doing Zumba.
+  – Zumba became a {{40}} for the participants.
           `,
           questions: [
-            { questionNumber: 31, prompt: "Salt was essential to [ 31 ] meat and fish", correctAnswer: "preserve", acceptedVariants: ["preserving"], explanation: "Historian: 'primary means of preserving food, especially fish and meat.'", passageEvidence: { paragraph: "Part 4", quote: "preserving food" } },
-            { questionNumber: 32, prompt: "Early trade routes were established for salt [ 32 ]", correctAnswer: "transport", acceptedVariants: ["trade"], explanation: "Historian notes early trade routes moved salt to inland communities.", passageEvidence: { paragraph: "Part 4", quote: "trade routes" } },
-            { questionNumber: 33, prompt: "Roman legionaries received an allowance called a [ 33 ]", correctAnswer: "salarium", explanation: "Historian: 'paid an allowance called a salarium.'", passageEvidence: { paragraph: "Part 4", quote: "allowance called a salarium" } },
-            { questionNumber: 34, prompt: "This Latin word is the origin of the word [ 34 ]", correctAnswer: "salary", explanation: "Historian: 'gave rise to our modern English word salary.'", passageEvidence: { paragraph: "Part 4", quote: "word salary" } },
-            { questionNumber: 35, prompt: "The Via Salaria was an important Roman [ 35 ]", correctAnswer: "road", acceptedVariants: ["highway"], explanation: "Historian notes Via Salaria was a historic salt road.", passageEvidence: { paragraph: "Part 4", quote: "Roman road" } },
-            { questionNumber: 36, prompt: "State revenue from salt financed the building of the [ 36 ] Wall", correctAnswer: "Great", explanation: "Historian: 'financed the construction of the Great Wall.'", passageEvidence: { paragraph: "Part 4", quote: "Great Wall" } },
-            { questionNumber: 37, prompt: "Monopolies accounted for over half of state [ 37 ]", correctAnswer: "income", acceptedVariants: ["revenue"], explanation: "Historian confirms salt monopolies provided over half of imperial state revenue.", passageEvidence: { paragraph: "Part 4", quote: "state revenue" } },
-            { questionNumber: 38, prompt: "In France, an intensely hated salt tax called the [ 38 ]", correctAnswer: "gabelle", explanation: "Historian: 'an exorbitant tax on salt called the gabelle.'", passageEvidence: { paragraph: "Part 4", quote: "called the gabelle" } },
-            { questionNumber: 39, prompt: "Contributed directly to the outbreak of the French [ 39 ]", correctAnswer: "Revolution", acceptedVariants: ["revolution"], explanation: "Historian: 'direct catalysts of the French Revolution.'", passageEvidence: { paragraph: "Part 4", quote: "French Revolution" } },
-            { questionNumber: 40, prompt: "Gandhi led the historic Salt [ 40 ] in India", correctAnswer: "March", acceptedVariants: ["march"], explanation: "Historian: 'Mahatma Gandhi led the historic Salt March.'", passageEvidence: { paragraph: "Part 4", quote: "Salt March" } }
+            { questionNumber: 31, prompt: "An experiment on university students suggested that dance increases [ 31 ].", correctAnswer: "creativity", explanation: "Lecturer: 'An experiment on university students suggested that dance increases creativity.'", passageEvidence: { paragraph: "Part 4", quote: "increases creativity" } },
+            { questionNumber: 32, prompt: "For those with mental illness, dance could be used as a form of [ 32 ].", correctAnswer: "therapy", explanation: "Lecturer: 'dance could be used as a form of therapy.'", passageEvidence: { paragraph: "Part 4", quote: "form of therapy" } },
+            { questionNumber: 33, prompt: "accessible for people with low levels of [ 33 ]", correctAnswer: "fitness", explanation: "Lecturer: 'accessible for people with low levels of fitness.'", passageEvidence: { paragraph: "Part 4", quote: "low levels of fitness" } },
+            { questionNumber: 34, prompt: "better [ 34 ] reduces the risk of accidents", correctAnswer: "balance", explanation: "Lecturer: 'Better balance reduces the risk of accidents.'", passageEvidence: { paragraph: "Part 4", quote: "Better balance" } },
+            { questionNumber: 35, prompt: "improves [ 35 ] function by making it work faster", correctAnswer: "brain", explanation: "Lecturer: 'improves brain function by making it work faster.'", passageEvidence: { paragraph: "Part 4", quote: "improves brain function" } },
+            { questionNumber: 36, prompt: "gives people more [ 36 ] to take exercise", correctAnswer: "motivation", explanation: "Lecturer: 'gives people more motivation to take exercise.'", passageEvidence: { paragraph: "Part 4", quote: "more motivation" } },
+            { questionNumber: 37, prompt: "can lessen the feeling of [ 37 ], very common in older people", correctAnswer: "isolation", explanation: "Lecturer: 'lessen the feeling of isolation, which is very common in older people.'", passageEvidence: { paragraph: "Part 4", quote: "feeling of isolation" } },
+            { questionNumber: 38, prompt: "doing Zumba for 40 minutes uses up as many [ 38 ] as other quite intense forms of exercise.", correctAnswer: "calories", explanation: "Lecturer: 'uses up as many calories as other quite intense forms of exercise.'", passageEvidence: { paragraph: "Part 4", quote: "as many calories" } },
+            { questionNumber: 39, prompt: "women suffering from [ 39 ] benefited from doing Zumba.", correctAnswer: "obesity", explanation: "Lecturer: 'women suffering from obesity benefited from doing Zumba.'", passageEvidence: { paragraph: "Part 4", quote: "suffering from obesity" } },
+            { questionNumber: 40, prompt: "Zumba became a [ 40 ] for the participants.", correctAnswer: "habit", explanation: "Lecturer: 'Zumba became a habit for the participants.'", passageEvidence: { paragraph: "Part 4", quote: "became a habit" } }
           ]
         }
       ]
@@ -2244,50 +2356,75 @@ export const cambridge16Test3Listening: IELTSMockTest = {
   module: "listening",
   title: "Cambridge 16 Academic Listening Test 3",
   durationMinutes: 35,
-  audioUrl: "/audio/cam18-test3-part1.mp3",
+  audioUrl: "/audio/cam16-test3-part1.mp3",
   sections: [
     {
       sectionNumber: 1,
       title: "Listening Part 1",
-      subtitle: "Employment Agency Application",
-      audioUrl: "/audio/cam18-test3-part1.mp3",
+      subtitle: "Junior Cycle Camp",
+      audioUrl: "/audio/cam16-test3-part1.mp3",
       transcript: `
-        AGENT: Good morning, City Recruit. How can I assist you?
-        APPLICANT: Hello, I\'d like to register for temporary office administration work.
-        AGENT: Fantastic. Let me take your contact details and qualifications.
+        JAKE: Hello, Junior Cycle camp, Jake speaking.
+        WOMAN: Hi. I'm calling for some information about the cycle camp – I'm thinking of sending my son.
+        JAKE: Great. Well, it's held every weekday morning over the summer vacation and we focus on basic cycling skills and safety. We have eight levels for children from three years upwards. How old's your son?
+        WOMAN: Charlie? He's seven. He can ride a bike, but he needs a little more training before he's safe to go on the road.
+        JAKE: He'd probably be best in Level 5. They start off practising on the site here, and we aim to get them riding on the road, but first they're taken to ride in the park, away from the traffic.
+        WOMAN: Right. And can you tell me a bit about the instructors?
+        JAKE: Well, all our staff wear different coloured shirts. So, we have three supervisors, and they have red shirts. Then the instructors themselves are in blue shirts, and one of these is responsible for each class. In order to be accepted, all our instructors have to submit a reference from someone who's seen them work with children.
+        WOMAN: Right. And tell me a bit about the classes.
+        JAKE: We have a limit of eight children in each class. They're out riding most of the time but they have quiet times too, where their instructor might tell them a story that's got something to do with cycling, or get them to play a game together.
+        WOMAN: Now, what happens if there's rain? Do the classes still run?
+        JAKE: Oh yes. We don't let that put us off – we just put on our waterproofs and keep cycling.
+        WOMAN: And is there anything special Charlie should bring along with him?
+        JAKE: Well, maybe some spare clothes, and a snack for break time. Make sure he has shoes, not sandals.
+        WOMAN: Sure. And just at present Charlie has to take medication every few hours, so I'll make sure he has that.
+        JAKE: Absolutely. Now, on Day 1 you should aim to get Charlie here by 9.20. We have a very careful check to make sure that every child's helmet fits properly. Then after that, all the instructors will be waiting to meet their classes, and they'll meet up in the tent.
+        WOMAN: Now can you tell me how much the camp costs a week?
+        JAKE: One hundred ninety-nine dollars.
       `,
       questionGroups: [
         {
           id: "c16-l3-qg1",
-          type: "form_completion",
+          type: "note_completion",
           title: "Questions 1 – 10",
           instructions: "Complete the notes below. Write ONE WORD AND/OR A NUMBER for each answer.",
-          summaryTitle: "Temporary Employment Registration",
+          summaryTitle: "JUNIOR CYCLE CAMP",
           wordLimitRule: "ONE WORD AND/OR A NUMBER",
           clozeTemplate: `
-City Recruit Employment Agency:
-Applicant name: David {1}
-Contact phone: 07700 {2}
-Preferred work role: Office {3}
-Typing speed: {4} words per minute
-Available start date: {5} of November
-Location preference: Central {6}
-Transport: Travels by {7}
-Desired hourly rate: £{8} per hour
-Background check: Has valid {9} certificate
-Referee name: Sarah {10} (Previous Office Manager)
+JUNIOR CYCLE CAMP
+The course focuses on skills and safety
+• Charlie would be placed in Level 5.
+• First of all, children at this level are taken to practise in a {{1}}.
+Instructors
+• Instructors wear {{2}} shirts.
+• A {{3}} is required and training is given.
+Classes
+• The size of the classes is limited.
+• There are quiet times during the morning for a {{4}} or a game.
+• Classes are held even if there is {{5}}.
+What to bring
+• a change of clothing
+• a {{6}}
+• shoes (not sandals)
+• Charlie's {{7}}
+Day 1
+• Charlie should arrive at 9.20 am on the first day.
+• Before the class, his {{8}} will be checked.
+• He should then go to the {{9}} to meet his class instructor.
+Cost
+• The course costs \${{10}} per week.
           `,
           questions: [
-            { questionNumber: 1, prompt: "Applicant name: David [ 1 ]", correctAnswer: "Morley", acceptedVariants: ["morley"], explanation: "Applicant: David Morley.", passageEvidence: { paragraph: "Part 1", quote: "David Morley" } },
-            { questionNumber: 2, prompt: "Contact phone: 07700 [ 2 ]", correctAnswer: "900452", explanation: "Applicant gives phone number.", passageEvidence: { paragraph: "Part 1", quote: "900452" } },
-            { questionNumber: 3, prompt: "Preferred work role: Office [ 3 ]", correctAnswer: "administrator", acceptedVariants: ["administration"], explanation: "Applicant requests office administration roles.", passageEvidence: { paragraph: "Part 1", quote: "office administrator" } },
-            { questionNumber: 4, prompt: "Typing speed: [ 4 ] words per minute", correctAnswer: "65", explanation: "Applicant types 65 wpm.", passageEvidence: { paragraph: "Part 1", quote: "65 words" } },
-            { questionNumber: 5, prompt: "Available start date: [ 5 ] of November", correctAnswer: "12th", acceptedVariants: ["12"], explanation: "Available from the 12th of November.", passageEvidence: { paragraph: "Part 1", quote: "12th of November" } },
-            { questionNumber: 6, prompt: "Location preference: Central [ 6 ]", correctAnswer: "London", acceptedVariants: ["london"], explanation: "Prefers Central London placements.", passageEvidence: { paragraph: "Part 1", quote: "Central London" } },
-            { questionNumber: 7, prompt: "Transport: Travels by [ 7 ]", correctAnswer: "train", acceptedVariants: ["metro"], explanation: "Commutes via train.", passageEvidence: { paragraph: "Part 1", quote: "by train" } },
-            { questionNumber: 8, prompt: "Desired hourly rate: £ [ 8 ] per hour", correctAnswer: "14", acceptedVariants: ["14.50"], explanation: "Target wage is 14 pounds an hour.", passageEvidence: { paragraph: "Part 1", quote: "14 pounds" } },
-            { questionNumber: 9, prompt: "Background check: Has valid [ 9 ] certificate", correctAnswer: "DBS", acceptedVariants: ["police"], explanation: "Holds clear DBS background check.", passageEvidence: { paragraph: "Part 1", quote: "DBS certificate" } },
-            { questionNumber: 10, prompt: "Referee name: Sarah [ 10 ]", correctAnswer: "Jenkins", acceptedVariants: ["jenkins"], explanation: "Former manager Sarah Jenkins.", passageEvidence: { paragraph: "Part 1", quote: "Sarah Jenkins" } }
+            { questionNumber: 1, prompt: "First of all, children at this level are taken to practise in a [ 1 ].", correctAnswer: "park", explanation: "Jake: 'first they're taken to ride in the park, away from the traffic.'", passageEvidence: { paragraph: "Part 1", quote: "ride in the park" } },
+            { questionNumber: 2, prompt: "Instructors wear [ 2 ] shirts.", correctAnswer: "blue", explanation: "Jake: 'the instructors themselves are in blue shirts.'", passageEvidence: { paragraph: "Part 1", quote: "blue shirts" } },
+            { questionNumber: 3, prompt: "A [ 3 ] is required and training is given.", correctAnswer: "reference", explanation: "Jake: 'all our instructors have to submit a reference.'", passageEvidence: { paragraph: "Part 1", quote: "submit a reference" } },
+            { questionNumber: 4, prompt: "There are quiet times during the morning for a [ 4 ] or a game.", correctAnswer: "story", explanation: "Jake: 'their instructor might tell them a story... or get them to play a game.'", passageEvidence: { paragraph: "Part 1", quote: "tell them a story" } },
+            { questionNumber: 5, prompt: "Classes are held even if there is [ 5 ].", correctAnswer: "rain", explanation: "Woman: 'what happens if there's rain? Do the classes still run?' Jake: 'Oh yes.'", passageEvidence: { paragraph: "Part 1", quote: "if there's rain" } },
+            { questionNumber: 6, prompt: "a [ 6 ]", correctAnswer: "snack", explanation: "Jake: 'And a snack for break time.'", passageEvidence: { paragraph: "Part 1", quote: "a snack" } },
+            { questionNumber: 7, prompt: "Charlie's [ 7 ]", correctAnswer: "medication", acceptedVariants: ["medicine"], explanation: "Woman: 'Charlie has to take medication every few hours, so I'll make sure he has that.'", passageEvidence: { paragraph: "Part 1", quote: "medication" } },
+            { questionNumber: 8, prompt: "Before the class, his [ 8 ] will be checked.", correctAnswer: "helmet", explanation: "Jake: 'make sure that every child's helmet fits properly.'", passageEvidence: { paragraph: "Part 1", quote: "child's helmet" } },
+            { questionNumber: 9, prompt: "He should then go to the [ 9 ] to meet his class instructor.", correctAnswer: "tent", explanation: "Jake: 'they'll meet up in the tent.'", passageEvidence: { paragraph: "Part 1", quote: "in the tent" } },
+            { questionNumber: 10, prompt: "The course costs $[ 10 ] per week.", correctAnswer: "199", explanation: "Jake: 'One hundred ninety-nine dollars.'", passageEvidence: { paragraph: "Part 1", quote: "One hundred ninety-nine dollars" } }
           ]
         }
       ]
@@ -2295,34 +2432,96 @@ Referee name: Sarah {10} (Previous Office Manager)
     {
       sectionNumber: 2,
       title: "Listening Part 2",
-      subtitle: "Sports Club Renovation",
-      audioUrl: "/audio/cam18-test3-part1.mp3",
-      transcript: `CLUB MANAGER: Welcome club members! Today we announce our multi-million pound renovation...`,
+      subtitle: "Recruitment in the Agriculture and Horticulture Sectors",
+      audioUrl: "/audio/cam16-test3-part2.mp3",
+      transcript: `
+        Hello everyone. My name's Megan Baker and I'm a recruitment consultant at AVT Recruitment specialists.
+        Our company specialises in positions that involve working in the agriculture and horticulture sectors. For a start, they often offer opportunities for those who don't want to be stuck with a 40-hour week, but need to juggle work with other responsibilities such as child care. And there are certainly health benefits, especially in jobs where you're not sitting all day looking at a screen – a big plus for many people.
+        Of course, working outdoors does have its challenges. It's fine in summer, but can be extremely unpleasant when it's cold and windy. And if you like a lively city environment surrounded by lots of people, these jobs are probably not for you – they're often in pretty remote areas.
+        Now let me tell you about some of the exciting jobs that we have on our books right now.
+        One is for a fresh food commercial manager. The staff there work hard, but they play hard as well, so if you've a sociable personality this may be for you.
+        We have an exciting post as an agronomist advising farmers. There are good opportunities for the right person to quickly make their way up the career ladder.
+        A leading supermarket is looking for a fresh produce buyer who is available for a 12-month maternity cover contract.
+        We have also received a request for a sales manager for a chain of garden centres. You will be visiting centres in the region to ensure their high levels of customer service are maintained.
+        There is also a vacancy for a tree technician. A year's experience would be preferred but the company might be prepared to consider someone who has just completed an appropriate training course.
+        Finally, we have a position for a farm worker. Perks of the job include the possibility of renting a small cottage on the estate.
+      `,
       questionGroups: [
         {
           id: "c16-l3-qg2",
-          type: "multiple_choice",
-          title: "Questions 11 – 15",
-          instructions: "Choose the correct letter, A, B or C.",
+          type: "multiple_choice_multi",
+          title: "Questions 11 and 12",
+          instructions: "Choose TWO letters, A–E.",
           questions: [
-            { questionNumber: 11, prompt: "What major new sports feature is being added?", options: ["A. Olympic diving pool", "B. Two glass-backed squash courts", "C. Rooftop archery range"], correctAnswer: "B", explanation: "Manager highlights two glass-backed squash courts.", passageEvidence: { paragraph: "Part 2", quote: "squash courts" } },
-            { questionNumber: 12, prompt: "How will disabled access be improved?", options: ["A. Free shuttle golf carts", "B. Elevator lift to all floors and ramped entrances", "C. Wider parking bays only"], correctAnswer: "B", explanation: "New elevator lift serves all gym levels.", passageEvidence: { paragraph: "Part 2", quote: "elevator lift" } },
-            { questionNumber: 13, prompt: "What discount applies to family memberships booked before January?", options: ["A. 10% off annual fee", "B. 25% discount plus free guest passes", "C. Free cafeteria vouchers"], correctAnswer: "B", explanation: "Early family bookings receive 25% discount.", passageEvidence: { paragraph: "Part 2", quote: "25% discount" } },
-            { questionNumber: 14, prompt: "What new class is introduced on Monday evenings?", options: ["A. Sunrise pilates", "B. Kettlebell circuit training", "C. Deep water aerobics"], correctAnswer: "B", explanation: "Monday evenings feature kettlebell circuit training.", passageEvidence: { paragraph: "Part 2", quote: "kettlebell circuit training" } },
-            { questionNumber: 15, prompt: "When is the grand opening gala scheduled?", options: ["A. March 15th", "B. April 2nd", "C. May 20th"], correctAnswer: "B", explanation: "Opening gala takes place on April 2nd.", passageEvidence: { paragraph: "Part 2", quote: "April 2nd" } }
+            {
+              questionNumber: 11,
+              prompt: "According to Megan, what are the TWO main advantages of working in the agriculture and horticulture sectors?",
+              options: ["A. the active lifestyle", "B. the above-average salaries", "C. the flexible working opportunities", "D. the opportunities for overseas travel", "E. the chance to be in a natural environment"],
+              correctAnswer: "A",
+              acceptedVariants: ["A", "C"],
+              explanation: "Megan highlights the flexible working hours and the health benefits of not sitting at a screen all day (active lifestyle).",
+              passageEvidence: { paragraph: "Part 2", quote: "juggle work with other responsibilities... health benefits" }
+            },
+            {
+              questionNumber: 12,
+              prompt: "According to Megan, what are the TWO main advantages of working in the agriculture and horticulture sectors?",
+              options: ["A. the active lifestyle", "B. the above-average salaries", "C. the flexible working opportunities", "D. the opportunities for overseas travel", "E. the chance to be in a natural environment"],
+              correctAnswer: "C",
+              acceptedVariants: ["A", "C"],
+              explanation: "Megan highlights the flexible working hours and the health benefits of not sitting at a screen all day (active lifestyle).",
+              passageEvidence: { paragraph: "Part 2", quote: "juggle work with other responsibilities... health benefits" }
+            }
           ]
         },
         {
           id: "c16-l3-qg3",
-          type: "matching_features",
-          title: "Questions 16 – 20",
-          instructions: "Match each facility with its opening hours, A – F.",
+          type: "multiple_choice_multi",
+          title: "Questions 13 and 14",
+          instructions: "Choose TWO letters, A–E.",
           questions: [
-            { questionNumber: 16, prompt: "Cardio suite", options: ["A. 24 hours daily", "B. 6 am to 10 pm", "C. 8 am to 8 pm", "D. Weekends only", "E. 9 am to 5 pm", "F. Evenings from 6 pm"], correctAnswer: "A", explanation: "Cardio suite is open 24 hours daily with keycard.", passageEvidence: { paragraph: "Part 2", quote: "24 hours" } },
-            { questionNumber: 17, prompt: "Swimming pool", options: ["A. 24 hours daily", "B. 6 am to 10 pm", "C. 8 am to 8 pm", "D. Weekends only", "E. 9 am to 5 pm", "F. Evenings from 6 pm"], correctAnswer: "B", explanation: "Pool is open 6 am to 10 pm.", passageEvidence: { paragraph: "Part 2", quote: "6 am to 10 pm" } },
-            { questionNumber: 18, prompt: "Sauna and steam room", options: ["A. 24 hours daily", "B. 6 am to 10 pm", "C. 8 am to 8 pm", "D. Weekends only", "E. 9 am to 5 pm", "F. Evenings from 6 pm"], correctAnswer: "C", explanation: "Spa open 8 am to 8 pm.", passageEvidence: { paragraph: "Part 2", quote: "8 am to 8 pm" } },
-            { questionNumber: 19, prompt: "Juice bar cafe", options: ["A. 24 hours daily", "B. 6 am to 10 pm", "C. 8 am to 8 pm", "D. Weekends only", "E. 9 am to 5 pm", "F. Evenings from 6 pm"], correctAnswer: "E", explanation: "Juice bar operates 9 am to 5 pm.", passageEvidence: { paragraph: "Part 2", quote: "9 am to 5 pm" } },
-            { questionNumber: 20, prompt: "Junior creche", options: ["A. 24 hours daily", "B. 6 am to 10 pm", "C. 8 am to 8 pm", "D. Weekends only", "E. 9 am to 5 pm", "F. Evenings from 6 pm"], correctAnswer: "E", explanation: "Creche available 9 am to 5 pm.", passageEvidence: { paragraph: "Part 2", quote: "creche 9 am to 5 pm" } }
+            {
+              questionNumber: 13,
+              prompt: "Which TWO of the following are likely to be disadvantages for people working outdoors?",
+              options: ["A. the increasing risk of accidents", "B. being in a very quiet location", "C. difficult weather conditions at times", "D. the cost of housing", "E. the level of physical fitness required"],
+              correctAnswer: "B",
+              acceptedVariants: ["B", "C"],
+              explanation: "Megan notes it can be unpleasant when cold and windy (weather) and jobs are often in remote areas away from lively cities (quiet location).",
+              passageEvidence: { paragraph: "Part 2", quote: "cold and windy... pretty remote areas" }
+            },
+            {
+              questionNumber: 14,
+              prompt: "Which TWO of the following are likely to be disadvantages for people working outdoors?",
+              options: ["A. the increasing risk of accidents", "B. being in a very quiet location", "C. difficult weather conditions at times", "D. the cost of housing", "E. the level of physical fitness required"],
+              correctAnswer: "C",
+              acceptedVariants: ["B", "C"],
+              explanation: "Megan notes it can be unpleasant when cold and windy (weather) and jobs are often in remote areas away from lively cities (quiet location).",
+              passageEvidence: { paragraph: "Part 2", quote: "cold and windy... pretty remote areas" }
+            }
+          ]
+        },
+        {
+          id: "c16-l3-qg4",
+          type: "matching_features",
+          title: "Questions 15 – 20",
+          instructions: "What information does Megan give about each of the following job opportunities? Choose SIX answers from the box and write the correct letter, A–H, next to Questions 15–20.",
+          summaryTitle: "Information",
+          options: [
+            "A. not a permanent job",
+            "B. involves leading a team",
+            "C. experience not essential",
+            "D. intensive work but also fun",
+            "E. chance to earn more through overtime",
+            "F. chance for rapid promotion",
+            "G. accommodation available",
+            "H. local travel involved"
+          ],
+          questions: [
+            { questionNumber: 15, prompt: "Fresh food commercial manager", options: ["A. not a permanent job", "B. involves leading a team", "C. experience not essential", "D. intensive work but also fun", "E. chance to earn more through overtime", "F. chance for rapid promotion", "G. accommodation available", "H. local travel involved"], correctAnswer: "D", explanation: "The staff work hard, but they play hard as well.", passageEvidence: { paragraph: "Part 2", quote: "work hard, but they play hard" } },
+            { questionNumber: 16, prompt: "Agronomist", options: ["A. not a permanent job", "B. involves leading a team", "C. experience not essential", "D. intensive work but also fun", "E. chance to earn more through overtime", "F. chance for rapid promotion", "G. accommodation available", "H. local travel involved"], correctAnswer: "F", explanation: "Good opportunities to quickly make their way up the career ladder.", passageEvidence: { paragraph: "Part 2", quote: "quickly make their way up the career ladder" } },
+            { questionNumber: 17, prompt: "Fresh produce buyer", options: ["A. not a permanent job", "B. involves leading a team", "C. experience not essential", "D. intensive work but also fun", "E. chance to earn more through overtime", "F. chance for rapid promotion", "G. accommodation available", "H. local travel involved"], correctAnswer: "A", explanation: "Available for a 12-month maternity cover contract.", passageEvidence: { paragraph: "Part 2", quote: "12-month maternity cover contract" } },
+            { questionNumber: 18, prompt: "Garden centre sales manager", options: ["A. not a permanent job", "B. involves leading a team", "C. experience not essential", "D. intensive work but also fun", "E. chance to earn more through overtime", "F. chance for rapid promotion", "G. accommodation available", "H. local travel involved"], correctAnswer: "H", explanation: "Visiting centres in the region.", passageEvidence: { paragraph: "Part 2", quote: "visiting centres in the region" } },
+            { questionNumber: 19, prompt: "Tree technician", options: ["A. not a permanent job", "B. involves leading a team", "C. experience not essential", "D. intensive work but also fun", "E. chance to earn more through overtime", "F. chance for rapid promotion", "G. accommodation available", "H. local travel involved"], correctAnswer: "C", explanation: "Company might consider someone who has just completed an appropriate training course.", passageEvidence: { paragraph: "Part 2", quote: "just completed an appropriate training course" } },
+            { questionNumber: 20, prompt: "Farm worker", options: ["A. not a permanent job", "B. involves leading a team", "C. experience not essential", "D. intensive work but also fun", "E. chance to earn more through overtime", "F. chance for rapid promotion", "G. accommodation available", "H. local travel involved"], correctAnswer: "G", explanation: "Possibility of renting a small cottage on the estate.", passageEvidence: { paragraph: "Part 2", quote: "renting a small cottage" } }
           ]
         }
       ]
@@ -2330,34 +2529,83 @@ Referee name: Sarah {10} (Previous Office Manager)
     {
       sectionNumber: 3,
       title: "Listening Part 3",
-      subtitle: "Remote Island Renewable Energy Systems",
-      audioUrl: "/audio/cam18-test3-part1.mp3",
-      transcript: `PROFESSOR: Today we review Emma and Daniel\'s engineering thesis on microgrids for Scottish islands...`,
+      subtitle: "Presentation on diet and obesity",
+      audioUrl: "/audio/cam16-test3-part3.mp3",
+      transcript: `
+        ADAM: OK Rosie, shall we try to get some ideas together for our presentation on diet and obesity? I can talk about the experiment I did on artificial sweeteners. It took me ages to decide how I could make sure that people didn't know which drink I was giving them. And it was hard to keep track of it all, especially as I had so many people doing it.
+        ROSIE: Then there's that experiment I did measuring the fat content of nuts. I think I should probably have ground up the nuts more than I did. It's possible that the scales for weighing the fat weren't accurate enough, too.
+        ADAM: So what can we say about helping people to lose weight? I read that the items at the start and end of a menu are much more likely to be chosen. So if you put the low-calorie items at the beginning and end of the menu, people will probably go for the food with fewer calories.
+        ROSIE: And when manufacturers put calorie counts of a food on the label, they're sometimes really confusing and I suspect they do it on purpose.
+        ADAM: Yeah, they'll give you the calories per quarter pizza.
+        ROSIE: In England, about 40% of men and 30% of women say they do the recommended exercise, but when you objectively measure with motion sensors, only 6% of men and 4% of women do.
+        ADAM: Think of the location and width of stairs in a train station – minor modifications in their environment can influence people's behaviour. But actually, I'm not sure if we should be talking about exercise in our presentation. Our tutor did say we need to focus on nutrition.
+        ROSIE: I suppose so. Let's think about what we're going to include and what will go where. Then we can decide what slides we need.
+      `,
       questionGroups: [
-        {
-          id: "c16-l3-qg4",
-          type: "multiple_choice",
-          title: "Questions 21 – 25",
-          instructions: "Choose the correct letter, A, B or C.",
-          questions: [
-            { questionNumber: 21, prompt: "Why are diesel generators unsustainable for remote Scottish islands?", options: ["A. Island roads cannot support fuel tankers.", "B. High transport shipping costs and greenhouse gas emissions.", "C. Diesel engines freeze in winter."], correctAnswer: "B", explanation: "Shipping diesel causes high costs and emissions.", passageEvidence: { paragraph: "Part 3", quote: "high transport shipping costs" } },
-            { questionNumber: 22, prompt: "What renewable resource provides the most consistent baseline on the island?", options: ["A. Solar photovoltaic panels", "B. Tidal stream turbines", "C. Biomass straw burning"], correctAnswer: "B", explanation: "Tidal stream turbines offer predictable power.", passageEvidence: { paragraph: "Part 3", quote: "tidal stream turbines" } },
-            { questionNumber: 23, prompt: "What technology is proposed to buffer intermittent wind gusts?", options: ["A. Lithium iron phosphate battery banks", "B. Coal backup generators", "C. Wooden waterwheels"], correctAnswer: "A", explanation: "Lithium iron phosphate batteries store surplus wind.", passageEvidence: { paragraph: "Part 3", quote: "battery banks" } },
-            { questionNumber: 24, prompt: "What local opposition did the project encounter initially?", options: ["A. Concerns about turbine noise and bird migration routes", "B. Demands for lower electricity taxes", "C. Religious bans on wind power"], correctAnswer: "A", explanation: "Residents worried about bird strikes and noise.", passageEvidence: { paragraph: "Part 3", quote: "noise and bird migration" } },
-            { questionNumber: 25, prompt: "What economic benefit will the island co-operative gain?", options: ["A. Selling surplus clean power back to the mainland national grid", "B. Free electric sports cars for all families", "C. Becoming a tax-free international port"], correctAnswer: "A", explanation: "Surplus electricity is exported to the mainland.", passageEvidence: { paragraph: "Part 3", quote: "selling surplus clean power" } }
-          ]
-        },
         {
           id: "c16-l3-qg5",
           type: "multiple_choice_multi",
-          title: "Questions 26 – 30",
-          instructions: "Choose FIVE letters, A – H. Which FIVE components make up the proposed microgrid?",
+          title: "Questions 21 and 22",
+          instructions: "Choose TWO letters, A–E.",
           questions: [
-            { questionNumber: 26, prompt: "Component 1", options: ["A. Wind turbines", "B. Tidal stream generators", "C. Nuclear reactor", "D. Smart inverters", "E. Battery storage facility", "F. Underground cabling", "G. Geothermal deep wells", "H. Biomass plant"], correctAnswer: "A", explanation: "Offshore wind turbines.", passageEvidence: { paragraph: "Part 3", quote: "wind turbines" } },
-            { questionNumber: 27, prompt: "Component 2", options: ["A. Wind turbines", "B. Tidal stream generators", "C. Nuclear reactor", "D. Smart inverters", "E. Battery storage facility", "F. Underground cabling", "G. Geothermal deep wells", "H. Biomass plant"], correctAnswer: "B", explanation: "Tidal stream generators.", passageEvidence: { paragraph: "Part 3", quote: "tidal stream generators" } },
-            { questionNumber: 28, prompt: "Component 3", options: ["A. Wind turbines", "B. Tidal stream generators", "C. Nuclear reactor", "D. Smart inverters", "E. Battery storage facility", "F. Underground cabling", "G. Geothermal deep wells", "H. Biomass plant"], correctAnswer: "D", explanation: "Smart digital inverters.", passageEvidence: { paragraph: "Part 3", quote: "smart inverters" } },
-            { questionNumber: 29, prompt: "Component 4", options: ["A. Wind turbines", "B. Tidal stream generators", "C. Nuclear reactor", "D. Smart inverters", "E. Battery storage facility", "F. Underground cabling", "G. Geothermal deep wells", "H. Biomass plant"], correctAnswer: "E", explanation: "Centralized battery storage.", passageEvidence: { paragraph: "Part 3", quote: "battery storage" } },
-            { questionNumber: 30, prompt: "Component 5", options: ["A. Wind turbines", "B. Tidal stream generators", "C. Nuclear reactor", "D. Smart inverters", "E. Battery storage facility", "F. Underground cabling", "G. Geothermal deep wells", "H. Biomass plant"], correctAnswer: "F", explanation: "Weatherproof underground distribution cabling.", passageEvidence: { paragraph: "Part 3", quote: "underground cabling" } }
+            {
+              questionNumber: 21,
+              prompt: "Which TWO points does Adam make about his experiment on artificial sweeteners?",
+              options: ["A. The results were what he had predicted.", "B. The experiment was simple to set up.", "C. A large sample of people was tested.", "D. The subjects were unaware of what they were drinking.", "E. The test was repeated several times for each person."],
+              correctAnswer: "C",
+              acceptedVariants: ["C", "D"],
+              explanation: "Adam tested a large number of people and ensured they didn't know which drink they were given.",
+              passageEvidence: { paragraph: "Part 3", quote: "people didn't know which drink... so many people doing it" }
+            },
+            {
+              questionNumber: 22,
+              prompt: "Which TWO points does Adam make about his experiment on artificial sweeteners?",
+              options: ["A. The results were what he had predicted.", "B. The experiment was simple to set up.", "C. A large sample of people was tested.", "D. The subjects were unaware of what they were drinking.", "E. The test was repeated several times for each person."],
+              correctAnswer: "D",
+              acceptedVariants: ["C", "D"],
+              explanation: "Adam tested a large number of people and ensured they didn't know which drink they were given.",
+              passageEvidence: { paragraph: "Part 3", quote: "people didn't know which drink... so many people doing it" }
+            }
+          ]
+        },
+        {
+          id: "c16-l3-qg6",
+          type: "multiple_choice_multi",
+          title: "Questions 23 and 24",
+          instructions: "Choose TWO letters, A–E.",
+          questions: [
+            {
+              questionNumber: 23,
+              prompt: "Which TWO problems did Rosie have when measuring the fat content of nuts?",
+              options: ["A. She used the wrong sort of nuts.", "B. She used an unsuitable chemical.", "C. She did not grind the nuts finely enough.", "D. The information on the nut package was incorrect.", "E. The weighing scales may have been unsuitable."],
+              correctAnswer: "C",
+              acceptedVariants: ["C", "E"],
+              explanation: "Rosie says she should have ground the nuts more and the scales for weighing the fat might not have been accurate enough.",
+              passageEvidence: { paragraph: "Part 3", quote: "ground up the nuts more... scales for weighing the fat weren't accurate enough" }
+            },
+            {
+              questionNumber: 24,
+              prompt: "Which TWO problems did Rosie have when measuring the fat content of nuts?",
+              options: ["A. She used the wrong sort of nuts.", "B. She used an unsuitable chemical.", "C. She did not grind the nuts finely enough.", "D. The information on the nut package was incorrect.", "E. The weighing scales may have been unsuitable."],
+              correctAnswer: "E",
+              acceptedVariants: ["C", "E"],
+              explanation: "Rosie says she should have ground the nuts more and the scales for weighing the fat might not have been accurate enough.",
+              passageEvidence: { paragraph: "Part 3", quote: "ground up the nuts more... scales for weighing the fat weren't accurate enough" }
+            }
+          ]
+        },
+        {
+          id: "c16-l3-qg7",
+          type: "multiple_choice",
+          title: "Questions 25 – 30",
+          instructions: "Choose the correct letter, A, B or C.",
+          questions: [
+            { questionNumber: 25, prompt: "Adam suggests that restaurants could reduce obesity if their menus", options: ["A. offered fewer options.", "B. had more low-calorie foods.", "C. were organised in a particular way."], correctAnswer: "C", explanation: "Putting low-calorie items at the beginning and end of the menu.", passageEvidence: { paragraph: "Part 3", quote: "at the beginning and end of the menu" } },
+            { questionNumber: 26, prompt: "The students agree that food manufacturers deliberately", options: ["A. make calorie counts hard to understand.", "B. fail to provide accurate calorie counts.", "C. use ineffective methods to reduce calories."], correctAnswer: "A", explanation: "Calorie counts on labels are confusing on purpose.", passageEvidence: { paragraph: "Part 3", quote: "really confusing and I suspect they do it on purpose" } },
+            { questionNumber: 27, prompt: "What does Rosie say about levels of exercise in England?", options: ["A. The amount recommended is much too low.", "B. Most people overestimate how much they do.", "C. Women now exercise more than they used to."], correctAnswer: "B", explanation: "40% of men and 30% of women claim they do enough, but sensors show only 6% and 4% do.", passageEvidence: { paragraph: "Part 3", quote: "only 6% of men and 4% of women" } },
+            { questionNumber: 28, prompt: "Adam refers to the location and width of stairs in a train station to illustrate", options: ["A. practical changes that can influence people's behaviour.", "B. methods of helping people who have mobility problems.", "C. ways of preventing accidents by controlling crowd movement."], correctAnswer: "A", explanation: "Minor modifications in the environment influence people's behaviour.", passageEvidence: { paragraph: "Part 3", quote: "minor modifications in their environment" } },
+            { questionNumber: 29, prompt: "What do the students agree about including reference to exercise in their presentation?", options: ["A. They should probably leave it out.", "B. They need to do more research on it.", "C. They should discuss this with their tutor."], correctAnswer: "A", explanation: "They agree to leave exercise out and focus on nutrition.", passageEvidence: { paragraph: "Part 3", quote: "not sure if we should be talking about exercise" } },
+            { questionNumber: 30, prompt: "What are the students going to do next for their presentation?", options: ["A. prepare some slides for it", "B. find out how long they have for it", "C. decide on its content and organisation"], correctAnswer: "C", explanation: "Rosie: 'Let's think about what we're going to include and what will go where.'", passageEvidence: { paragraph: "Part 3", quote: "what we're going to include and what will go where" } }
           ]
         }
       ]
@@ -2365,45 +2613,55 @@ Referee name: Sarah {10} (Previous Office Manager)
     {
       sectionNumber: 4,
       title: "Listening Part 4",
-      subtitle: "Ocean Twilight Zone and Deep Sea Biodiversity",
-      audioUrl: "/audio/cam18-test3-part1.mp3",
-      transcript: `MARINE BIOLOGIST: Good morning. Today we venture into the ocean\'s mesopelagic zone, often called the Twilight Zone...`,
+      subtitle: "Hand knitting",
+      audioUrl: "/audio/cam16-test3-part4.mp3",
+      transcript: `
+        Good morning everyone. Today we're going to look at hand knitting.
+        When someone says the word 'knitting' we might well picture an elderly person – a grandmother perhaps – sitting by the fire. Indeed, during the previous decade, it was one of the skills that was predicted to vanish from everyday life. However, interest in knitting classes is rising, and we're also seeing an increase in the sales figures for knitting equipment.
+        Let's consider the benefits. Knitting can be helpful if you're experiencing economic hardship. And the skills you need to get going are really quite basic and the financial outlay is minimal. In a fast-paced world, doing something with our hands releases us from stress.
+        Looking back to early knitting: the earliest pieces of clothing found suggest that most of the items produced were round rather than flat. The very first needles people used were hand carved out of wood and other natural materials, like bone. Ancient people knitted using yarns that were often very rough on the skin.
+        Because knitting was practised in so many parts of the world, regional differences in style developed. And for many centuries, men, women and children took every opportunity to knit, for example, while watching over sheep.
+      `,
       questionGroups: [
         {
-          id: "c16-l3-qg6",
-          type: "sentence_completion",
+          id: "c16-l3-qg8",
+          type: "note_completion",
           title: "Questions 31 – 40",
           instructions: "Complete the notes below. Write ONE WORD ONLY for each answer.",
-          summaryTitle: "The Ocean Mesopelagic Twilight Zone",
+          summaryTitle: "Hand knitting",
           wordLimitRule: "ONE WORD ONLY",
           clozeTemplate: `
-Location and Depth:
-• Extends from 200 metres down to {31} metres beneath the ocean surface
-• Very little {32} penetrates this deep layer
-Living Organisms:
-• Contains up to 90 percent of the world\'s total fish {33}
-• Lanternfish produce light using chemical {34}
-• Bristlemouth fish are estimated to be the most abundant {35} on Earth
-Diel Vertical Migration:
-• Millions of animals migrate upward to feed at {36}
-• This movement is the largest animal {37} on Earth
-• Animals feed on microscopic {38} in surface waters
-Carbon Cycle:
-• Deep sea creatures sequester vast quantities of {39} to the sea floor
-Threats:
-• Commercial deep-sea fishing and seabed mineral {40}
+Hand knitting
+Interest in knitting
+• Knitting has a long history around the world.
+• We imagine someone like a {{31}} knitting.
+• A {{32}} ago, knitting was expected to disappear.
+• The number of knitting classes is now increasing.
+• People are buying more {{33}} for knitting nowadays.
+Benefits of knitting
+• gives support in times of {{34}} difficulty
+• requires only {{35}} skills and little money to start
+• reduces stress in a busy life
+Early knitting
+• The origins are not known.
+• Findings show early knitted items to be {{36}} in shape.
+• The first needles were made of natural materials such as wood and {{37}}.
+• Early yarns felt {{38}} to touch.
+• Wool became the most popular yarn for spinning.
+• Geographical areas had their own {{39}} of knitting.
+• Everyday tasks like looking after {{40}} were done while knitting.
           `,
           questions: [
-            { questionNumber: 31, prompt: "Extends from 200 metres down to [ 31 ] metres", correctAnswer: "1000", acceptedVariants: ["1,000"], explanation: "Biologist: 'down to 1,000 metres.'", passageEvidence: { paragraph: "Part 4", quote: "1,000 metres" } },
-            { questionNumber: 32, prompt: "Very little [ 32 ] penetrates this deep layer", correctAnswer: "sunlight", acceptedVariants: ["light"], explanation: "Biologist notes little sunlight reaches this depth.", passageEvidence: { paragraph: "Part 4", quote: "sunlight" } },
-            { questionNumber: 33, prompt: "Contains 90% of the world\'s total fish [ 33 ]", correctAnswer: "biomass", explanation: "Biologist: 'up to 90 percent of global fish biomass.'", passageEvidence: { paragraph: "Part 4", quote: "fish biomass" } },
-            { questionNumber: 34, prompt: "Lanternfish produce light using [ 34 ]", correctAnswer: "bioluminescence", acceptedVariants: ["photophores"], explanation: "Biologist explains lanternfish use bioluminescence.", passageEvidence: { paragraph: "Part 4", quote: "bioluminescence" } },
-            { questionNumber: 35, prompt: "Bristlemouth fish are the most abundant [ 35 ] on Earth", correctAnswer: "vertebrate", acceptedVariants: ["vertebrates"], explanation: "Biologist: 'most abundant vertebrate on Earth.'", passageEvidence: { paragraph: "Part 4", quote: "abundant vertebrate" } },
-            { questionNumber: 36, prompt: "Millions of animals migrate to feed at [ 36 ]", correctAnswer: "night", explanation: "Biologist: 'migrate upward to feed at night.'", passageEvidence: { paragraph: "Part 4", quote: "feed at night" } },
-            { questionNumber: 37, prompt: "This is the largest animal [ 37 ] on Earth", correctAnswer: "migration", explanation: "Biologist: 'largest animal migration on the planet.'", passageEvidence: { paragraph: "Part 4", quote: "largest migration" } },
-            { questionNumber: 38, prompt: "Animals feed on microscopic [ 38 ] in surface waters", correctAnswer: "plankton", explanation: "Biologist: 'consume phytoplankton and zooplankton.'", passageEvidence: { paragraph: "Part 4", quote: "plankton" } },
-            { questionNumber: 39, prompt: "Deep sea creatures sequester vast quantities of [ 39 ]", correctAnswer: "carbon", explanation: "Biologist: 'sequester millions of tons of carbon.'", passageEvidence: { paragraph: "Part 4", quote: "sequester carbon" } },
-            { questionNumber: 40, prompt: "Threats include commercial fishing and seabed [ 40 ]", correctAnswer: "mining", explanation: "Biologist: 'threatened by deep-sea mineral mining.'", passageEvidence: { paragraph: "Part 4", quote: "mineral mining" } }
+            { questionNumber: 31, prompt: "We imagine someone like a [ 31 ] knitting.", correctAnswer: "grandmother", explanation: "Lecturer: 'picture an elderly person – a grandmother perhaps.'", passageEvidence: { paragraph: "Part 4", quote: "grandmother" } },
+            { questionNumber: 32, prompt: "A [ 32 ] ago, knitting was expected to disappear.", correctAnswer: "decade", explanation: "Lecturer: 'during the previous decade, it was one of the skills that was predicted to vanish.'", passageEvidence: { paragraph: "Part 4", quote: "previous decade" } },
+            { questionNumber: 33, prompt: "People are buying more [ 33 ] for knitting nowadays.", correctAnswer: "equipment", explanation: "Lecturer: 'an increase in the sales figures for knitting equipment.'", passageEvidence: { paragraph: "Part 4", quote: "knitting equipment" } },
+            { questionNumber: 34, prompt: "gives support in times of [ 34 ] difficulty", correctAnswer: "economic", explanation: "Lecturer: 'helpful if you're experiencing economic hardship.'", passageEvidence: { paragraph: "Part 4", quote: "economic hardship" } },
+            { questionNumber: 35, prompt: "requires only [ 35 ] skills and little money to start", correctAnswer: "basic", explanation: "Lecturer: 'the skills you need to get going are really quite basic.'", passageEvidence: { paragraph: "Part 4", quote: "quite basic" } },
+            { questionNumber: 36, prompt: "Findings show early knitted items to be [ 36 ] in shape.", correctAnswer: "round", explanation: "Lecturer: 'most of the items produced were round rather than flat.'", passageEvidence: { paragraph: "Part 4", quote: "round" } },
+            { questionNumber: 37, prompt: "The first needles were made of natural materials such as wood and [ 37 ].", correctAnswer: "bone", explanation: "Lecturer: 'hand carved out of wood and other natural materials, like bone.'", passageEvidence: { paragraph: "Part 4", quote: "like bone" } },
+            { questionNumber: 38, prompt: "Early yarns felt [ 38 ] to touch.", correctAnswer: "rough", explanation: "Lecturer: 'these were often very rough on the skin.'", passageEvidence: { paragraph: "Part 4", quote: "rough on the skin" } },
+            { questionNumber: 39, prompt: "Geographical areas had their own [ 39 ] of knitting.", correctAnswer: "style", acceptedVariants: ["styles"], explanation: "Lecturer: 'regional differences in style developed.'", passageEvidence: { paragraph: "Part 4", quote: "differences in style" } },
+            { questionNumber: 40, prompt: "Everyday tasks like looking after [ 40 ] were done while knitting.", correctAnswer: "sheep", explanation: "Lecturer: 'while watching over sheep.'", passageEvidence: { paragraph: "Part 4", quote: "watching over sheep" } }
           ]
         }
       ]
@@ -2816,52 +3074,66 @@ export const cambridge16Test4Listening: IELTSMockTest = {
   module: "listening",
   title: "Cambridge 16 Academic Listening Test 4",
   durationMinutes: 35,
-  audioUrl: "/audio/cam18-test4-part1.mp3",
+  audioUrl: "/audio/cam16-test4-part1.mp3",
   sections: [
     {
       sectionNumber: 1,
       title: "Listening Part 1",
-      subtitle: "Cottage Holiday Rental Enquiry",
-      audioUrl: "/audio/cam18-test4-part1.mp3",
+      subtitle: "Holiday rental",
+      audioUrl: "/audio/cam16-test4-part1.mp3",
       transcript: `
-        AGENT: Good morning, Coastal Retreats. How can I help you?
-        CALLER: Hello, I\'m looking to book a self-catering holiday cottage in Cornwall for my family.
-        AGENT: Wonderful! When are you planning to visit?
-        CALLER: For one week starting on Saturday the 14th of August.
+        SHIRLEY: Hello?
+        TOM: Oh hello. I was hoping to speak to Jack Fitzgerald about renting a cottage.
+        SHIRLEY: I'm his wife, Shirley, and we own the cottages together, so I'm sure I can help you.
+        TOM: Great. My name's Tom. My wife and I are hoping to come in May for a week to Granary Cottage.
+        SHIRLEY: It's free the week beginning the 28th, though, for seven nights. That's the beginning of high season, so it'd be £550 for the week.
+        TOM: That's a bit more than we wanted to pay.
+        SHIRLEY: Well, we've just finished converting another building into a cottage, which we're calling Chervil Cottage. C-H-E-R-V for Victor I-L. You could have that for the week you want for £480. The building was built as a garage.
+        TOM: Does it have a garden?
+        SHIRLEY: Yes, you get to it from the living room through French doors. And parking isn't a problem – there's plenty of room at the front for that.
+        TOM: What about heating?
+        SHIRLEY: There's central heating, and if you want to light a fire, there's a stove. We can provide all the wood you need for it. There's a famous stone bridge – it's one of the oldest in the region, and you can see it from the living room. The bedroom window looks in the opposite direction, and has a lovely view of the hills and the monument at the top.
+        TOM: I'd like to book it, please. Would you want a deposit?
+        SHIRLEY: Yes, £144. And the rest of the money by the last day of March, please.
       `,
       questionGroups: [
         {
           id: "c16-l4-qg1",
-          type: "form_completion",
+          type: "note_completion",
           title: "Questions 1 – 10",
           instructions: "Complete the notes below. Write ONE WORD AND/OR A NUMBER for each answer.",
-          summaryTitle: "Holiday Rental Reservation Form",
+          summaryTitle: "Holiday rental",
           wordLimitRule: "ONE WORD AND/OR A NUMBER",
           clozeTemplate: `
-Coastal Holiday Reservation:
-Caller surname: {1}
-Contact mobile: 07911 {2}
-Cottage name: Sea {3} Cottage
-Arrival date: Saturday 14th of {4}
-Rental duration: {5} nights
-Number of guests: 4 adults and 2 {6}
-Key features:
-• Enclosed rear {7} suitable for pets
-• Panoramic views of the sandy {8}
-Deposit amount: £{9} paid by debit card
-Key collection: Lockbox code sent via {10}
+Holiday rental
+Owner's names: Jack Fitzgerald and Shirley Fitzgerald
+Granary Cottage
+• available for week beginning {{1}} May
+• cost for the week: £{{2}}
+{{3}} Cottage
+• cost for the week: £480
+• building was originally a {{4}}
+• walk through doors from living room into a {{5}}
+• several {{6}} spaces at the front
+• bathroom has a shower
+• central heating and stove that burns {{7}}
+• views of old {{8}} from living room
+• view of hilltop {{9}} from the bedroom
+Payment
+• deposit: £144
+• deadline for final payment: end of {{10}}
           `,
           questions: [
-            { questionNumber: 1, prompt: "Caller surname: [ 1 ]", correctAnswer: "Bradshaw", acceptedVariants: ["bradshaw"], explanation: "Caller: Mrs. Bradshaw.", passageEvidence: { paragraph: "Part 1", quote: "Bradshaw" } },
-            { questionNumber: 2, prompt: "Contact mobile: 07911 [ 2 ]", correctAnswer: "834921", explanation: "Mobile number recorded.", passageEvidence: { paragraph: "Part 1", quote: "834921" } },
-            { questionNumber: 3, prompt: "Cottage name: Sea [ 3 ] Cottage", correctAnswer: "Breeze", acceptedVariants: ["breeze"], explanation: "Property name: Sea Breeze Cottage.", passageEvidence: { paragraph: "Part 1", quote: "Sea Breeze Cottage" } },
-            { questionNumber: 4, prompt: "Arrival date: Saturday 14th of [ 4 ]", correctAnswer: "August", acceptedVariants: ["august"], explanation: "Arrival on 14th of August.", passageEvidence: { paragraph: "Part 1", quote: "14th of August" } },
-            { questionNumber: 5, prompt: "Rental duration: [ 5 ] nights", correctAnswer: "7", acceptedVariants: ["seven"], explanation: "One week equals 7 nights.", passageEvidence: { paragraph: "Part 1", quote: "7 nights" } },
-            { questionNumber: 6, prompt: "Number of guests: 4 adults and 2 [ 6 ]", correctAnswer: "children", acceptedVariants: ["kids"], explanation: "4 adults and 2 children.", passageEvidence: { paragraph: "Part 1", quote: "2 children" } },
-            { questionNumber: 7, prompt: "Enclosed rear [ 7 ] suitable for pets", correctAnswer: "garden", explanation: "Cottage has enclosed rear garden.", passageEvidence: { paragraph: "Part 1", quote: "rear garden" } },
-            { questionNumber: 8, prompt: "Panoramic views of the sandy [ 8 ]", correctAnswer: "beach", explanation: "Views of the sandy beach.", passageEvidence: { paragraph: "Part 1", quote: "sandy beach" } },
-            { questionNumber: 9, prompt: "Deposit amount: £ [ 9 ]", correctAnswer: "200", explanation: "Deposit is 200 pounds.", passageEvidence: { paragraph: "Part 1", quote: "200 pounds" } },
-            { questionNumber: 10, prompt: "Lockbox code sent via [ 10 ]", correctAnswer: "email", acceptedVariants: ["SMS", "text"], explanation: "Sent via email confirmation.", passageEvidence: { paragraph: "Part 1", quote: "via email" } }
+            { questionNumber: 1, prompt: "available for week beginning [ 1 ] May", correctAnswer: "28th", acceptedVariants: ["28"], explanation: "Shirley: 'It's free the week beginning the 28th, though.'", passageEvidence: { paragraph: "Part 1", quote: "the 28th" } },
+            { questionNumber: 2, prompt: "cost for the week: £[ 2 ]", correctAnswer: "550", explanation: "Shirley: 'so it'd be £550 for the week.'", passageEvidence: { paragraph: "Part 1", quote: "£550" } },
+            { questionNumber: 3, prompt: "[ 3 ] Cottage", correctAnswer: "Chervil", acceptedVariants: ["chervil"], explanation: "Shirley: 'which we're calling Chervil Cottage. C-H-E-R-V for Victor I-L.'", passageEvidence: { paragraph: "Part 1", quote: "Chervil Cottage" } },
+            { questionNumber: 4, prompt: "building was originally a [ 4 ]", correctAnswer: "garage", explanation: "Shirley: 'The building was built as a garage.'", passageEvidence: { paragraph: "Part 1", quote: "built as a garage" } },
+            { questionNumber: 5, prompt: "walk through doors from living room into a [ 5 ]", correctAnswer: "garden", explanation: "Tom: 'Does it have a garden?' Shirley: 'Yes, you get to it from the living room through French doors.'", passageEvidence: { paragraph: "Part 1", quote: "garden" } },
+            { questionNumber: 6, prompt: "several [ 6 ] spaces at the front", correctAnswer: "parking", explanation: "Shirley: 'parking isn't a problem – there's plenty of room at the front for that.'", passageEvidence: { paragraph: "Part 1", quote: "parking" } },
+            { questionNumber: 7, prompt: "central heating and stove that burns [ 7 ]", correctAnswer: "wood", explanation: "Shirley: 'there's a stove. We can provide all the wood you need for it.'", passageEvidence: { paragraph: "Part 1", quote: "wood" } },
+            { questionNumber: 8, prompt: "views of old [ 8 ] from living room", correctAnswer: "bridge", explanation: "Shirley: 'There's a famous stone bridge... you can see it from the living room.'", passageEvidence: { paragraph: "Part 1", quote: "stone bridge" } },
+            { questionNumber: 9, prompt: "view of hilltop [ 9 ] from the bedroom", correctAnswer: "monument", explanation: "Shirley: 'view of the hills and the monument at the top.'", passageEvidence: { paragraph: "Part 1", quote: "monument" } },
+            { questionNumber: 10, prompt: "deadline for final payment: end of [ 10 ]", correctAnswer: "March", acceptedVariants: ["march"], explanation: "Shirley: 'the last day of March, please.'", passageEvidence: { paragraph: "Part 1", quote: "last day of March" } }
           ]
         }
       ]
@@ -2869,34 +3141,50 @@ Key collection: Lockbox code sent via {10}
     {
       sectionNumber: 2,
       title: "Listening Part 2",
-      subtitle: "Ancient Oak Woodland Walking Tour",
-      audioUrl: "/audio/cam18-test4-part1.mp3",
-      transcript: `RANGER: Welcome walkers to Blackwood Forest nature reserve...`,
+      subtitle: "Local council report on traffic and highways",
+      audioUrl: "/audio/cam16-test4-part2.mp3",
+      transcript: `
+        CHAIRPERSON: Next on the agenda we have traffic and highways. Councillor Thornton.
+        COUNCILLOR THORNTON: Thank you. Well, we now have the results of the survey carried out last month about traffic and road transport in the town. A significant number of people complained about the increasing number of heavy vehicles using our local roads to avoid traffic elsewhere.
+        The cycle path that runs alongside the river is very well used, but overtaking can be a problem so we're going to add a bit on the side to make it wider.
+        The plans to have a pedestrian crossing next to the Post Office have had to be put on hold. The Highways Department have told us that it would be dangerous to have a pedestrian crossing where we'd originally planned it as there's a bend in the road there.
+        On Station Road near the station and level crossing, we've now got signs up requesting drivers not to leave their engines running at that time.
+        Now, proposals for improvements to the recreation ground:
+        We're suggesting a new car park on the opposite side of the Community Hall, right next to it (C).
+        We plan to move the cricket pitch into the new area beyond the line of trees to the east (F).
+        We've got plans for a children's playground which will be accessible by a footpath from the Community Hall and will be alongside the river (A).
+        We decided to have the skateboard ramp in the southeast corner near the road (I).
+        The pavilion will stay where it is now – to the left of the line of trees and near to the river (E).
+        And finally, we'll be getting a new notice board directly on people's right as they go from the road into the recreation ground (H).
+      `,
       questionGroups: [
         {
           id: "c16-l4-qg2",
           type: "multiple_choice",
-          title: "Questions 11 – 15",
+          title: "Questions 11 – 14",
           instructions: "Choose the correct letter, A, B or C.",
           questions: [
-            { questionNumber: 11, prompt: "How old is the oldest oak tree in the reserve?", options: ["A. Approximately 200 years old", "B. Over 800 years old", "C. Exactly 50 years old"], correctAnswer: "B", explanation: "Ranger highlights the King Oak, over 800 years old.", passageEvidence: { paragraph: "Part 2", quote: "over 800 years old" } },
-            { questionNumber: 12, prompt: "What nocturnal mammal is frequently spotted near the quarry?", options: ["A. Wild boar", "B. Badgers", "C. Red foxes"], correctAnswer: "B", explanation: "Badgers inhabit setts near the old quarry.", passageEvidence: { paragraph: "Part 2", quote: "badger setts" } },
-            { questionNumber: 13, prompt: "Why are visitors asked to stay strictly on gravel footpaths?", options: ["A. To protect rare ground orchids and fungal networks", "B. Because of unexploded wartime mines", "C. To prevent scaring sheep"], correctAnswer: "A", explanation: "Protects delicate ground orchids and mycelium.", passageEvidence: { paragraph: "Part 2", quote: "rare orchids" } },
-            { questionNumber: 14, prompt: "What equipment is provided free of charge at the visitor hut?", options: ["A. Walking poles and binoculars", "B. Rubber boots only", "C. Night-vision goggles"], correctAnswer: "A", explanation: "Walking poles and binoculars can be borrowed.", passageEvidence: { paragraph: "Part 2", quote: "walking poles and binoculars" } },
-            { questionNumber: 15, prompt: "Where does the circular 5-kilometre trail conclude?", options: ["A. At the waterfall tea rooms", "B. At the railway station", "C. In the village square"], correctAnswer: "A", explanation: "Concludes at the waterfall tea rooms.", passageEvidence: { paragraph: "Part 2", quote: "waterfall tea rooms" } }
+            { questionNumber: 11, prompt: "A survey found people's main concern about traffic in the area was", options: ["A. cuts to public transport.", "B. poor maintenance of roads.", "C. changes in the type of traffic."], correctAnswer: "C", explanation: "People complained about the increasing number of heavy vehicles using local roads.", passageEvidence: { paragraph: "Part 2", quote: "increasing number of heavy vehicles" } },
+            { questionNumber: 12, prompt: "Which change will shortly be made to the cycle path next to the river?", options: ["A. It will be widened.", "B. It will be extended.", "C. It will be resurfaced."], correctAnswer: "A", explanation: "Councillor Thornton: 'we're going to add a bit on the side to make it wider.'", passageEvidence: { paragraph: "Part 2", quote: "make it wider" } },
+            { questionNumber: 13, prompt: "Plans for a pedestrian crossing have been postponed because", options: ["A. the Post Office has moved.", "B. the proposed location is unsafe.", "C. funding is not available at present."], correctAnswer: "B", explanation: "It would be dangerous as there's a bend in the road there.", passageEvidence: { paragraph: "Part 2", quote: "dangerous... bend in the road" } },
+            { questionNumber: 14, prompt: "On Station Road, notices have been erected", options: ["A. telling cyclists not to leave their bikes outside the station ticket office.", "B. asking motorists to switch off engines when waiting at the level crossing.", "C. warning pedestrians to leave enough time when crossing the railway line."], correctAnswer: "B", explanation: "Signs up requesting drivers not to leave their engines running.", passageEvidence: { paragraph: "Part 2", quote: "not to leave their engines running" } }
           ]
         },
         {
           id: "c16-l4-qg3",
-          type: "matching_features",
-          title: "Questions 16 – 20",
-          instructions: "Match each trail section with its primary natural feature, A – F.",
+          type: "map_labelling",
+          title: "Questions 15 – 20",
+          instructions: "Label the map below. Write the correct letter, A–I, next to Questions 15–20.",
+          diagramTitle: "Recreation ground after proposed changes",
+          imageUrl: "/audio/cam16-test4-map.jpg",
+          options: ["A", "B", "C", "D", "E", "F", "G", "H", "I"],
           questions: [
-            { questionNumber: 16, prompt: "The Bluebell Clearing (Section 1)", options: ["A. Dense spring wildflower carpet", "B. Steep rocky waterfall gorge", "C. Ancient Roman charcoal burning pits", "D. Panoramic valley viewpoint", "E. Bat roosting caves", "F. Wooden bird observation blind"], correctAnswer: "A", explanation: "Section 1 carpeted with bluebells.", passageEvidence: { paragraph: "Part 2", quote: "bluebell carpet" } },
-            { questionNumber: 17, prompt: "The Gorge Walk (Section 2)", options: ["A. Dense spring wildflower carpet", "B. Steep rocky waterfall gorge", "C. Ancient Roman charcoal burning pits", "D. Panoramic valley viewpoint", "E. Bat roosting caves", "F. Wooden bird observation blind"], correctAnswer: "B", explanation: "Section 2 follows the steep rocky waterfall gorge.", passageEvidence: { paragraph: "Part 2", quote: "waterfall gorge" } },
-            { questionNumber: 18, prompt: "The Ridge (Section 3)", options: ["A. Dense spring wildflower carpet", "B. Steep rocky waterfall gorge", "C. Ancient Roman charcoal burning pits", "D. Panoramic valley viewpoint", "E. Bat roosting caves", "F. Wooden bird observation blind"], correctAnswer: "D", explanation: "The Ridge offers panoramic valley viewpoints.", passageEvidence: { paragraph: "Part 2", quote: "valley viewpoint" } },
-            { questionNumber: 19, prompt: "The Charcoal Copse (Section 4)", options: ["A. Dense spring wildflower carpet", "B. Steep rocky waterfall gorge", "C. Ancient Roman charcoal burning pits", "D. Panoramic valley viewpoint", "E. Bat roosting caves", "F. Wooden bird observation blind"], correctAnswer: "C", explanation: "Archaeological charcoal burning pits.", passageEvidence: { paragraph: "Part 2", quote: "charcoal burning pits" } },
-            { questionNumber: 20, prompt: "The Marsh Wetland (Section 5)", options: ["A. Dense spring wildflower carpet", "B. Steep rocky waterfall gorge", "C. Ancient Roman charcoal burning pits", "D. Panoramic valley viewpoint", "E. Bat roosting caves", "F. Wooden bird observation blind"], correctAnswer: "F", explanation: "Features wooden bird hide.", passageEvidence: { paragraph: "Part 2", quote: "bird observation blind" } }
+            { questionNumber: 15, prompt: "New car park", options: ["A", "B", "C", "D", "E", "F", "G", "H", "I"], correctAnswer: "C", explanation: "On the opposite side of the Community Hall, right next to it.", passageEvidence: { paragraph: "Part 2", quote: "opposite side of the Community Hall" } },
+            { questionNumber: 16, prompt: "New cricket pitch", options: ["A", "B", "C", "D", "E", "F", "G", "H", "I"], correctAnswer: "F", explanation: "In the new area beyond the line of trees to the east.", passageEvidence: { paragraph: "Part 2", quote: "beyond the line of trees" } },
+            { questionNumber: 17, prompt: "Children's playground", options: ["A", "B", "C", "D", "E", "F", "G", "H", "I"], correctAnswer: "A", explanation: "Accessible by a footpath from the Community Hall and alongside the river.", passageEvidence: { paragraph: "Part 2", quote: "alongside the river" } },
+            { questionNumber: 18, prompt: "Skateboard ramp", options: ["A", "B", "C", "D", "E", "F", "G", "H", "I"], correctAnswer: "I", explanation: "In the southeast corner near the road.", passageEvidence: { paragraph: "Part 2", quote: "southeast corner near the road" } },
+            { questionNumber: 19, prompt: "Pavilion", options: ["A", "B", "C", "D", "E", "F", "G", "H", "I"], correctAnswer: "E", explanation: "To the left of the line of trees and near to the river.", passageEvidence: { paragraph: "Part 2", quote: "left of the line of trees and near to the river" } },
+            { questionNumber: 20, prompt: "Notice board", options: ["A", "B", "C", "D", "E", "F", "G", "H", "I"], correctAnswer: "H", explanation: "Directly on people's right as they go from the road into the recreation ground.", passageEvidence: { paragraph: "Part 2", quote: "directly on people's right" } }
           ]
         }
       ]
@@ -2904,34 +3192,100 @@ Key collection: Lockbox code sent via {10}
     {
       sectionNumber: 3,
       title: "Listening Part 3",
-      subtitle: "Museum Architecture and Visitor Experience",
-      audioUrl: "/audio/cam18-test4-part1.mp3",
-      transcript: `TUTOR: Let\'s discuss your thesis on interactive museum architecture...`,
+      subtitle: "Bike-sharing schemes",
+      audioUrl: "/audio/cam16-test4-part3.mp3",
+      transcript: `
+        JAKE: Now that we've done all the research into bike-sharing schemes in cities around the world, we need to think about how we're going to organise our report.
+        AMY: Doesn't the impact of reduced emissions on air pollution have a significant effect on people's health? In some cities bike-sharing has made a big contribution to that. And also helped to cut the number of cars on the road significantly.
+        JAKE: Which is the main point. Now, what recommendations are we going to make for successful schemes?
+        AMY: Some technical things are really important – like a fully functional app – so people can make payments and book bikes easily. And what also matters is having a big publicity campaign.
+        JAKE: Definitely. If people don't know how to use the scheme, they won't use it.
+        AMY: Let's look at examples: in Amsterdam, there was already a strong culture of cycling. In a way it's strange that there was such a demand for bike-sharing because you'd have thought most people would have used their own bikes.
+        JAKE: Dublin's an interesting example of a success story.
+        AMY: It must be because the public transport system's quite limited.
+        JAKE: Not really – I'd say price has a lot to do with it.
+        AMY: In London, the bikes are popular and the system is well maintained, but it isn't expanding quickly enough.
+        JAKE: Basically, not enough's been spent on increasing the number of cycle lanes.
+        AMY: In Buenos Aires, they built a huge network of cycle lanes to support the introduction of the scheme.
+        JAKE: An example of good planning.
+        AMY: New York is a good example of how not to introduce a scheme – it was more than ten times the price of most other schemes.
+        JAKE: And in Sydney, I can't quite work out why it hasn't been an instant success like some of the others. It's a shame really.
+      `,
       questionGroups: [
         {
           id: "c16-l4-qg4",
-          type: "multiple_choice",
-          title: "Questions 21 – 25",
-          instructions: "Choose the correct letter, A, B or C.",
+          type: "multiple_choice_multi",
+          title: "Questions 21 and 22",
+          instructions: "Choose TWO letters, A–E.",
           questions: [
-            { questionNumber: 21, prompt: "How has museum lighting design changed in recent years?", options: ["A. Natural daylighting is integrated using UV-filtering glass.", "B. All lights are turned off for atmosphere.", "C. High-intensity floodlights are aimed directly at paintings."], correctAnswer: "A", explanation: "Architects integrate daylight with UV-filtering glass.", passageEvidence: { paragraph: "Part 3", quote: "UV-filtering glass" } },
-            { questionNumber: 22, prompt: "What is the primary benefit of open-circulation galleries?", options: ["A. Allowing visitors to choose personal non-linear routes", "B. Selling more drinks", "C. Reducing carpet wear"], correctAnswer: "A", explanation: "Allows visitors to curate their own path.", passageEvidence: { paragraph: "Part 3", quote: "non-linear routes" } },
-            { questionNumber: 23, prompt: "What challenge arises from interactive touchscreen kiosks?", options: ["A. Queues forming and interrupting visual flow", "B. High software subscription fees", "C. Breakages from toddlers"], correctAnswer: "A", explanation: "Queues congregate around screens.", passageEvidence: { paragraph: "Part 3", quote: "queues forming" } },
-            { questionNumber: 24, prompt: "What acoustic treatment was applied to the central atrium?", options: ["A. Micro-perforated timber ceiling baffles", "B. Heavy velvet drapes on every wall", "C. Concrete acoustic reflectors"], correctAnswer: "A", explanation: "Micro-perforated timber baffles absorb reverberation.", passageEvidence: { paragraph: "Part 3", quote: "timber baffles" } },
-            { questionNumber: 25, prompt: "What do the students recommend regarding museum cafes?", options: ["A. Locating them on the ground floor with public street access", "B. Replacing them with vending machines", "C. Moving them to the roof"], correctAnswer: "A", explanation: "Ground floor location draws outside pedestrian footfall.", passageEvidence: { paragraph: "Part 3", quote: "ground floor with street access" } }
+            {
+              questionNumber: 21,
+              prompt: "Which TWO benefits of city bike-sharing schemes do the students agree are the most important?",
+              options: ["A. reducing noise pollution", "B. reducing traffic congestion", "C. improving air quality", "D. encouraging health and fitness", "E. making cycling affordable"],
+              correctAnswer: "B",
+              acceptedVariants: ["B", "C"],
+              explanation: "Jake and Amy agree that reducing air pollution (improving air quality) and cutting the number of cars on the road (reducing traffic congestion) are the most important benefits.",
+              passageEvidence: { paragraph: "Part 3", quote: "reduced emissions on air pollution... cut the number of cars" }
+            },
+            {
+              questionNumber: 22,
+              prompt: "Which TWO benefits of city bike-sharing schemes do the students agree are the most important?",
+              options: ["A. reducing noise pollution", "B. reducing traffic congestion", "C. improving air quality", "D. encouraging health and fitness", "E. making cycling affordable"],
+              correctAnswer: "C",
+              acceptedVariants: ["B", "C"],
+              explanation: "Jake and Amy agree that reducing air pollution (improving air quality) and cutting the number of cars on the road (reducing traffic congestion) are the most important benefits.",
+              passageEvidence: { paragraph: "Part 3", quote: "reduced emissions on air pollution... cut the number of cars" }
+            }
           ]
         },
         {
           id: "c16-l4-qg5",
           type: "multiple_choice_multi",
-          title: "Questions 26 – 30",
-          instructions: "Choose FIVE letters, A – H. Which FIVE design strategies improved visitor dwell time?",
+          title: "Questions 23 and 24",
+          instructions: "Choose TWO letters, A–E.",
           questions: [
-            { questionNumber: 26, prompt: "Strategy 1", options: ["A. Comfortable bench seating", "B. Clear sightlines between exhibits", "C. Free high-speed Wi-Fi", "D. Quiet contemplation alcoves", "E. Tactile handling objects", "F. Forced one-way corridors", "G. Loud background music", "H. Flashing neon signage"], correctAnswer: "A", explanation: "Plentiful bench seating reduces museum fatigue.", passageEvidence: { paragraph: "Part 3", quote: "bench seating" } },
-            { questionNumber: 27, prompt: "Strategy 2", options: ["A. Comfortable bench seating", "B. Clear sightlines between exhibits", "C. Free high-speed Wi-Fi", "D. Quiet contemplation alcoves", "E. Tactile handling objects", "F. Forced one-way corridors", "G. Loud background music", "H. Flashing neon signage"], correctAnswer: "B", explanation: "Clear sightlines invite exploration.", passageEvidence: { paragraph: "Part 3", quote: "clear sightlines" } },
-            { questionNumber: 28, prompt: "Strategy 3", options: ["A. Comfortable bench seating", "B. Clear sightlines between exhibits", "C. Free high-speed Wi-Fi", "D. Quiet contemplation alcoves", "E. Tactile handling objects", "F. Forced one-way corridors", "G. Loud background music", "H. Flashing neon signage"], correctAnswer: "C", explanation: "Wi-Fi enables digital guide downloads.", passageEvidence: { paragraph: "Part 3", quote: "Wi-Fi" } },
-            { questionNumber: 29, prompt: "Strategy 4", options: ["A. Comfortable bench seating", "B. Clear sightlines between exhibits", "C. Free high-speed Wi-Fi", "D. Quiet contemplation alcoves", "E. Tactile handling objects", "F. Forced one-way corridors", "G. Loud background music", "H. Flashing neon signage"], correctAnswer: "D", explanation: "Contemplation alcoves allow reflective rest.", passageEvidence: { paragraph: "Part 3", quote: "contemplation alcoves" } },
-            { questionNumber: 30, prompt: "Strategy 5", options: ["A. Comfortable bench seating", "B. Clear sightlines between exhibits", "C. Free high-speed Wi-Fi", "D. Quiet contemplation alcoves", "E. Tactile handling objects", "F. Forced one-way corridors", "G. Loud background music", "H. Flashing neon signage"], correctAnswer: "E", explanation: "Hands-on replicas engage sensory touch.", passageEvidence: { paragraph: "Part 3", quote: "tactile handling" } }
+            {
+              questionNumber: 23,
+              prompt: "Which TWO things do the students think are necessary for successful bike-sharing schemes?",
+              options: ["A. Bikes should have a GPS system.", "B. The app should be easy to use.", "C. Public awareness should be raised.", "D. Only one scheme should be available.", "E. There should be a large network of cycle lanes."],
+              correctAnswer: "B",
+              acceptedVariants: ["B", "C"],
+              explanation: "They agree a fully functional app and a big publicity campaign to raise awareness are necessary.",
+              passageEvidence: { paragraph: "Part 3", quote: "fully functional app... big publicity campaign" }
+            },
+            {
+              questionNumber: 24,
+              prompt: "Which TWO things do the students think are necessary for successful bike-sharing schemes?",
+              options: ["A. Bikes should have a GPS system.", "B. The app should be easy to use.", "C. Public awareness should be raised.", "D. Only one scheme should be available.", "E. There should be a large network of cycle lanes."],
+              correctAnswer: "C",
+              acceptedVariants: ["B", "C"],
+              explanation: "They agree a fully functional app and a big publicity campaign to raise awareness are necessary.",
+              passageEvidence: { paragraph: "Part 3", quote: "fully functional app... big publicity campaign" }
+            }
+          ]
+        },
+        {
+          id: "c16-l4-qg6",
+          type: "matching_features",
+          title: "Questions 25 – 30",
+          instructions: "What is the speakers' opinion of the bike-sharing schemes in each of the following cities? Choose SIX answers from the box and write the correct letter, A–G, next to Questions 25–30.",
+          summaryTitle: "Opinion of bike-sharing scheme",
+          options: [
+            "A. They agree it has been disappointing.",
+            "B. They think it should be cheaper.",
+            "C. They are surprised it has been so successful.",
+            "D. They agree that more investment is required.",
+            "E. They think the system has been well designed.",
+            "F. They disagree about the reasons for its success.",
+            "G. They think it has expanded too quickly."
+          ],
+          questions: [
+            { questionNumber: 25, prompt: "Amsterdam", options: ["A. They agree it has been disappointing.", "B. They think it should be cheaper.", "C. They are surprised it has been so successful.", "D. They agree that more investment is required.", "E. They think the system has been well designed.", "F. They disagree about the reasons for its success.", "G. They think it has expanded too quickly."], correctAnswer: "C", explanation: "Strange that there was such a demand since most people already had their own bikes.", passageEvidence: { paragraph: "Part 3", quote: "strange that there was such a demand" } },
+            { questionNumber: 26, prompt: "Dublin", options: ["A. They agree it has been disappointing.", "B. They think it should be cheaper.", "C. They are surprised it has been so successful.", "D. They agree that more investment is required.", "E. They think the system has been well designed.", "F. They disagree about the reasons for its success.", "G. They think it has expanded too quickly."], correctAnswer: "F", explanation: "Amy thinks it's due to limited public transport, while Jake thinks it's the low price.", passageEvidence: { paragraph: "Part 3", quote: "Not really – I'd say price has a lot to do with it" } },
+            { questionNumber: 27, prompt: "London", options: ["A. They agree it has been disappointing.", "B. They think it should be cheaper.", "C. They are surprised it has been so successful.", "D. They agree that more investment is required.", "E. They think the system has been well designed.", "F. They disagree about the reasons for its success.", "G. They think it has expanded too quickly."], correctAnswer: "D", explanation: "Not enough has been spent on increasing the number of cycle lanes.", passageEvidence: { paragraph: "Part 3", quote: "not enough's been spent" } },
+            { questionNumber: 28, prompt: "Buenos Aires", options: ["A. They agree it has been disappointing.", "B. They think it should be cheaper.", "C. They are surprised it has been so successful.", "D. They agree that more investment is required.", "E. They think the system has been well designed.", "F. They disagree about the reasons for its success.", "G. They think it has expanded too quickly."], correctAnswer: "E", explanation: "They built a huge network of cycle lanes to support it – an example of good planning.", passageEvidence: { paragraph: "Part 3", quote: "example of good planning" } },
+            { questionNumber: 29, prompt: "New York", options: ["A. They agree it has been disappointing.", "B. They think it should be cheaper.", "C. They are surprised it has been so successful.", "D. They agree that more investment is required.", "E. They think the system has been well designed.", "F. They disagree about the reasons for its success.", "G. They think it has expanded too quickly."], correctAnswer: "B", explanation: "It was more than ten times the price of most other schemes – more than a taxi.", passageEvidence: { paragraph: "Part 3", quote: "more than ten times the price" } },
+            { questionNumber: 30, prompt: "Sydney", options: ["A. They agree it has been disappointing.", "B. They think it should be cheaper.", "C. They are surprised it has been so successful.", "D. They agree that more investment is required.", "E. They think the system has been well designed.", "F. They disagree about the reasons for its success.", "G. They think it has expanded too quickly."], correctAnswer: "A", explanation: "It hasn't been an instant success like some of the others – a shame.", passageEvidence: { paragraph: "Part 3", quote: "hasn't been an instant success" } }
           ]
         }
       ]
@@ -2939,45 +3293,56 @@ Key collection: Lockbox code sent via {10}
     {
       sectionNumber: 4,
       title: "Listening Part 4",
-      subtitle: "Subterranean Urban Architecture",
-      audioUrl: "/audio/cam18-test4-part1.mp3",
-      transcript: `PROFESSOR: Good morning. Today we examine subterranean architecture in densely populated modern metropolises...`,
+      subtitle: "The Extinction of the Dodo Bird",
+      audioUrl: "/audio/cam16-test4-part4.mp3",
+      transcript: `
+        One of the most famous cases of extinction is that of a bird known as the dodo, which inhabited the island of Mauritius.
+        In 1507 the first Portuguese ships stopped at the island. The sailors were carrying spices back to Europe. Later, in 1638 the Dutch arrived and set up a colony there. These first human inhabitants found the dodo birds a convenient source of meat.
+        The best-known picture is a Dutch painting in which the bird appears to be extremely fat. In the early 17th century four dried parts of a bird were known to exist – of these, three have disappeared, so only one example of soft tissue from the dodo survives, a dodo head.
+        A single dodo skeleton has recently been the subject of scientific research which suggests that the bird's strong knee joints would have made it capable of movement which was not slow, but actually quite fast. Scientists also suggest that its small wings were probably employed for balance while going over uneven ground. Analysis of the dodo's skull suggested the bird's brain was not small, but average in size. The structure of the bird's skull also suggested that one sense which was particularly well-developed was that of smell.
+        Regarding reasons for extinction: ships brought rats, which came to land and ate the birds' eggs. However, probably the main cause was the introduction of agriculture, which meant that the forest that had once covered all the island was cut down.
+      `,
       questionGroups: [
         {
-          id: "c16-l4-qg6",
-          type: "sentence_completion",
+          id: "c16-l4-qg7",
+          type: "note_completion",
           title: "Questions 31 – 40",
           instructions: "Complete the notes below. Write ONE WORD ONLY for each answer.",
-          summaryTitle: "Underground Urban Architecture",
+          summaryTitle: "THE EXTINCTION OF THE DODO BIRD",
           wordLimitRule: "ONE WORD ONLY",
           clozeTemplate: `
-Benefits of Subterranean Construction:
-• Relieves severe surface land {31} in expanding cities
-• Naturally stable ground {32} minimizes heating and cooling energy
-• Provides shelter against extreme surface {33} conditions
-Notable Examples:
-• Montreal\'s Underground City covers over 32 kilometres of {34} corridors
-• Helsinki\'s Master Plan reserves subterranean bedrock for swimming pools and {35} shelters
-Engineering Challenges:
-• Excavation requires heavy geotechnical drilling through solid {36}
-• Pumping groundwater is essential to avoid structural {37}
-Psychological Factors:
-• Lack of natural daylight can cause disorientation and {38}
-• Architects incorporate fiber-optic sunpipes and artificial {39} light
-Future Outlook:
-• Subterranean multi-level freight delivery will reduce surface truck {40}
+THE EXTINCTION OF THE DODO BIRD
+The dodo was a large flightless bird which used to inhabit the island of Mauritius.
+History
+• 1507 – Portuguese ships transporting {{31}} stopped at the island to collect food and water.
+• 1638 – The Dutch established a {{32}} on the island.
+• They killed the dodo birds for their meat.
+• The last one was killed in 1681.
+Description
+• The only record we have is written descriptions and pictures (possibly unreliable).
+• A Dutch painting suggests the dodo was very {{33}}.
+• The only remaining soft tissue is a dried {{34}}.
+• Recent studies of a dodo skeleton suggest the birds were capable of rapid {{35}}.
+• It's thought they were able to use their small wings to maintain {{36}}.
+• Their {{37}} was of average size.
+• Their sense of {{38}} enabled them to find food.
+Reasons for extinction
+• Hunting was probably not the main cause.
+• Sailors brought dogs and monkeys.
+• {{39}} also escaped onto the island and ate the birds' eggs.
+• The arrival of farming meant the {{40}} was destroyed.
           `,
           questions: [
-            { questionNumber: 31, prompt: "Relieves surface land [ 31 ] in expanding cities", correctAnswer: "scarcity", acceptedVariants: ["shortage"], explanation: "Lecturer: 'relieves urban land scarcity.'", passageEvidence: { paragraph: "Part 4", quote: "land scarcity" } },
-            { questionNumber: 32, prompt: "Naturally stable ground [ 32 ] minimizes energy", correctAnswer: "temperature", acceptedVariants: ["temperatures"], explanation: "Lecturer: 'stable ground temperature saves HVAC energy.'", passageEvidence: { paragraph: "Part 4", quote: "ground temperature" } },
-            { questionNumber: 33, prompt: "Shelter against extreme surface [ 33 ] conditions", correctAnswer: "weather", acceptedVariants: ["climate"], explanation: "Lecturer: 'insulates against harsh surface weather.'", passageEvidence: { paragraph: "Part 4", quote: "surface weather" } },
-            { questionNumber: 34, prompt: "Montreal covers 32 kilometres of [ 34 ] corridors", correctAnswer: "pedestrian", explanation: "Lecturer: '32 kilometres of interconnected pedestrian corridors.'", passageEvidence: { paragraph: "Part 4", quote: "pedestrian corridors" } },
-            { questionNumber: 35, prompt: "Helsinki reserves bedrock for swimming pools and [ 35 ] shelters", correctAnswer: "emergency", acceptedVariants: ["bomb"], explanation: "Lecturer: 'civil defense emergency shelters.'", passageEvidence: { paragraph: "Part 4", quote: "emergency shelters" } },
-            { questionNumber: 36, prompt: "Excavation requires drilling through solid [ 36 ]", correctAnswer: "bedrock", acceptedVariants: ["rock"], explanation: "Lecturer: 'tunneling through hard crystalline bedrock.'", passageEvidence: { paragraph: "Part 4", quote: "solid bedrock" } },
-            { questionNumber: 37, prompt: "Pumping groundwater avoids structural [ 37 ]", correctAnswer: "flooding", acceptedVariants: ["damage"], explanation: "Lecturer: 'preventing subterranean flooding.'", passageEvidence: { paragraph: "Part 4", quote: "avoid flooding" } },
-            { questionNumber: 38, prompt: "Lack of daylight can cause disorientation and [ 38 ]", correctAnswer: "claustrophobia", acceptedVariants: ["anxiety"], explanation: "Lecturer: 'feelings of claustrophobia and disorientation.'", passageEvidence: { paragraph: "Part 4", quote: "claustrophobia" } },
-            { questionNumber: 39, prompt: "Architects incorporate artificial [ 39 ] light", correctAnswer: "skylight", acceptedVariants: ["circadian"], explanation: "Lecturer: 'simulated artificial skylight fixtures.'", passageEvidence: { paragraph: "Part 4", quote: "artificial skylight" } },
-            { questionNumber: 40, prompt: "Multi-level freight will reduce surface truck [ 40 ]", correctAnswer: "traffic", acceptedVariants: ["congestion"], explanation: "Lecturer: 'relieving surface vehicular traffic.'", passageEvidence: { paragraph: "Part 4", quote: "truck traffic" } }
+            { questionNumber: 31, prompt: "1507 – Portuguese ships transporting [ 31 ] stopped at the island", correctAnswer: "spices", acceptedVariants: ["spice"], explanation: "Lecturer: 'The sailors were carrying spices back to Europe.'", passageEvidence: { paragraph: "Part 4", quote: "carrying spices" } },
+            { questionNumber: 32, prompt: "1638 – The Dutch established a [ 32 ] on the island.", correctAnswer: "colony", acceptedVariants: ["settlement"], explanation: "Lecturer: 'the Dutch arrived and set up a colony there.'", passageEvidence: { paragraph: "Part 4", quote: "set up a colony" } },
+            { questionNumber: 33, prompt: "A Dutch painting suggests the dodo was very [ 33 ].", correctAnswer: "fat", explanation: "Lecturer: 'a Dutch painting in which the bird appears to be extremely fat.'", passageEvidence: { paragraph: "Part 4", quote: "extremely fat" } },
+            { questionNumber: 34, prompt: "The only remaining soft tissue is a dried [ 34 ].", correctAnswer: "head", explanation: "Lecturer: 'only one example of soft tissue from the dodo survives, a dodo head.'", passageEvidence: { paragraph: "Part 4", quote: "a dodo head" } },
+            { questionNumber: 35, prompt: "Recent studies of a dodo skeleton suggest the birds were capable of rapid [ 35 ].", correctAnswer: "movement", acceptedVariants: ["running"], explanation: "Lecturer: 'capable of movement which was not slow, but actually quite fast.'", passageEvidence: { paragraph: "Part 4", quote: "capable of movement" } },
+            { questionNumber: 36, prompt: "It's thought they were able to use their small wings to maintain [ 36 ].", correctAnswer: "balance", explanation: "Lecturer: 'employed for balance while going over uneven ground.'", passageEvidence: { paragraph: "Part 4", quote: "employed for balance" } },
+            { questionNumber: 37, prompt: "Their [ 37 ] was of average size.", correctAnswer: "brain", explanation: "Lecturer: 'suggested the bird's brain was not small, but average in size.'", passageEvidence: { paragraph: "Part 4", quote: "bird's brain" } },
+            { questionNumber: 38, prompt: "Their sense of [ 38 ] enabled them to find food.", correctAnswer: "smell", explanation: "Lecturer: 'one sense which was particularly well-developed was that of smell.'", passageEvidence: { paragraph: "Part 4", quote: "that of smell" } },
+            { questionNumber: 39, prompt: "[ 39 ] also escaped onto the island and ate the birds' eggs.", correctAnswer: "rats", explanation: "Lecturer: 'rats, which came to land from the ships... consumed their eggs.'", passageEvidence: { paragraph: "Part 4", quote: "rats" } },
+            { questionNumber: 40, prompt: "The arrival of farming meant the [ 40 ] was destroyed.", correctAnswer: "forest", acceptedVariants: ["habitat"], explanation: "Lecturer: 'the forest that had once covered all the island... was cut down.'", passageEvidence: { paragraph: "Part 4", quote: "the forest" } }
           ]
         }
       ]
