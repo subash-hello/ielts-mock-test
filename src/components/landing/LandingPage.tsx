@@ -109,20 +109,17 @@ export const LandingPage: React.FC<LandingPageProps> = ({
       const found = ConsultancyService.getConsultancyByBranchCode(candidateSession.consultancyName);
       if (found) cid = found.id;
     }
+    const branchActive = ConsultancyService.getActiveLaunchedTest(cid);
     const stationTest = ConsultancyService.getStationAssignedTest(
       cid,
       candidateSession?.stationName
     );
-    if (stationTest) {
-      return {
-        testId: stationTest.testId,
-        title: stationTest.title,
-        launchedAt: stationTest.launchedAt,
-        isFullMock: stationTest.isFullMock,
-        consultancyId: stationTest.consultancyId
-      };
+    if (stationTest && branchActive) {
+      const bTime = new Date(branchActive.launchedAt || 0).getTime();
+      const sTime = new Date(stationTest.launchedAt || 0).getTime();
+      return bTime >= sTime ? branchActive : stationTest;
     }
-    return ConsultancyService.getActiveLaunchedTest(cid);
+    return stationTest || branchActive || null;
   });
 
   // Sync candidateNameInput when candidateSession updates

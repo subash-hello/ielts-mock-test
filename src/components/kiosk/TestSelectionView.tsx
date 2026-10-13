@@ -313,6 +313,15 @@ export const TestSelectionView: React.FC<TestSelectionViewProps> = ({
   const targetBook = parsedLaunch?.book || parsedConfig?.book || 16;
   const targetTestNumber = parsedLaunch?.testNumber || parsedConfig?.testNumber || 1;
 
+  const isSingleModule = Boolean(
+    activeLaunch?.testId &&
+    !activeLaunch.isFullMock &&
+    !activeLaunch.testId.endsWith('-full')
+  );
+  const launchedModule: 'reading' | 'listening' | 'writing' | null = isSingleModule
+    ? (activeLaunch?.testId.includes('reading') ? 'reading' : activeLaunch?.testId.includes('listening') ? 'listening' : activeLaunch?.testId.includes('writing') ? 'writing' : null)
+    : null;
+
   // Resolve assigned test papers given by the consultancy for this Cambridge paper set
   const assignedListeningTest =
     availableTests.find((t) => t.book === targetBook && t.testNumber === targetTestNumber && t.module === 'listening') ||
@@ -391,10 +400,14 @@ export const TestSelectionView: React.FC<TestSelectionViewProps> = ({
                 <span className="text-[11px] text-emerald-300 font-semibold">Ready</span>
               </div>
               <h2 className="text-base sm:text-lg font-bold font-display text-white mt-0.5">
-                Cambridge {targetBook} Test {targetTestNumber} Mock Paper
+                {activeLaunch?.title || `Cambridge ${targetBook} Test ${targetTestNumber} Mock Paper`}
               </h2>
               <p className="text-xs text-white/70">
-                Assigned by {consultancy?.name ? consultancy.name : 'Consultancy Centre'}. Select your examination module below.
+                {isSingleModule
+                  ? `Your invigilator specifically assigned the Academic ${launchedModule ? launchedModule.charAt(0).toUpperCase() + launchedModule.slice(1) : ''} module.`
+                  : activeLaunch?.isFullMock
+                  ? 'Your invigilator launched the complete 3-section Full Mock examination paper.'
+                  : `Assigned by ${consultancy?.name ? consultancy.name : 'Consultancy Centre'}. Select your examination module below.`}
               </p>
             </div>
           </div>
@@ -427,8 +440,15 @@ export const TestSelectionView: React.FC<TestSelectionViewProps> = ({
             type="button"
             onClick={() => handleSelectModule('listening')}
             disabled={!assignedListeningTest}
-            className="paper-card p-5 sm:p-6 text-left hover:border-[#0F1E33] transition group flex flex-col justify-between min-h-[170px] cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed shadow-xs hover:shadow-md"
+            className={`paper-card p-5 sm:p-6 text-left hover:border-[#0F1E33] transition group flex flex-col justify-between min-h-[170px] cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed shadow-xs hover:shadow-md relative overflow-hidden ${
+              launchedModule === 'listening' ? 'border-2 border-[#C9A24B] bg-[#C9A24B]/5 ring-2 ring-[#C9A24B]/30' : ''
+            }`}
           >
+            {launchedModule === 'listening' && (
+              <div className="absolute top-0 right-0 bg-[#C9A24B] text-[#0F1E33] text-[9px] font-black uppercase tracking-widest px-2.5 py-0.5 rounded-bl-lg">
+                Assigned Module
+              </div>
+            )}
             <div className="space-y-3">
               <div className="flex items-start justify-between">
                 <div className="w-12 h-12 rounded-xl bg-[#0F1E33]/5 text-[#0F1E33] flex items-center justify-center group-hover:scale-105 transition-transform">
@@ -469,8 +489,15 @@ export const TestSelectionView: React.FC<TestSelectionViewProps> = ({
             type="button"
             onClick={() => handleSelectModule('reading')}
             disabled={!assignedReadingTest}
-            className="paper-card p-5 sm:p-6 text-left hover:border-[#0F1E33] transition group flex flex-col justify-between min-h-[170px] cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed shadow-xs hover:shadow-md"
+            className={`paper-card p-5 sm:p-6 text-left hover:border-[#0F1E33] transition group flex flex-col justify-between min-h-[170px] cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed shadow-xs hover:shadow-md relative overflow-hidden ${
+              launchedModule === 'reading' ? 'border-2 border-[#C9A24B] bg-[#C9A24B]/5 ring-2 ring-[#C9A24B]/30' : ''
+            }`}
           >
+            {launchedModule === 'reading' && (
+              <div className="absolute top-0 right-0 bg-[#C9A24B] text-[#0F1E33] text-[9px] font-black uppercase tracking-widest px-2.5 py-0.5 rounded-bl-lg">
+                Assigned Module
+              </div>
+            )}
             <div className="space-y-3">
               <div className="flex items-start justify-between">
                 <div className="w-12 h-12 rounded-xl bg-[#0F1E33]/5 text-[#0F1E33] flex items-center justify-center group-hover:scale-105 transition-transform">
@@ -511,8 +538,15 @@ export const TestSelectionView: React.FC<TestSelectionViewProps> = ({
             type="button"
             onClick={() => handleSelectModule('writing')}
             disabled={!assignedWritingTest}
-            className="paper-card p-5 sm:p-6 text-left hover:border-[#0F1E33] transition group flex flex-col justify-between min-h-[170px] cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed shadow-xs hover:shadow-md"
+            className={`paper-card p-5 sm:p-6 text-left hover:border-[#0F1E33] transition group flex flex-col justify-between min-h-[170px] cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed shadow-xs hover:shadow-md relative overflow-hidden ${
+              launchedModule === 'writing' ? 'border-2 border-[#C9A24B] bg-[#C9A24B]/5 ring-2 ring-[#C9A24B]/30' : ''
+            }`}
           >
+            {launchedModule === 'writing' && (
+              <div className="absolute top-0 right-0 bg-[#C9A24B] text-[#0F1E33] text-[9px] font-black uppercase tracking-widest px-2.5 py-0.5 rounded-bl-lg">
+                Assigned Module
+              </div>
+            )}
             <div className="space-y-3">
               <div className="flex items-start justify-between">
                 <div className="w-12 h-12 rounded-xl bg-[#0F1E33]/5 text-[#0F1E33] flex items-center justify-center group-hover:scale-105 transition-transform">

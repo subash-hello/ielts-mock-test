@@ -1504,7 +1504,10 @@ export class ConsultancyService {
     isFullMock?: boolean,
     stoppedAt?: number
   ): Promise<void> {
-    this.pushActiveLaunchToBackend(consultancyId, testId, title).catch(() => {});
+    const isFull = Boolean(isFullMock || (testId && (testId.includes('full') || testId.endsWith('-full'))));
+    const mod = isFull ? 'full' : testId?.includes('listening') ? 'listening' : testId?.includes('writing') ? 'writing' : 'reading';
+    const dur = isFull ? 165 : mod === 'listening' ? 30 : 60;
+    this.pushActiveLaunchToBackend(consultancyId, testId, title, mod, dur, isFull).catch(() => {});
     if (!supabase) return;
     try {
       const canonical = this.getCanonicalConsultancyId(consultancyId);
@@ -1514,7 +1517,7 @@ export class ConsultancyService {
         test_id: testId,
         title: title || testId,
         session_name: sessionName || null,
-        is_full_mock: isFullMock || false,
+        is_full_mock: isFull,
         launched_at: testId ? now : null,
         stopped_at: stoppedAt ? new Date(stoppedAt).toISOString() : (!testId ? now : null),
         updated_at: now
@@ -1526,7 +1529,10 @@ export class ConsultancyService {
   public static async pushActiveLaunchToBackend(
     consultancyId: string,
     testId: string | null,
-    title?: string
+    title?: string,
+    module?: string,
+    durationMinutes?: number,
+    isFullMock?: boolean
   ): Promise<void> {
     if (!BACKEND_BASE_URL) return;
     try {
@@ -1537,15 +1543,19 @@ export class ConsultancyService {
           signal: AbortSignal.timeout(4000)
         });
       } else {
+        const isFull = Boolean(isFullMock || testId.includes('full') || testId.endsWith('-full'));
+        const mod = module || (isFull ? 'full' : testId.includes('listening') ? 'listening' : testId.includes('writing') ? 'writing' : 'reading');
+        const dur = durationMinutes || (isFull ? 165 : mod === 'listening' ? 30 : 60);
+
         await fetch(`${BACKEND_BASE_URL}/api/consultancies/${encodeURIComponent(canonical)}/launch`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             consultancy_id: canonical,
             test_id: testId,
-            module: 'reading',
+            module: mod,
             title: title || testId,
-            duration_minutes: 60,
+            duration_minutes: dur,
             exam_password: '1234'
           }),
           signal: AbortSignal.timeout(4000)
@@ -2841,7 +2851,7 @@ export class ConsultancyService {
         (!maxStopped || prevTime > maxStopped);
 
       // Do not let a passive 'idle' kiosk heartbeat wipe an active test assignment before the kiosk starts it
-      if (updates.status === 'idle' && hasActiveAssignment) {
+      if (updates.status === 'idle' && hasActiveAssignment && !updates.assignedTestId) {
         list[existingIdx] = {
           ...prev,
           lastHeartbeat: new Date().toISOString()
@@ -2853,11 +2863,12 @@ export class ConsultancyService {
           consultancyId: canonical,
           lastHeartbeat: new Date().toISOString()
         };
-        if (updates.status === 'idle') {
+        if (updates.status === 'idle' && !updates.assignedTestId) {
           delete list[existingIdx].assignedTestId;
           delete list[existingIdx].testTitle;
           delete list[existingIdx].module;
           delete list[existingIdx].isFullMock;
+          delete list[existingIdx].assignedAt;
           if (!updates.currentCandidate) {
             delete list[existingIdx].currentCandidate;
           }
@@ -3033,12 +3044,14 @@ export class ConsultancyService {
     const canonical = this.getCanonicalConsultancyId(consultancyId);
     const normName = this.normalizeStationName(stationIdentifier);
     const fullFlag = Boolean(isFullMock || testId.includes('full'));
+    const assignedTime = new Date().toISOString();
     this.updateStationHeartbeat(canonical, stationIdentifier, {
       status: 'assigned',
       assignedTestId: testId,
       testTitle,
       module,
       isFullMock: fullFlag,
+      assignedAt: assignedTime,
       currentQuestion: 1,
       totalQuestions: 40,
       answeredCount: 0,
@@ -3085,34 +3098,34 @@ export class ConsultancyService {
         matched.assignedTestId &&
         (matched.status === 'assigned' || matched.status === 'in_progress' || matched.status === 'offline')
       ) {
-        const sTime = new Date(matched.lastHeartbeat || 0).getTime();
-        if (maxStopped && maxStopped >= sTime) {
+        const sTime = matched.assignedAt ? new Date(matched.assignedAt).getTime() : 0;
+        if (maxStopped && maxStopped >= (sTime || new Date(matched.lastHeartbeat || 0).getTime())) {
           // Station assignment is prior to stop event
           return null;
         }
-        const stationAssignment = {
+
+        const bTime = branchActive ? new Date(branchActive.launchedAt || 0).getTime() : 0;
+        // If branch active launch was triggered at or after this station assignment, the branch broadcast takes precedence
+        if (branchActive && (bTime >= sTime || sTime === 0)) {
+          return {
+            consultancyId: branchActive.consultancyId || consultancyId,
+            testId: branchActive.testId,
+            title: branchActive.title,
+            launchedAt: branchActive.launchedAt,
+            isFullMock: branchActive.isFullMock,
+            candidate: matched.currentCandidate
+          };
+        }
+
+        return {
           consultancyId,
           testId: matched.assignedTestId,
           title: matched.testTitle || matched.assignedTestId,
           module: matched.module,
-          launchedAt: matched.lastHeartbeat || new Date().toISOString(),
+          launchedAt: matched.assignedAt || branchActive?.launchedAt || new Date().toISOString(),
           candidate: matched.currentCandidate,
           isFullMock: Boolean(matched.isFullMock || matched.assignedTestId.includes('full'))
         };
-        if (branchActive) {
-          const bTime = new Date(branchActive.launchedAt || 0).getTime();
-          if (bTime > sTime) {
-            return {
-              consultancyId: branchActive.consultancyId || consultancyId,
-              testId: branchActive.testId,
-              title: branchActive.title,
-              launchedAt: branchActive.launchedAt,
-              isFullMock: branchActive.isFullMock,
-              candidate: matched.currentCandidate
-            };
-          }
-        }
-        return stationAssignment;
       }
 
       // If station itself didn't have an individual override, but branch has an active test:
@@ -3143,34 +3156,30 @@ export class ConsultancyService {
         matched.assignedTestId &&
         (matched.status === 'assigned' || matched.status === 'in_progress' || matched.status === 'offline')
       ) {
-        const sTime = new Date(matched.lastHeartbeat || 0).getTime();
-        if (maxStopped && maxStopped >= sTime) {
+        const sTime = matched.assignedAt ? new Date(matched.assignedAt).getTime() : 0;
+        if (maxStopped && maxStopped >= (sTime || new Date(matched.lastHeartbeat || 0).getTime())) {
           continue;
         }
-        const stationAssignment = {
+        const bTime = branchActive ? new Date(branchActive.launchedAt || 0).getTime() : 0;
+        if (branchActive && (bTime >= sTime || sTime === 0)) {
+          return {
+            consultancyId: branchActive.consultancyId || c.id,
+            testId: branchActive.testId,
+            title: branchActive.title,
+            launchedAt: branchActive.launchedAt,
+            isFullMock: branchActive.isFullMock,
+            candidate: matched.currentCandidate
+          };
+        }
+        return {
           consultancyId: c.id,
           testId: matched.assignedTestId,
           title: matched.testTitle || matched.assignedTestId,
           module: matched.module,
-          launchedAt: matched.lastHeartbeat || new Date().toISOString(),
+          launchedAt: matched.assignedAt || branchActive?.launchedAt || new Date().toISOString(),
           candidate: matched.currentCandidate,
           isFullMock: Boolean(matched.isFullMock || matched.assignedTestId.includes('full'))
         };
-        if (branchActive) {
-          const bTime = new Date(branchActive.launchedAt || 0).getTime();
-          const sTime = new Date(stationAssignment.launchedAt || 0).getTime();
-          if (bTime > sTime) {
-            return {
-              consultancyId: branchActive.consultancyId || c.id,
-              testId: branchActive.testId,
-              title: branchActive.title,
-              launchedAt: branchActive.launchedAt,
-              isFullMock: branchActive.isFullMock,
-              candidate: matched.currentCandidate
-            };
-          }
-        }
-        return stationAssignment;
       }
       if (matched && branchActive) {
         return {
@@ -3251,24 +3260,34 @@ export class ConsultancyService {
     const cids = this.getConsultancyAliases(consultancyId);
     const maxStopped = this.getStoppedTimestamp(consultancyId);
 
+    const candidates: Array<{
+      consultancyId?: string;
+      testId: string;
+      title: string;
+      sessionName?: string;
+      launchedAt: string;
+      isFullMock?: boolean;
+      launchTime: number;
+    }> = [];
+
     for (const cid of cids) {
-      const raw = localStorage.getItem(`ielts_launched_test_${cid}`) || localStorage.getItem(`ielts_active_launch_${cid}`);
-      if (raw) {
-        try {
-          const parsed = JSON.parse(raw);
-          if (parsed && parsed.testId) {
-            const launchTime = parsed.launchedAt ? new Date(parsed.launchedAt).getTime() : 0;
-            const verifyTime = parsed.serverVerifiedAt ? new Date(parsed.serverVerifiedAt).getTime() : launchTime;
-            const isStale = verifyTime > 0 && (Date.now() - verifyTime > 4 * 60 * 60 * 1000);
-            if ((maxStopped && maxStopped > launchTime + 5000) || isStale) {
-              // Already stopped by admin or expired! Purge stale key
-              localStorage.removeItem(`ielts_launched_test_${cid}`);
-              localStorage.removeItem(`ielts_active_launch_${cid}`);
-            } else {
-              return parsed;
+      for (const key of [`ielts_launched_test_${cid}`, `ielts_active_launch_${cid}`]) {
+        const raw = localStorage.getItem(key);
+        if (raw) {
+          try {
+            const parsed = JSON.parse(raw);
+            if (parsed && parsed.testId) {
+              const launchTime = parsed.launchedAt ? new Date(parsed.launchedAt).getTime() : 0;
+              const verifyTime = parsed.serverVerifiedAt ? new Date(parsed.serverVerifiedAt).getTime() : launchTime;
+              const isStale = verifyTime > 0 && (Date.now() - verifyTime > 4 * 60 * 60 * 1000);
+              if ((maxStopped && maxStopped > launchTime + 5000) || isStale) {
+                localStorage.removeItem(key);
+              } else {
+                candidates.push({ ...parsed, launchTime });
+              }
             }
-          }
-        } catch {}
+          } catch {}
+        }
       }
     }
 
@@ -3286,11 +3305,16 @@ export class ConsultancyService {
             const verifyTime = parsed.serverVerifiedAt ? new Date(parsed.serverVerifiedAt).getTime() : launchTime;
             const isStale = verifyTime > 0 && (Date.now() - verifyTime > 4 * 60 * 60 * 1000);
             if (!((maxStopped && maxStopped > launchTime + 5000) || isStale)) {
-              return parsed;
+              candidates.push({ ...parsed, launchTime });
             }
           }
         }
       } catch {}
+    }
+
+    if (candidates.length > 0) {
+      candidates.sort((a, b) => b.launchTime - a.launchTime);
+      return candidates[0];
     }
 
     return null;
@@ -3421,6 +3445,8 @@ export class ConsultancyService {
             st.assignedTestId = testId;
             st.testTitle = title || testId;
             st.status = 'assigned';
+            st.isFullMock = data.isFullMock;
+            st.assignedAt = data.launchedAt;
             st.lastHeartbeat = data.launchedAt;
             changed = true;
           }
@@ -3430,6 +3456,11 @@ export class ConsultancyService {
           for (const key of targetCids) {
             localStorage.setItem(`ielts_stations_${key}`, serialized);
           }
+          // Synchronize stations across devices via cloud
+          stations.forEach((st) => {
+            this.pushStationToBackend(st).catch(() => {});
+            this.pushStationToSupabase(st).catch(() => {});
+          });
         }
       } catch {}
     }
@@ -3486,6 +3517,7 @@ export class ConsultancyService {
       delete list[existingIdx].testTitle;
       delete list[existingIdx].module;
       delete list[existingIdx].isFullMock;
+      delete list[existingIdx].assignedAt;
       delete list[existingIdx].currentCandidate;
       delete list[existingIdx].currentQuestion;
       delete list[existingIdx].totalQuestions;

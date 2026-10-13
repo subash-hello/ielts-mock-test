@@ -753,14 +753,16 @@ export const App: React.FC = () => {
             if (isFull && activeRoute === 'kiosk-test') {
               return;
             }
-            const matchedTest = tests.find((t) => t.id === testId) || allMockTests.find((t) => t.id === testId);
-            const matchedFull = isFull && matchedTest
-              ? allFullMockTests.find((fm) => fm.id === testId || fm.book === matchedTest.book)
-              : undefined;
+            const matchedFull = allFullMockTests.find((fm) => fm.id === testId);
+            const matchedTest = tests.find((t) => t.id === testId) || allMockTests.find((t) => t.id === testId) || matchedFull?.listeningTest;
 
-            if (matchedTest) {
-              setCurrentTest(matchedTest);
+            if (matchedFull) {
+              setCurrentTest(matchedFull.listeningTest);
               setSelectedFullMock(matchedFull);
+              setActiveRoute('kiosk-confirm');
+            } else if (matchedTest) {
+              setCurrentTest(matchedTest);
+              setSelectedFullMock(undefined);
               setActiveRoute('kiosk-confirm');
             }
           }
@@ -796,14 +798,16 @@ export const App: React.FC = () => {
               if (isFull && activeRoute === 'kiosk-test') {
                 return;
               }
-              const matchedTest = tests.find((t) => t.id === targetTestId) || allMockTests.find((t) => t.id === targetTestId);
-              const matchedFull = isFull && matchedTest
-                ? allFullMockTests.find((fm) => fm.id === targetTestId || fm.book === matchedTest.book)
-                : undefined;
+              const matchedFull = allFullMockTests.find((fm) => fm.id === targetTestId);
+              const matchedTest = tests.find((t) => t.id === targetTestId) || allMockTests.find((t) => t.id === targetTestId) || matchedFull?.listeningTest;
 
-              if (matchedTest) {
-                setCurrentTest(matchedTest);
+              if (matchedFull) {
+                setCurrentTest(matchedFull.listeningTest);
                 setSelectedFullMock(matchedFull);
+                setActiveRoute('kiosk-confirm');
+              } else if (matchedTest) {
+                setCurrentTest(matchedTest);
+                setSelectedFullMock(undefined);
                 setActiveRoute('kiosk-confirm');
               }
             }
@@ -1312,12 +1316,15 @@ export const App: React.FC = () => {
               }
             });
 
-            // If invigilator individually pre-assigned a single specific non-full module to this station, go to confirmation
-            const stationObj = ConsultancyService.getStations(activeConsultancy.id).find((s) => s.name === terminalStationName);
-            const isStationSpecificallySingle = stationObj && stationObj.status === 'assigned' && Boolean(stationObj.assignedTestId) && !stationObj.isFullMock && !stationObj.assignedTestId?.endsWith('-full');
+            // Resolve whether there is a specific assigned test for this station or consultancy
+            const stationAssigned = ConsultancyService.getStationAssignedTest(activeConsultancy.id, terminalStationName);
+            const branchActive = ConsultancyService.getActiveLaunchedTest(activeConsultancy.id);
+            const currentLaunch = stationAssigned || branchActive;
 
-            if (isStationSpecificallySingle && stationObj?.assignedTestId) {
-              const matchedTest = tests.find((t) => t.id === stationObj.assignedTestId) || allMockTests.find((t) => t.id === stationObj.assignedTestId);
+            const isStationSpecificallySingle = currentLaunch && !currentLaunch.isFullMock && !currentLaunch.testId?.endsWith('-full');
+
+            if (isStationSpecificallySingle && currentLaunch?.testId) {
+              const matchedTest = tests.find((t) => t.id === currentLaunch.testId) || allMockTests.find((t) => t.id === currentLaunch.testId);
               if (matchedTest) {
                 setCurrentTest(matchedTest);
                 setSelectedFullMock(undefined);
