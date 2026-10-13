@@ -79,8 +79,8 @@ export const cambridge21Test1Reading: IELTSMockTest = {
             {
               "questionNumber": 9,
               "prompt": "The Jean-Baptiste-Camille Corot paintings in the Davies sisters' collection were purchased from a gallery in France.",
-              "correctAnswer": "NOTGIVEN",
-              "explanation": "Official Cambridge answer: NOTGIVEN"
+              "correctAnswer": "NOT GIVEN",
+              "explanation": "Official Cambridge answer: NOT GIVEN"
             },
             {
               "questionNumber": 10,
@@ -118,7 +118,7 @@ export const cambridge21Test1Reading: IELTSMockTest = {
       "questionGroups": [
         {
           "id": "r-sec2-g1-14-17",
-          "type": "sentence_completion",
+          "type": "matching_information",
           "title": "Questions 14-17",
           "instructions": "Which section contains the following information? Write the correct letter, A-G, in boxes 14-17 on your answer sheet.",
           "questions": [
@@ -471,38 +471,89 @@ export const cambridge21Test1Listening: IELTSMockTest = {
     {
       "sectionNumber": 1,
       "title": "Listening Part 1",
-      "subtitle": "Complete the table below.",
+      "subtitle": "Questions 1–10",
       "audioUrl": "/audio/cam21-test1-part1.mp3",
       "questionGroups": [
+        {
+          "id": "l-part1-g0-1-6",
+          "type": "table_completion",
+          "title": "Questions 1–6",
+          "summaryTitle": "Oyster Bay Sailing Club Courses",
+          "instructions": "Complete the table below. Write ONE WORD AND/OR A NUMBER for each answer.",
+          "wordLimitRule": "ONE WORD AND/OR A NUMBER",
+          "questions": [
+            {
+              "questionNumber": 1,
+              "prompt": "Taster day: small groups (max [ 1 ] people)",
+              "correctAnswer": "10",
+              "acceptedVariants": ["ten"],
+              "explanation": "Official Cambridge answer: 10 / ten"
+            },
+            {
+              "questionNumber": 2,
+              "prompt": "Level 1: basic theory e.g. understanding the [ 2 ] and tides",
+              "correctAnswer": "weather",
+              "explanation": "Official Cambridge answer: weather"
+            },
+            {
+              "questionNumber": 3,
+              "prompt": "Level 1: basic sailing skills including [ 3 ] information",
+              "correctAnswer": "safety",
+              "explanation": "Official Cambridge answer: safety"
+            },
+            {
+              "questionNumber": 4,
+              "prompt": "Level 1 (£200): [ 4 ] available for club members",
+              "correctAnswer": "discount",
+              "explanation": "Official Cambridge answer: discount"
+            },
+            {
+              "questionNumber": 5,
+              "prompt": "Level 1 (£200): all inclusive (plus a useful [ 5 ])",
+              "correctAnswer": "dictionary",
+              "explanation": "Official Cambridge answer: dictionary"
+            },
+            {
+              "questionNumber": 6,
+              "prompt": "Level 1: a [ 6 ] at the end of the course for all participants",
+              "correctAnswer": "certificate",
+              "explanation": "Official Cambridge answer: certificate"
+            }
+          ]
+        },
         {
           "id": "l-part1-g1-7-10",
           "type": "form_completion",
           "title": "Questions 7-10",
-          "instructions": "Complete the notes below. Write ONE WORD ONLY for each answer. General information",
-          "clozeTemplate": "Complete the table below.\nWrite ONE WORD AND/OR A NUMBER for each answer.\nOyster Bay Sailing Club Courses\nName of course\nWhat you learn\nCost\nOther information\nTaster day\nintroduction to sailing\n£120 if booking one place\nsmall groups (max {{1}} people)\nLevel 1\nbasic theory e.g. understanding the {{2}} and tides\nbasic sailing skills including {{3}} information\n£200\n{{4}} available for club members\nall inclusive (plus a useful {{5}})\na {{6}} at the end of the course for all participants\nComplete the notes below.\nWrite ONE WORD ONLY for each answer.\nGeneral information\n•   Participants must be able to swim.\n•   Bring suitable clothing, a {{7}} and toiletries (e.g. shampoo).\n•   There is a {{8}} at the club.\n•   Online training {{9}} are recommended.\n•   {{10}} are available for course participants.\nAdvertisements\n",
+          "summaryTitle": "General information",
+          "instructions": "Complete the notes below. Write ONE WORD ONLY for each answer.",
+          "wordLimitRule": "ONE WORD ONLY",
+          "clozeTemplate": "General information\n•   Participants must be able to swim.\n•   Bring suitable clothing, a {{7}} and toiletries (e.g. shampoo).\n•   There is a {{8}} at the club.\n•   Online training {{9}} are recommended.\n•   {{10}} are available for course participants.",
           "questions": [
             {
               "questionNumber": 7,
-              "prompt": "•   Participants must be able to swim.: •   Bring suitable clothing, a [ 7 ] and toiletries (e.g.",
+              "prompt": "Bring suitable clothing, a [ 7 ] and toiletries (e.g. shampoo).",
               "correctAnswer": "towel",
               "explanation": "Official Cambridge answer: towel"
             },
             {
               "questionNumber": 8,
-              "prompt": "•   Participants must be able to swim.: •   There is a [ 8 ] at the club.",
-              "correctAnswer": "cafe I cafe",
-              "explanation": "Official Cambridge answer: cafe I cafe"
+              "prompt": "There is a [ 8 ] at the club.",
+              "correctAnswer": "cafe",
+              "acceptedVariants": ["café"],
+              "explanation": "Official Cambridge answer: cafe / café"
             },
             {
               "questionNumber": 9,
-              "prompt": "•   Participants must be able to swim.: •   Online training [ 9 ] are recommended.",
+              "prompt": "Online training [ 9 ] are recommended.",
               "correctAnswer": "videos",
               "explanation": "Official Cambridge answer: videos"
             },
             {
               "questionNumber": 10,
-              "prompt": "•   Participants must be able to swim.: •   [ 10 ] are available for course participants.",
+              "prompt": "[ 10 ] are available for course participants.",
               "correctAnswer": "Lockers",
+              "acceptedVariants": ["lockers"],
               "explanation": "Official Cambridge answer: Lockers"
             }
           ]
@@ -512,9 +563,83 @@ export const cambridge21Test1Listening: IELTSMockTest = {
     {
       "sectionNumber": 2,
       "title": "Listening Part 2",
-      "subtitle": "Choose the correct letter, A, B or C.",
+      "subtitle": "Questions 11–20",
       "audioUrl": "/audio/cam21-test1-part2.mp3",
       "questionGroups": [
+        {
+          "id": "l-part2-g0-11-16",
+          "type": "multiple_choice",
+          "title": "Questions 11–16",
+          "instructions": "Choose the correct letter, A, B or C. Working as a makeup trainee",
+          "questions": [
+            {
+              "questionNumber": 11,
+              "prompt": "What should trainees always expect to get when working on low budget short films?",
+              "options": [
+                "A   travel expenses",
+                "B   a minimum wage",
+                "C   meals"
+              ],
+              "correctAnswer": "A",
+              "explanation": "Official Cambridge answer: A"
+            },
+            {
+              "questionNumber": 12,
+              "prompt": "According to the speaker, on big budget films trainees may get experience of",
+              "options": [
+                "A   makeup for special effects.",
+                "B   working with different ethnicities.",
+                "C   creating a variety of hair styles."
+              ],
+              "correctAnswer": "B",
+              "explanation": "Official Cambridge answer: B"
+            },
+            {
+              "questionNumber": 13,
+              "prompt": "The speaker says a problem for makeup artists is",
+              "options": [
+                "A   dealing with difficult directors.",
+                "B   being shouted at by their supervisor.",
+                "C   waiting around for hours doing nothing."
+              ],
+              "correctAnswer": "A",
+              "explanation": "Official Cambridge answer: A"
+            },
+            {
+              "questionNumber": 14,
+              "prompt": "How did the speaker feel when she met famous actors for the first time?",
+              "options": [
+                "A   very shy",
+                "B   very proud",
+                "C   very disappointed"
+              ],
+              "correctAnswer": "A",
+              "explanation": "Official Cambridge answer: A"
+            },
+            {
+              "questionNumber": 15,
+              "prompt": "What advice does the speaker give about makeup kits?",
+              "options": [
+                "A   Always carry a basic kit with you.",
+                "B   Only buy the best products for a makeup kit.",
+                "C   Ask other makeup artists to check your kit."
+              ],
+              "correctAnswer": "A",
+              "explanation": "Official Cambridge answer: A"
+            },
+            {
+              "questionNumber": 16,
+              "prompt": "What advice does the speaker give about creating a portfolio?",
+              "options": [
+                "A   Keep print and digital photos.",
+                "B   Only include a small selection of photos.",
+                "C   Get permission to use photos."
+              ],
+              "correctAnswer": "C",
+              "explanation": "Official Cambridge answer: C"
+            }
+          ]
+        },
         {
           "id": "l-part2-g1-17-20",
           "type": "multiple_choice",
@@ -572,9 +697,43 @@ export const cambridge21Test1Listening: IELTSMockTest = {
     {
       "sectionNumber": 3,
       "title": "Listening Part 3",
-      "subtitle": "Choose TWO letters, A-E.",
+      "subtitle": "Questions 21–30",
       "audioUrl": "/audio/cam21-test1-part3.mp3",
       "questionGroups": [
+        {
+          "id": "l-part3-g0-21-22",
+          "type": "multiple_choice_multi",
+          "title": "Questions 21 and 22",
+          "instructions": "Choose TWO letters, A–E. Which TWO features of the lecture on ocean biodiversity had the greatest impact on the students?",
+          "questions": [
+            {
+              "questionNumber": 21,
+              "prompt": "Which TWO features of the lecture on ocean biodiversity had the greatest impact on the students? (First choice)",
+              "options": [
+                "A   the references to local problems",
+                "B   the broad focus of the examples",
+                "C   the practical suggestions for solutions",
+                "D   the type of issues discussed",
+                "E   the implications for government policy"
+              ],
+              "correctAnswer": "B",
+              "explanation": "Official Cambridge answer: B"
+            },
+            {
+              "questionNumber": 22,
+              "prompt": "Which TWO features of the lecture on ocean biodiversity had the greatest impact on the students? (Second choice)",
+              "options": [
+                "A   the references to local problems",
+                "B   the broad focus of the examples",
+                "C   the practical suggestions for solutions",
+                "D   the type of issues discussed",
+                "E   the implications for government policy"
+              ],
+              "correctAnswer": "D",
+              "explanation": "Official Cambridge answer: D"
+            }
+          ]
+        },
         {
           "id": "l-part3-g1-23-24",
           "type": "multiple_choice_multi",
@@ -1022,8 +1181,9 @@ export const cambridge21Test2Reading: IELTSMockTest = {
             {
               "questionNumber": 26,
               "prompt": "Archaeological discoveries: In addition, pieces of [ 26 ] made from a local metal have been found at the site.",
-              "correctAnswer": "jewellery I jewelry",
-              "explanation": "Official Cambridge answer: jewellery I jewelry"
+              "correctAnswer": "jewellery",
+              "acceptedVariants": ["jewelry"],
+              "explanation": "Official Cambridge answer: jewellery / jewelry"
             }
           ]
         }
@@ -1335,9 +1495,43 @@ export const cambridge21Test2Listening: IELTSMockTest = {
     {
       "sectionNumber": 2,
       "title": "Listening Part 2",
-      "subtitle": "Choose TWO letters, A–E.",
+      "subtitle": "Questions 11–20",
       "audioUrl": "/audio/cam21-test2-part2.mp3",
       "questionGroups": [
+        {
+          "id": "l-part2-g0-11-12",
+          "type": "multiple_choice_multi",
+          "title": "Questions 11 and 12",
+          "instructions": "Choose TWO letters, A–E. Which TWO pieces of advice are given about the Marsden Coastal Walk?",
+          "questions": [
+            {
+              "questionNumber": 11,
+              "prompt": "Which TWO pieces of advice are given about the Marsden Coastal Walk? (First choice)",
+              "options": [
+                "A   Stop for lunch in an ancient town.",
+                "B   Don't miss the ruins of a certain building.",
+                "C   Catch a boat to the start of this walk.",
+                "D   Be careful of the steep and rocky paths.",
+                "E   Don't worry about getting lost."
+              ],
+              "correctAnswer": "B",
+              "explanation": "Official Cambridge answer: B"
+            },
+            {
+              "questionNumber": 12,
+              "prompt": "Which TWO pieces of advice are given about the Marsden Coastal Walk? (Second choice)",
+              "options": [
+                "A   Stop for lunch in an ancient town.",
+                "B   Don't miss the ruins of a certain building.",
+                "C   Catch a boat to the start of this walk.",
+                "D   Be careful of the steep and rocky paths.",
+                "E   Don't worry about getting lost."
+              ],
+              "correctAnswer": "E",
+              "explanation": "Official Cambridge answer: E"
+            }
+          ]
+        },
         {
           "id": "l-part2-g1-13-14",
           "type": "multiple_choice_multi",
@@ -1426,9 +1620,43 @@ export const cambridge21Test2Listening: IELTSMockTest = {
     {
       "sectionNumber": 3,
       "title": "Listening Part 3",
-      "subtitle": "Choose TWO letters, A–E.",
+      "subtitle": "Questions 21–30",
       "audioUrl": "/audio/cam21-test2-part3.mp3",
       "questionGroups": [
+        {
+          "id": "l-part3-g0-21-22",
+          "type": "multiple_choice_multi",
+          "title": "Questions 21 and 22",
+          "instructions": "Choose TWO letters, A–E. Which TWO facts in the sessions on food safety were new information for Nadia and Fergus?",
+          "questions": [
+            {
+              "questionNumber": 21,
+              "prompt": "Which TWO facts in the sessions on food safety were new information for Nadia and Fergus? (First choice)",
+              "options": [
+                "A   the amount of plastic in the ocean",
+                "B   the number of diseases caused by contaminated food",
+                "C   the amount of food that is wasted",
+                "D   the number of people who are obese",
+                "E   the result of treating animals with antibiotics"
+              ],
+              "correctAnswer": "B",
+              "explanation": "Official Cambridge answer: B"
+            },
+            {
+              "questionNumber": 22,
+              "prompt": "Which TWO facts in the sessions on food safety were new information for Nadia and Fergus? (Second choice)",
+              "options": [
+                "A   the amount of plastic in the ocean",
+                "B   the number of diseases caused by contaminated food",
+                "C   the amount of food that is wasted",
+                "D   the number of people who are obese",
+                "E   the result of treating animals with antibiotics"
+              ],
+              "correctAnswer": "E",
+              "explanation": "Official Cambridge answer: E"
+            }
+          ]
+        },
         {
           "id": "l-part3-g1-23-24",
           "type": "multiple_choice_multi",
@@ -1499,31 +1727,71 @@ export const cambridge21Test2Listening: IELTSMockTest = {
         },
         {
           "id": "l-part3-g3-27-30",
-          "type": "sentence_completion",
+          "type": "matching_information",
           "title": "Questions 27–30",
-          "instructions": "Complete the flow-chart below. Choose FOUR answers from the box and write the correct letter, A–F, next to Questions 27–30. A   This was challenging but enjoyable.",
+          "instructions": "Complete the flow-chart below. Choose FOUR answers from the box and write the correct letter, A–F, next to Questions 27–30. Student project: developing a new food product",
+          "wordBox": [
+            "A   This was challenging but enjoyable.",
+            "B   This led to some disagreement.",
+            "C   This was easy to decide on.",
+            "D   This was helped by the guidelines provided.",
+            "E   This seemed like an unnecessary stage.",
+            "F   This involved selecting a new ingredient."
+          ],
           "questions": [
             {
               "questionNumber": 27,
-              "prompt": " Literature review",
+              "prompt": "Initial aim   ……………",
+              "options": [
+                "A   This was challenging but enjoyable.",
+                "B   This led to some disagreement.",
+                "C   This was easy to decide on.",
+                "D   This was helped by the guidelines provided.",
+                "E   This seemed like an unnecessary stage.",
+                "F   This involved selecting a new ingredient."
+              ],
               "correctAnswer": "C",
               "explanation": "Official Cambridge answer: C"
             },
             {
               "questionNumber": 28,
-              "prompt": " Product development",
+              "prompt": "↓   Literature review   ……………",
+              "options": [
+                "A   This was challenging but enjoyable.",
+                "B   This led to some disagreement.",
+                "C   This was easy to decide on.",
+                "D   This was helped by the guidelines provided.",
+                "E   This seemed like an unnecessary stage.",
+                "F   This involved selecting a new ingredient."
+              ],
               "correctAnswer": "D",
               "explanation": "Official Cambridge answer: D"
             },
             {
               "questionNumber": 29,
-              "prompt": " Product production",
+              "prompt": "↓   Product development   ……………",
+              "options": [
+                "A   This was challenging but enjoyable.",
+                "B   This led to some disagreement.",
+                "C   This was easy to decide on.",
+                "D   This was helped by the guidelines provided.",
+                "E   This seemed like an unnecessary stage.",
+                "F   This involved selecting a new ingredient."
+              ],
               "correctAnswer": "F",
               "explanation": "Official Cambridge answer: F"
             },
             {
               "questionNumber": 30,
-              "prompt": " ",
+              "prompt": "↓   Product production   ……………",
+              "options": [
+                "A   This was challenging but enjoyable.",
+                "B   This led to some disagreement.",
+                "C   This was easy to decide on.",
+                "D   This was helped by the guidelines provided.",
+                "E   This seemed like an unnecessary stage.",
+                "F   This involved selecting a new ingredient."
+              ],
               "correctAnswer": "A",
               "explanation": "Official Cambridge answer: A"
             }
@@ -2091,6 +2359,40 @@ export const cambridge21Test3Listening: IELTSMockTest = {
       "audioUrl": "/audio/cam21-test3-part2.mp3",
       "questionGroups": [
         {
+          "id": "l-part2-g0-11-12",
+          "type": "multiple_choice_multi",
+          "title": "Questions 11 and 12",
+          "instructions": "Choose TWO letters, A-E. Which TWO explanations for the popularity of street food are given?",
+          "questions": [
+            {
+              "questionNumber": 11,
+              "prompt": "Which TWO explanations for the popularity of street food are given? (First choice)",
+              "options": [
+                "A   low price",
+                "B   locally sourced",
+                "C   freshly made",
+                "D   convenience",
+                "E   unusual food"
+              ],
+              "correctAnswer": "C",
+              "explanation": "Official Cambridge answer: C"
+            },
+            {
+              "questionNumber": 12,
+              "prompt": "Which TWO explanations for the popularity of street food are given? (Second choice)",
+              "options": [
+                "A   low price",
+                "B   locally sourced",
+                "C   freshly made",
+                "D   convenience",
+                "E   unusual food"
+              ],
+              "correctAnswer": "E",
+              "explanation": "Official Cambridge answer: E"
+            }
+          ]
+        },
+        {
           "id": "l-part2-g1-13-14",
           "type": "multiple_choice_multi",
           "title": "Questions 13 and 14",
@@ -2226,6 +2528,40 @@ export const cambridge21Test3Listening: IELTSMockTest = {
       "subtitle": "Choose TWO letters, A-E.",
       "audioUrl": "/audio/cam21-test3-part3.mp3",
       "questionGroups": [
+        {
+          "id": "l-part3-g0-21-22",
+          "type": "multiple_choice_multi",
+          "title": "Questions 21 and 22",
+          "instructions": "Choose TWO letters, A-E. Which TWO points do the speakers make about the terms 'ethical' and 'sustainable' fashion?",
+          "questions": [
+            {
+              "questionNumber": 21,
+              "prompt": "Which TWO points do the speakers make about the terms 'ethical' and 'sustainable' fashion? (First choice)",
+              "options": [
+                "A   Their definitions keep changing.",
+                "B   People think they mean the same thing.",
+                "C   The term 'eco-friendly' is preferable.",
+                "D   They are often used imprecisely.",
+                "E   Companies should avoid using them on clothing labels."
+              ],
+              "correctAnswer": "B",
+              "explanation": "Official Cambridge answer: B"
+            },
+            {
+              "questionNumber": 22,
+              "prompt": "Which TWO points do the speakers make about the terms 'ethical' and 'sustainable' fashion? (Second choice)",
+              "options": [
+                "A   Their definitions keep changing.",
+                "B   People think they mean the same thing.",
+                "C   The term 'eco-friendly' is preferable.",
+                "D   They are often used imprecisely.",
+                "E   Companies should avoid using them on clothing labels."
+              ],
+              "correctAnswer": "D",
+              "explanation": "Official Cambridge answer: D"
+            }
+          ]
+        },
         {
           "id": "l-part3-g1-23-24",
           "type": "multiple_choice_multi",
@@ -3072,6 +3408,40 @@ export const cambridge21Test4Listening: IELTSMockTest = {
       "audioUrl": "/audio/cam21-test4-part2.mp3",
       "questionGroups": [
         {
+          "id": "l-part2-g0-11-12",
+          "type": "multiple_choice_multi",
+          "title": "Questions 11 and 12",
+          "instructions": "Choose TWO letters, A-E. In which TWO areas of the business exhibition did James Craig promote his company last year?",
+          "questions": [
+            {
+              "questionNumber": 11,
+              "prompt": "In which TWO areas of the business exhibition did James Craig promote his company last year? (First choice)",
+              "options": [
+                "A   the Digital Marketing Centre",
+                "B   the TalkCon Zone",
+                "C   the Breakout area",
+                "D   the Business Village",
+                "E   the Business Connections Zone"
+              ],
+              "correctAnswer": "C",
+              "explanation": "Official Cambridge answer: C"
+            },
+            {
+              "questionNumber": 12,
+              "prompt": "In which TWO areas of the business exhibition did James Craig promote his company last year? (Second choice)",
+              "options": [
+                "A   the Digital Marketing Centre",
+                "B   the TalkCon Zone",
+                "C   the Breakout area",
+                "D   the Business Village",
+                "E   the Business Connections Zone"
+              ],
+              "correctAnswer": "E",
+              "explanation": "Official Cambridge answer: E"
+            }
+          ]
+        },
+        {
           "id": "l-part2-g1-13-14",
           "type": "multiple_choice_multi",
           "title": "Questions 13 and 14",
@@ -3211,6 +3581,47 @@ export const cambridge21Test4Listening: IELTSMockTest = {
       "subtitle": "Choose the correct letter, A, B or C.",
       "audioUrl": "/audio/cam21-test4-part3.mp3",
       "questionGroups": [
+        {
+          "id": "l-part3-g0-21-23",
+          "type": "multiple_choice",
+          "title": "Questions 21-23",
+          "instructions": "Choose the correct letter, A, B or C. Presentation on houses of the future",
+          "questions": [
+            {
+              "questionNumber": 21,
+              "prompt": "Which aspect of their presentation are Mia and Leo both concerned about?",
+              "options": [
+                "A   meeting the deadline",
+                "B   finding suitable examples",
+                "C   including original ideas"
+              ],
+              "correctAnswer": "B",
+              "explanation": "Official Cambridge answer: B"
+            },
+            {
+              "questionNumber": 22,
+              "prompt": "The students decide to focus their assignment on housing for",
+              "options": [
+                "A   family groups.",
+                "B   old people.",
+                "C   single people."
+              ],
+              "correctAnswer": "A",
+              "explanation": "Official Cambridge answer: A"
+            },
+            {
+              "questionNumber": 23,
+              "prompt": "The students agree that demand for accommodation in urban areas should be met by",
+              "options": [
+                "A   repurposing offices and factories.",
+                "B   constructing tall buildings.",
+                "C   developing creative ideas for smaller homes."
+              ],
+              "correctAnswer": "B",
+              "explanation": "Official Cambridge answer: B"
+            }
+          ]
+        },
         {
           "id": "l-part3-g1-24-30",
           "type": "multiple_choice",

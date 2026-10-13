@@ -2228,7 +2228,7 @@ export const cambridge18Test3Reading: IELTSMockTest = {
       "questionGroups": [
         {
           "id": "r-sec1-g1-1-4",
-          "type": "sentence_completion",
+          "type": "matching_information",
           "title": "Questions 1-4",
           "instructions": "Which section contains the following information? Write the correct letter, A-H, in boxes 1-4 on your answer sheet.",
           "questions": [

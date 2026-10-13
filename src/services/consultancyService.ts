@@ -604,14 +604,31 @@ export class ConsultancyService {
         e.key.startsWith('ielts_launched_test_') ||
         e.key === 'ielts_latest_launched_test'
       ) {
+        if (e.newValue === e.oldValue) return;
         try {
-          const parsed = e.newValue ? JSON.parse(e.newValue) : null;
-          callback({
-            type: 'BRANCH_TEST_LAUNCHED',
-            payload: parsed || { testId: null }
-          });
+          if (e.newValue) {
+            const parsed = JSON.parse(e.newValue);
+            if (parsed && parsed.testId) {
+              callback({
+                type: 'BRANCH_TEST_LAUNCHED',
+                payload: parsed
+              });
+            }
+          } else {
+            const cid = e.key.startsWith('ielts_launched_test_')
+              ? e.key.replace('ielts_launched_test_', '')
+              : undefined;
+            const stoppedAt = cid ? ConsultancyService.getStoppedTimestamp(cid) : 0;
+            // Only emit stop event if an explicit stop timestamp was recorded recently (not a stale-key cleanup)
+            if (stoppedAt && Date.now() - stoppedAt < 60000) {
+              callback({
+                type: 'BRANCH_TEST_LAUNCHED',
+                payload: { consultancyId: cid, testId: null, stoppedAt }
+              });
+            }
+          }
         } catch {
-          callback({ type: 'BRANCH_TEST_LAUNCHED', payload: { testId: null } });
+          // Ignore malformed storage values
         }
       } else if (e.key.startsWith('ielts_stations_')) {
         callback({ type: 'STATION_UPDATED', payload: {} });
@@ -1539,6 +1556,43 @@ export class ConsultancyService {
     }
   }
 
+  private static supabaseTablesAvailable = true;
+
+  private static clearLocalLaunchOnServerStop(canonical: string, aliases: string[], stopMs?: number): void {
+    let hadActive = false;
+    for (const k of aliases) {
+      if (localStorage.getItem(`ielts_launched_test_${k}`) || localStorage.getItem(`ielts_active_launch_${k}`)) {
+        hadActive = true;
+      }
+      localStorage.removeItem(`ielts_launched_test_${k}`);
+      localStorage.removeItem(`ielts_active_launch_${k}`);
+    }
+    try {
+      const latestRaw = localStorage.getItem('ielts_latest_launched_test');
+      if (latestRaw) {
+        const parsed = JSON.parse(latestRaw);
+        const latestCid = parsed?.consultancyId ? this.getCanonicalConsultancyId(parsed.consultancyId) : null;
+        if (!latestCid || latestCid === canonical || aliases.includes(parsed?.consultancyId)) {
+          hadActive = true;
+          localStorage.removeItem('ielts_latest_launched_test');
+        }
+      }
+    } catch {
+      localStorage.removeItem('ielts_latest_launched_test');
+    }
+
+    if (hadActive || stopMs) {
+      const stopTime = stopMs || Date.now();
+      for (const k of aliases) {
+        localStorage.setItem(`ielts_stopped_test_${k}`, String(stopTime));
+      }
+      if (hadActive) {
+        this.broadcast('BRANCH_TEST_LAUNCHED', { consultancyId: canonical, testId: null, stoppedAt: stopTime });
+        this.broadcast('ACTIVE_LAUNCH_UPDATED', { consultancyId: canonical, testId: null, stoppedAt: stopTime });
+      }
+    }
+  }
+
   public static async syncActiveLaunchFromBackend(consultancyId: string): Promise<any> {
     if (!BACKEND_BASE_URL || typeof window === 'undefined') return this.getActiveLaunchedTest(consultancyId);
     try {
@@ -1551,11 +1605,18 @@ export class ConsultancyService {
         const data = await res.json();
         const aliases = this.getConsultancyAliases(canonical);
         if (data.isActive && data.launch) {
+          let prevTestId: string | null = null;
+          try {
+            const prevRaw = localStorage.getItem(`ielts_launched_test_${canonical}`);
+            if (prevRaw) prevTestId = JSON.parse(prevRaw)?.testId || null;
+          } catch {}
+
           const launchData = {
             consultancyId: canonical,
             testId: data.launch.testId,
             title: data.launch.title,
             launchedAt: data.launch.startedAt,
+            serverVerifiedAt: new Date().toISOString(),
             isFullMock: Boolean(data.launch.isFullMock || (data.launch.testId && data.launch.testId.includes('full')))
           };
           for (const k of aliases) {
@@ -1564,14 +1625,13 @@ export class ConsultancyService {
             localStorage.setItem(`ielts_active_launch_${k}`, JSON.stringify(launchData));
           }
           localStorage.setItem('ielts_latest_launched_test', JSON.stringify(launchData));
-          this.broadcast('BRANCH_TEST_LAUNCHED', launchData);
-          this.broadcast('ACTIVE_LAUNCH_UPDATED', launchData);
-          return launchData;
-        } else {
-          for (const k of aliases) {
-            localStorage.removeItem(`ielts_launched_test_${k}`);
-            localStorage.removeItem(`ielts_active_launch_${k}`);
+          if (prevTestId !== launchData.testId) {
+            this.broadcast('BRANCH_TEST_LAUNCHED', launchData);
+            this.broadcast('ACTIVE_LAUNCH_UPDATED', launchData);
           }
+          return launchData;
+        } else if (data.isActive === false) {
+          this.clearLocalLaunchOnServerStop(canonical, aliases);
           return null;
         }
       }
@@ -1584,8 +1644,8 @@ export class ConsultancyService {
     const canonical = this.getCanonicalConsultancyId(consultancyId);
     const aliases = this.getConsultancyAliases(consultancyId);
 
-    // 1. Try Supabase first
-    if (supabase) {
+    // 1. Try Supabase first (if tables exist)
+    if (supabase && this.supabaseTablesAvailable) {
       try {
         const { data: dbLaunch, error } = await supabase
           .from('consultancy_active_launches')
@@ -1595,23 +1655,28 @@ export class ConsultancyService {
           .limit(1)
           .maybeSingle();
 
-        if (!error && dbLaunch) {
+        if (error && (error.code === 'PGRST205' || error.code === '42P01')) {
+          this.supabaseTablesAvailable = false;
+        } else if (!error && dbLaunch) {
           const isStopped = dbLaunch.stopped_at && (!dbLaunch.launched_at || new Date(dbLaunch.stopped_at).getTime() > new Date(dbLaunch.launched_at).getTime());
           if (isStopped) {
             const stopMs = new Date(dbLaunch.stopped_at).getTime();
-            for (const k of aliases) {
-              localStorage.setItem(`ielts_stopped_test_${k}`, String(stopMs));
-              localStorage.removeItem(`ielts_launched_test_${k}`);
-              localStorage.removeItem(`ielts_active_launch_${k}`);
-            }
+            this.clearLocalLaunchOnServerStop(canonical, aliases, stopMs);
             return null;
           } else if (dbLaunch.test_id && dbLaunch.launched_at) {
+            let prevTestId: string | null = null;
+            try {
+              const prevRaw = localStorage.getItem(`ielts_launched_test_${canonical}`);
+              if (prevRaw) prevTestId = JSON.parse(prevRaw)?.testId || null;
+            } catch {}
+
             const launchData = {
               consultancyId: canonical,
               testId: dbLaunch.test_id,
               title: dbLaunch.title || dbLaunch.test_id,
               sessionName: dbLaunch.session_name || undefined,
               launchedAt: dbLaunch.launched_at,
+              serverVerifiedAt: new Date().toISOString(),
               isFullMock: dbLaunch.is_full_mock || dbLaunch.test_id.includes('full')
             };
             for (const k of aliases) {
@@ -1620,8 +1685,10 @@ export class ConsultancyService {
               localStorage.setItem(`ielts_active_launch_${k}`, JSON.stringify(launchData));
             }
             localStorage.setItem('ielts_latest_launched_test', JSON.stringify(launchData));
-            this.broadcast('BRANCH_TEST_LAUNCHED', launchData);
-            this.broadcast('ACTIVE_LAUNCH_UPDATED', launchData);
+            if (prevTestId !== launchData.testId) {
+              this.broadcast('BRANCH_TEST_LAUNCHED', launchData);
+              this.broadcast('ACTIVE_LAUNCH_UPDATED', launchData);
+            }
             return launchData;
           }
         }
@@ -1638,12 +1705,19 @@ export class ConsultancyService {
         if (res.ok) {
           const data = await res.json();
           if (data.isActive && data.launch) {
+            let prevTestId: string | null = null;
+            try {
+              const prevRaw = localStorage.getItem(`ielts_launched_test_${canonical}`);
+              if (prevRaw) prevTestId = JSON.parse(prevRaw)?.testId || null;
+            } catch {}
+
             const launchData = {
               consultancyId: canonical,
               testId: data.launch.testId,
               title: data.launch.title,
               sessionName: undefined,
               launchedAt: data.launch.startedAt,
+              serverVerifiedAt: new Date().toISOString(),
               isFullMock: Boolean(data.launch.isFullMock || (data.launch.testId && data.launch.testId.includes('full')))
             };
             for (const k of aliases) {
@@ -1652,14 +1726,14 @@ export class ConsultancyService {
               localStorage.setItem(`ielts_active_launch_${k}`, JSON.stringify(launchData));
             }
             localStorage.setItem('ielts_latest_launched_test', JSON.stringify(launchData));
-            this.broadcast('BRANCH_TEST_LAUNCHED', launchData);
-            this.broadcast('ACTIVE_LAUNCH_UPDATED', launchData);
+            if (prevTestId !== launchData.testId) {
+              this.broadcast('BRANCH_TEST_LAUNCHED', launchData);
+              this.broadcast('ACTIVE_LAUNCH_UPDATED', launchData);
+            }
             return launchData;
           } else if (data.isActive === false) {
-            for (const k of aliases) {
-              localStorage.removeItem(`ielts_launched_test_${k}`);
-              localStorage.removeItem(`ielts_active_launch_${k}`);
-            }
+            this.clearLocalLaunchOnServerStop(canonical, aliases);
+            return null;
           }
         }
       } catch {}
@@ -1675,14 +1749,16 @@ export class ConsultancyService {
     let remoteStations: LabStation[] = [];
 
     // 1. Try Supabase
-    if (supabase) {
+    if (supabase && this.supabaseTablesAvailable) {
       try {
         const { data: dbStations, error } = await supabase
           .from('consultancy_stations')
           .select('*')
           .in('consultancy_id', aliases);
 
-        if (!error && Array.isArray(dbStations) && dbStations.length > 0) {
+        if (error && (error.code === 'PGRST205' || error.code === '42P01')) {
+          this.supabaseTablesAvailable = false;
+        } else if (!error && Array.isArray(dbStations) && dbStations.length > 0) {
           remoteStations = dbStations.map((r: any) => this.mapRowToStation(r));
         }
       } catch {}
@@ -2756,22 +2832,38 @@ export class ConsultancyService {
       (s) => s.id === stationIdentifier || this.normalizeStationName(s.name) === normSearch
     );
     if (existingIdx >= 0) {
-      list[existingIdx] = {
-        ...list[existingIdx],
-        ...updates,
-        consultancyId: canonical,
-        lastHeartbeat: new Date().toISOString()
-      };
-      if (updates.status === 'idle') {
-        delete list[existingIdx].assignedTestId;
-        delete list[existingIdx].testTitle;
-        delete list[existingIdx].module;
-        delete list[existingIdx].isFullMock;
-        if (!updates.currentCandidate) {
-          delete list[existingIdx].currentCandidate;
+      const prev = list[existingIdx];
+      const maxStopped = this.getStoppedTimestamp(canonical);
+      const prevTime = new Date(prev.lastHeartbeat || 0).getTime();
+      const hasActiveAssignment =
+        prev.assignedTestId &&
+        prev.status === 'assigned' &&
+        (!maxStopped || prevTime > maxStopped);
+
+      // Do not let a passive 'idle' kiosk heartbeat wipe an active test assignment before the kiosk starts it
+      if (updates.status === 'idle' && hasActiveAssignment) {
+        list[existingIdx] = {
+          ...prev,
+          lastHeartbeat: new Date().toISOString()
+        };
+      } else {
+        list[existingIdx] = {
+          ...prev,
+          ...updates,
+          consultancyId: canonical,
+          lastHeartbeat: new Date().toISOString()
+        };
+        if (updates.status === 'idle') {
+          delete list[existingIdx].assignedTestId;
+          delete list[existingIdx].testTitle;
+          delete list[existingIdx].module;
+          delete list[existingIdx].isFullMock;
+          if (!updates.currentCandidate) {
+            delete list[existingIdx].currentCandidate;
+          }
+          delete list[existingIdx].remainingSeconds;
+          delete list[existingIdx].timeSpentSeconds;
         }
-        delete list[existingIdx].remainingSeconds;
-        delete list[existingIdx].timeSpentSeconds;
       }
       const serialized = JSON.stringify(list);
       for (const key of aliases) {
@@ -2935,13 +3027,18 @@ export class ConsultancyService {
     testId: string,
     testTitle: string,
     module: 'reading' | 'listening' | 'writing',
-    candidate?: { candidateId: string; name: string; targetBand?: number }
+    candidate?: { candidateId: string; name: string; targetBand?: number },
+    isFullMock?: boolean
   ): void {
-    this.updateStationHeartbeat(consultancyId, stationIdentifier, {
+    const canonical = this.getCanonicalConsultancyId(consultancyId);
+    const normName = this.normalizeStationName(stationIdentifier);
+    const fullFlag = Boolean(isFullMock || testId.includes('full'));
+    this.updateStationHeartbeat(canonical, stationIdentifier, {
       status: 'assigned',
       assignedTestId: testId,
       testTitle,
       module,
+      isFullMock: fullFlag,
       currentQuestion: 1,
       totalQuestions: 40,
       answeredCount: 0,
@@ -2951,7 +3048,15 @@ export class ConsultancyService {
         name: 'Assigned Student'
       }
     });
-    this.broadcast('STATION_COMMAND', { stationId: stationIdentifier, command: 'START_TEST', testId });
+    this.broadcast('STATION_COMMAND', {
+      consultancyId: canonical,
+      stationId: stationIdentifier,
+      stationName: normName,
+      command: 'START_TEST',
+      testId,
+      title: testTitle,
+      isFullMock: fullFlag
+    });
   }
 
   public static getStationAssignedTest(
@@ -2975,7 +3080,11 @@ export class ConsultancyService {
       const maxStopped = this.getStoppedTimestamp(consultancyId);
       const stations = this.getStations(consultancyId);
       const matched = stations.find((s) => s.id === stationIdentifier || this.normalizeStationName(s.name) === norm);
-      if (matched && matched.assignedTestId && (matched.status === 'assigned' || matched.status === 'in_progress')) {
+      if (
+        matched &&
+        matched.assignedTestId &&
+        (matched.status === 'assigned' || matched.status === 'in_progress' || matched.status === 'offline')
+      ) {
         const sTime = new Date(matched.lastHeartbeat || 0).getTime();
         if (maxStopped && maxStopped >= sTime) {
           // Station assignment is prior to stop event
@@ -2988,7 +3097,7 @@ export class ConsultancyService {
           module: matched.module,
           launchedAt: matched.lastHeartbeat || new Date().toISOString(),
           candidate: matched.currentCandidate,
-          isFullMock: matched.assignedTestId.includes('full')
+          isFullMock: Boolean(matched.isFullMock || matched.assignedTestId.includes('full'))
         };
         if (branchActive) {
           const bTime = new Date(branchActive.launchedAt || 0).getTime();
@@ -3029,7 +3138,11 @@ export class ConsultancyService {
       const maxStopped = this.getStoppedTimestamp(c.id);
       const stations = this.getStations(c.id);
       const matched = stations.find((s) => s.id === stationIdentifier || this.normalizeStationName(s.name) === norm);
-      if (matched && matched.assignedTestId && (matched.status === 'assigned' || matched.status === 'in_progress')) {
+      if (
+        matched &&
+        matched.assignedTestId &&
+        (matched.status === 'assigned' || matched.status === 'in_progress' || matched.status === 'offline')
+      ) {
         const sTime = new Date(matched.lastHeartbeat || 0).getTime();
         if (maxStopped && maxStopped >= sTime) {
           continue;
@@ -3041,7 +3154,7 @@ export class ConsultancyService {
           module: matched.module,
           launchedAt: matched.lastHeartbeat || new Date().toISOString(),
           candidate: matched.currentCandidate,
-          isFullMock: matched.assignedTestId.includes('full')
+          isFullMock: Boolean(matched.isFullMock || matched.assignedTestId.includes('full'))
         };
         if (branchActive) {
           const bTime = new Date(branchActive.launchedAt || 0).getTime();
@@ -3126,7 +3239,8 @@ export class ConsultancyService {
           const parsed = JSON.parse(latestRaw);
           if (parsed && parsed.testId) {
             const launchTime = parsed.launchedAt ? new Date(parsed.launchedAt).getTime() : 0;
-            const isStale = launchTime > 0 && (Date.now() - launchTime > 4 * 60 * 60 * 1000);
+            const verifyTime = parsed.serverVerifiedAt ? new Date(parsed.serverVerifiedAt).getTime() : launchTime;
+            const isStale = verifyTime > 0 && (Date.now() - verifyTime > 4 * 60 * 60 * 1000);
             if (!isStale) return parsed;
           }
         } catch {}
@@ -3144,7 +3258,8 @@ export class ConsultancyService {
           const parsed = JSON.parse(raw);
           if (parsed && parsed.testId) {
             const launchTime = parsed.launchedAt ? new Date(parsed.launchedAt).getTime() : 0;
-            const isStale = launchTime > 0 && (Date.now() - launchTime > 4 * 60 * 60 * 1000);
+            const verifyTime = parsed.serverVerifiedAt ? new Date(parsed.serverVerifiedAt).getTime() : launchTime;
+            const isStale = verifyTime > 0 && (Date.now() - verifyTime > 4 * 60 * 60 * 1000);
             if ((maxStopped && maxStopped > launchTime + 5000) || isStale) {
               // Already stopped by admin or expired! Purge stale key
               localStorage.removeItem(`ielts_launched_test_${cid}`);
@@ -3168,7 +3283,8 @@ export class ConsultancyService {
           const matches = !launchCid || launchCid === canonical || cids.includes(parsed.consultancyId);
           if (matches) {
             const launchTime = parsed.launchedAt ? new Date(parsed.launchedAt).getTime() : 0;
-            const isStale = launchTime > 0 && (Date.now() - launchTime > 4 * 60 * 60 * 1000);
+            const verifyTime = parsed.serverVerifiedAt ? new Date(parsed.serverVerifiedAt).getTime() : launchTime;
+            const isStale = verifyTime > 0 && (Date.now() - verifyTime > 4 * 60 * 60 * 1000);
             if (!((maxStopped && maxStopped > launchTime + 5000) || isStale)) {
               return parsed;
             }
@@ -3271,6 +3387,7 @@ export class ConsultancyService {
       title: title || testId,
       sessionName: sessionName || undefined,
       launchedAt: new Date().toISOString(),
+      serverVerifiedAt: new Date().toISOString(),
       isFullMock: isFullMock ?? testId.includes('full')
     };
 
@@ -3352,7 +3469,8 @@ export class ConsultancyService {
   }
 
   public static resetStation(consultancyId: string, stationId: string): void {
-    const list = this.getStations(consultancyId);
+    const canonical = this.getCanonicalConsultancyId(consultancyId);
+    const list = this.getStations(canonical);
     const norm = this.normalizeStationName(stationId);
     const existingIdx = list.findIndex(
       (s) => s.id === stationId || this.normalizeStationName(s.name) === norm
@@ -3374,15 +3492,17 @@ export class ConsultancyService {
       delete list[existingIdx].answeredCount;
       delete list[existingIdx].remainingSeconds;
 
-      const aliases = this.getConsultancyAliases(consultancyId);
+      const aliases = this.getConsultancyAliases(canonical);
       const serialized = JSON.stringify(list);
       for (const key of aliases) {
         localStorage.setItem(`ielts_stations_${key}`, serialized);
       }
       this.broadcast('STATION_HEARTBEAT', list[existingIdx]);
       this.broadcast('STATION_UPDATED', list[existingIdx]);
-      this.broadcast('STATION_COMMAND', { stationId, stationName: targetName, consultancyId, command: 'RESET_STATION' });
-      this.broadcast('STATION_COMMAND', { stationId, stationName: targetName, consultancyId, command: 'END_TEST' });
+      this.broadcast('STATION_COMMAND', { stationId, stationName: targetName, consultancyId: canonical, command: 'RESET_STATION' });
+      this.broadcast('STATION_COMMAND', { stationId, stationName: targetName, consultancyId: canonical, command: 'END_TEST', stoppedAt: Date.now() });
+      this.pushStationToBackend(list[existingIdx]).catch(() => {});
+      this.pushStationToSupabase(list[existingIdx]).catch(() => {});
     }
   }
 
@@ -3406,6 +3526,8 @@ export class ConsultancyService {
         localStorage.setItem(`ielts_stations_${key}`, serialized);
       }
       this.broadcast('STATION_UPDATED', list[existingIdx]);
+      this.pushStationToBackend(list[existingIdx]).catch(() => {});
+      this.pushStationToSupabase(list[existingIdx]).catch(() => {});
     }
   }
 
@@ -4865,7 +4987,8 @@ export class ConsultancyService {
       testId,
       testTitle || 'Assigned Mock Test',
       mod,
-      studentName ? { candidateId: candidateId || '004128', name: studentName } : undefined
+      studentName ? { candidateId: candidateId || '004128', name: studentName } : undefined,
+      isFullMock
     );
   }
 

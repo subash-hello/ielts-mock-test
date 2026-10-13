@@ -2620,38 +2620,103 @@ export const cambridge19Test3Listening: IELTSMockTest = {
         },
         {
           "id": "l-part3-g1-26-30",
-          "type": "sentence_completion",
+          "type": "matching_information",
           "title": "Questions 26-30",
-          "instructions": "Complete the flowchart below. Choose FIVE answers from the box and write the correct letter, A–H, next to Questions 26-30. A   size",
+          "instructions": "Complete the flowchart below. Choose FIVE answers from the box and write the correct letter, A–H, next to Questions 26-30.",
+          "wordBox": [
+            "A   size",
+            "B   escape",
+            "C   age",
+            "D   water",
+            "E   cereal",
+            "F   calculations",
+            "G   changes",
+            "H   colour"
+          ],
           "questions": [
             {
               "questionNumber": 26,
               "prompt": "Choose mice which are all the same [ 26 ] .",
+              "options": [
+                "A   size",
+                "B   escape",
+                "C   age",
+                "D   water",
+                "E   cereal",
+                "F   calculations",
+                "G   changes",
+                "H   colour"
+              ],
               "correctAnswer": "C",
+              "acceptedVariants": ["age"],
               "explanation": "Official Cambridge answer: C"
             },
             {
               "questionNumber": 27,
               "prompt": "↓: Divide the mice into two groups, each with a different [ 27 ] .",
+              "options": [
+                "A   size",
+                "B   escape",
+                "C   age",
+                "D   water",
+                "E   cereal",
+                "F   calculations",
+                "G   changes",
+                "H   colour"
+              ],
               "correctAnswer": "H",
+              "acceptedVariants": ["colour", "color"],
               "explanation": "Official Cambridge answer: H"
             },
             {
               "questionNumber": 28,
-              "prompt": "Feed group A commercial mouse food.: Feed group B the same, but also sugar contained in [ 28 ] .",
+              "prompt": "Put each group in a separate cage. Feed group A commercial mouse food. Feed group B the same, but also sugar contained in [ 28 ] .",
+              "options": [
+                "A   size",
+                "B   escape",
+                "C   age",
+                "D   water",
+                "E   cereal",
+                "F   calculations",
+                "G   changes",
+                "H   colour"
+              ],
               "correctAnswer": "E",
+              "acceptedVariants": ["cereal"],
               "explanation": "Official Cambridge answer: E"
             },
             {
               "questionNumber": 29,
-              "prompt": "Take measurements using an electronic scale.: Place them in a weighing chamber to prevent [ 29 ] .",
+              "prompt": "Take measurements using an electronic scale. Place them in a weighing chamber to prevent [ 29 ] .",
+              "options": [
+                "A   size",
+                "B   escape",
+                "C   age",
+                "D   water",
+                "E   cereal",
+                "F   calculations",
+                "G   changes",
+                "H   colour"
+              ],
               "correctAnswer": "B",
+              "acceptedVariants": ["escape"],
               "explanation": "Official Cambridge answer: B"
             },
             {
               "questionNumber": 30,
               "prompt": "↓: Do all necessary [ 30 ] .",
+              "options": [
+                "A   size",
+                "B   escape",
+                "C   age",
+                "D   water",
+                "E   cereal",
+                "F   calculations",
+                "G   changes",
+                "H   colour"
+              ],
               "correctAnswer": "F",
+              "acceptedVariants": ["calculations"],
               "explanation": "Official Cambridge answer: F"
             }
           ]

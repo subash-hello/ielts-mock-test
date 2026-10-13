@@ -114,6 +114,11 @@ def stop_active_launch(cid: str):
     conn = get_db()
     cursor = conn.cursor()
     cursor.execute("UPDATE active_launches SET is_active = 0 WHERE consultancy_id = ?", (cid,))
+    cursor.execute("""
+    UPDATE stations
+    SET status = 'idle', current_test_id = NULL, current_module = NULL, answers_count = 0, remaining_seconds = 0
+    WHERE consultancy_id = ? AND status IN ('assigned', 'in_progress', 'paused')
+    """, (cid,))
     conn.commit()
     conn.close()
 

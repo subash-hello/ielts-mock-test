@@ -1,63 +1,88 @@
 {
-  "apex-global": [
+  "kiec-lalitpur": [
     {
-      "id": "apex-pc-01",
+      "id": "kiec-lalitpur-pc-01",
       "name": "PC-01",
-      "consultancyId": "apex-global",
+      "consultancyId": "kiec-lalitpur",
       "status": "idle",
-      "lastHeartbeat": "2026-10-09T07:37:07.394Z"
+      "lastHeartbeat": "2026-10-13T06:43:37.255Z"
     },
     {
-      "id": "apex-pc-02",
+      "id": "kiec-lalitpur-pc-02",
       "name": "PC-02",
-      "consultancyId": "apex-global",
+      "consultancyId": "kiec-lalitpur",
       "status": "idle",
-      "lastHeartbeat": "2026-10-09T07:37:07.395Z"
+      "lastHeartbeat": "2026-10-13T06:43:37.255Z"
     },
     {
-      "id": "apex-pc-03",
+      "id": "kiec-lalitpur-pc-03",
       "name": "PC-03",
-      "consultancyId": "apex-global",
+      "consultancyId": "kiec-lalitpur",
       "status": "idle",
-      "lastHeartbeat": "2026-10-09T07:37:07.395Z"
+      "lastHeartbeat": "2026-10-13T06:43:37.255Z"
     },
     {
-      "id": "apex-pc-04",
+      "id": "kiec-lalitpur-pc-04",
       "name": "PC-04",
-      "consultancyId": "apex-global",
+      "consultancyId": "kiec-lalitpur",
       "status": "idle",
-      "lastHeartbeat": "2026-10-09T07:37:07.395Z"
+      "lastHeartbeat": "2026-10-13T06:43:37.255Z"
     },
     {
-      "id": "apex-pc-05",
+      "id": "kiec-lalitpur-pc-05",
       "name": "PC-05",
-      "consultancyId": "apex-global",
+      "consultancyId": "kiec-lalitpur",
       "status": "idle",
-      "lastHeartbeat": "2026-10-09T07:37:07.395Z"
+      "lastHeartbeat": "2026-10-13T06:43:37.255Z"
     },
     {
-      "id": "apex-pc-06",
+      "id": "kiec-lalitpur-pc-06",
       "name": "PC-06",
-      "consultancyId": "apex-global",
+      "consultancyId": "kiec-lalitpur",
       "status": "idle",
-      "lastHeartbeat": "2026-10-09T07:37:07.395Z"
+      "lastHeartbeat": "2026-10-13T06:43:37.255Z"
     },
     {
-      "id": "apex-pc-07",
+      "id": "kiec-lalitpur-pc-07",
       "name": "PC-07",
-      "consultancyId": "apex-global",
+      "consultancyId": "kiec-lalitpur",
       "status": "idle",
-      "lastHeartbeat": "2026-10-09T07:37:07.395Z"
+      "lastHeartbeat": "2026-10-13T06:43:37.255Z"
     },
     {
-      "id": "apex-pc-08",
+      "id": "kiec-lalitpur-pc-08",
       "name": "PC-08",
-      "consultancyId": "apex-global",
+      "consultancyId": "kiec-lalitpur",
       "status": "idle",
-      "lastHeartbeat": "2026-10-09T07:37:07.395Z"
+      "lastHeartbeat": "2026-10-13T06:43:37.255Z"
+    },
+    {
+      "id": "kiec-lalitpur-pc-09",
+      "name": "PC-09",
+      "consultancyId": "kiec-lalitpur",
+      "status": "idle",
+      "lastHeartbeat": "2026-10-13T06:43:37.255Z"
+    },
+    {
+      "id": "kiec-lalitpur-pc-10",
+      "name": "PC-10",
+      "consultancyId": "kiec-lalitpur",
+      "status": "idle",
+      "lastHeartbeat": "2026-10-13T06:43:37.255Z"
+    },
+    {
+      "id": "kiec-lalitpur-pc-11",
+      "name": "PC-11",
+      "consultancyId": "kiec-lalitpur",
+      "status": "idle",
+      "lastHeartbeat": "2026-10-13T06:43:37.255Z"
+    },
+    {
+      "id": "kiec-lalitpur-pc-12",
+      "name": "PC-12",
+      "consultancyId": "kiec-lalitpur",
+      "status": "idle",
+      "lastHeartbeat": "2026-10-13T06:43:37.255Z"
     }
-  ],
-  "edwise-overseas": [],
-  "kangaroo-studies": [],
-  "kiec-lalitpur": []
+  ]
 }

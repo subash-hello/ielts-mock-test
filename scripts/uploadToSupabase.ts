@@ -1,8 +1,8 @@
 import { createClient } from '@supabase/supabase-js';
 import { allMockTests } from '../src/data/mockTests';
 
-const SUPABASE_URL = process.env.SUPABASE_URL || 'https://fqwdzxaprsefutccdqns.supabase.co';
-const SUPABASE_KEY = process.env.SUPABASE_SECRET_KEY || process.env.SUPABASE_KEY || '';
+const SUPABASE_URL = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://fqwdzxaprsefutccdqns.supabase.co';
+const SUPABASE_KEY = process.env.SUPABASE_SECRET_KEY || process.env.SUPABASE_KEY || process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY || 'sb_publishable_seh5sW-Yt3mlaq8u2_dwLA_iu1A3ibO';
 
 console.log('--------------------------------------------------');
 console.log('Connecting to Supabase at:', SUPABASE_URL);
@@ -58,7 +58,7 @@ async function uploadTests() {
     console.log(`✅ Uploaded tests ${i + 1} to ${Math.min(i + chunkSize, payload.length)} of ${payload.length}`);
   }
 
-  console.log('\n🎉 SUCCESS! All 32 Cambridge Academic Mock Tests are now permanently stored in Supabase!');
+  console.log(`\n🎉 SUCCESS! All ${allMockTests.length} Cambridge Academic Mock Tests are now permanently stored in Supabase!`);
   console.log('You can view them in the Supabase Table Editor:');
   console.log('https://supabase.com/dashboard/project/fqwdzxaprsefutccdqns/editor/ielts_mock_tests\n');
 }

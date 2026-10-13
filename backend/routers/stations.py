@@ -31,7 +31,7 @@ def station_row_to_dict(row) -> dict:
             pass
 
     status = d.get("status", "idle")
-    if not is_online and status != "idle":
+    if not is_online and status not in ("idle", "assigned"):
         status = "offline"
 
     return {

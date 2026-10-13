@@ -49,6 +49,7 @@ export interface IELTSQuestionGroup {
   diagramTitle?: string;
   imageUrl?: string; // Official diagram/map image URL
   options?: string[]; // For summary completion with word lists or general question group options
+  wordBox?: string[]; // Optional word box list for summary/flow-chart completion
   questions: IELTSQuestion[];
 }
 

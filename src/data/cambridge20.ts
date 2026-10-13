@@ -16,48 +16,45 @@ export const cambridge20Test1Reading: IELTSMockTest = {
       "questionGroups": [
         {
           "id": "r-sec1-g1-1-6",
-          "type": "form_completion",
+          "type": "true_false_not_given",
           "title": "Questions 1–6",
-          "summaryTitle": "Manatees: Physical characteristics and habits",
-          "instructions": "Complete the notes below. Choose ONE WORD ONLY from the passage for each answer. Write your answers in boxes 1–6 on your answer sheet.",
-          "wordLimitRule": "ONE WORD ONLY",
+          "instructions": "Do the following statements agree with the information given in Reading Passage 1? In boxes 1–6 on your answer sheet, write TRUE if the statement agrees with the information, FALSE if the statement contradicts the information, NOT GIVEN if there is no information on this.",
           "questions": [
             {
               "questionNumber": 1,
-              "prompt": "Look similar to dugongs, but with a differently shaped [ 1 ].",
-              "correctAnswer": "tail",
-              "explanation": "Paragraph 1: Manatees have a broad, rounded tail, whereas dugongs have a fluked tail."
+              "prompt": "There are other parrots that share the kakapo's inability to fly.",
+              "correctAnswer": "FALSE",
+              "explanation": "Paragraph 1: 'It is the world's only flightless parrot.'"
             },
             {
               "questionNumber": 2,
-              "prompt": "Need to use their [ 2 ] to help to turn their bodies around in order to look sideways.",
-              "correctAnswer": "flippers",
-              "explanation": "Paragraph 2: To look to either side, a manatee turns its entire body, steering with its flippers."
+              "prompt": "Adult kakapo produce chicks every year.",
+              "correctAnswer": "FALSE",
+              "explanation": "Paragraph 3: 'Kākāpō breed in summer and autumn, but only in years when food is plentiful.'"
             },
             {
               "questionNumber": 3,
-              "prompt": "Have [ 3 ] covering their bodies to help detect underwater vibrations.",
-              "correctAnswer": "hair",
-              "acceptedVariants": ["hairs"],
-              "explanation": "Paragraph 2: Sensory hairs spread over their skin detect subtle pressure changes and vibrations."
+              "prompt": "Adult male kakapo bring food back to nesting females.",
+              "correctAnswer": "FALSE",
+              "explanation": "Paragraph 3: 'Males play no part in incubation or chick-rearing - females alone incubate eggs and feed the chicks.'"
             },
             {
               "questionNumber": 4,
-              "prompt": "Feed primarily on [ 4 ] and other marine vegetation.",
-              "correctAnswer": "seagrasses",
-              "explanation": "Paragraph 3: Seagrasses and freshwater vegetation form the vast majority of their herbivorous diet."
+              "prompt": "The Polynesian rat was a greater threat to the kakapo than Polynesian settlers.",
+              "correctAnswer": "NOT GIVEN",
+              "explanation": "Paragraph 4 mentions both settlers and rats preyed on kakapo, without comparing which was the greater threat."
             },
             {
               "questionNumber": 5,
-              "prompt": "Use muscular [ 5 ] like hands to grasp and pull food.",
-              "correctAnswer": "lips",
-              "explanation": "Paragraph 3: Prehensile flexible lips are used to grasp and pull vegetation into their mouths."
+              "prompt": "Kakapo were transferred from Rakiura Island to other locations because they were at risk from feral cats.",
+              "correctAnswer": "TRUE",
+              "explanation": "Paragraph 7: 'Unfortunately, predation by feral cats on Rakiura Island led to a rapid decline in kākāpō numbers. As a result, during 1980-97, the surviving population was evacuated to three island sanctuaries.'"
             },
             {
               "questionNumber": 6,
-              "prompt": "Regulate their [ 6 ] using breathing and diaphragm muscle adjustments.",
-              "correctAnswer": "buoyancy",
-              "explanation": "Paragraph 4: Manatees control their buoyancy by compressing air in their lungs and digestive system."
+              "prompt": "One Recovery Plan initiative that helped increase the kakapo population size was caring for struggling young birds.",
+              "correctAnswer": "TRUE",
+              "explanation": "Paragraph 8: 'This involved moving the birds between islands, supplementary feeding of adults and rescuing and hand-raising any failing chicks.'"
             }
           ]
         },
@@ -123,7 +120,7 @@ export const cambridge20Test1Reading: IELTSMockTest = {
       "questionGroups": [
         {
           "id": "r-sec2-g1-14-18",
-          "type": "sentence_completion",
+          "type": "matching_information",
           "title": "Questions 14–18",
           "instructions": "Which section contains the following information? Write the correct letter, A–G, in boxes 14–18 on your answer sheet. NB   You may use any letter more than once.",
           "questions": [
@@ -418,8 +415,8 @@ export const cambridge20Test1Reading: IELTSMockTest = {
             {
               "questionNumber": 38,
               "prompt": "The more we read about a stressful public event on social media, the less able we are to take the information in.",
-              "correctAnswer": "N0",
-              "explanation": "Official Cambridge answer: N0"
+              "correctAnswer": "NO",
+              "explanation": "Official Cambridge answer: NO"
             },
             {
               "questionNumber": 39,
@@ -429,7 +426,7 @@ export const cambridge20Test1Reading: IELTSMockTest = {
             },
             {
               "questionNumber": 40,
-              "prompt": "Our tendency to be affected by other people's moods can be used in a positive way.  Cam 20 Reading Test 02",
+              "prompt": "Our tendency to be affected by other people's moods can be used in a positive way.",
               "correctAnswer": "YES",
               "explanation": "Official Cambridge answer: YES"
             }
@@ -1137,39 +1134,53 @@ export const cambridge20Test2Reading: IELTSMockTest = {
           "id": "r-sec3-g2-33-37",
           "type": "summary_completion",
           "title": "Questions 33–37",
-          "summaryTitle": "Automated ball-strike tracking in baseball",
-          "instructions": "Complete the summary below. Choose NO MORE THAN TWO WORDS from the passage for each answer.",
-          "wordLimitRule": "NO MORE THAN TWO WORDS",
+          "summaryTitle": "Calls by the umpire",
+          "instructions": "Complete the summary using the list of words and phrases, A–H, below. Write the correct letter, A–H, in boxes 33–37 on your answer sheet.",
+          "wordBox": [
+            "A. pitch boundary",
+            "B. numerous disputes",
+            "C. team tactics",
+            "D. subjective assessment",
+            "E. widespread approval",
+            "F. former roles",
+            "G. total silence",
+            "H. perceived area"
+          ],
           "questions": [
             {
               "questionNumber": 33,
-              "prompt": "Major League Baseball wanted human umpires to announce decisions just as they had in their [ 33 ].",
-              "correctAnswer": "former roles",
-              "explanation": "Paragraph 4: League officials insisted that umpires continue relaying calls in their former roles."
+              "prompt": "Even after ABS was developed, MLB still wanted human umpires to shout out decisions as they had in their [ 33 ].",
+              "correctAnswer": "F",
+              "acceptedVariants": ["former roles"],
+              "explanation": "Official Cambridge answer: F (former roles)"
             },
             {
               "questionNumber": 34,
-              "prompt": "An umpire's duty had previously required a [ 34 ] of whether a pitch was a ball or strike.",
-              "correctAnswer": "subjective assessment",
-              "explanation": "Paragraph 5: Judging pitches had long depended on human perception and subjective assessment."
+              "prompt": "The umpire's job had, at one time, required a [ 34 ] about whether a ball was a strike.",
+              "correctAnswer": "D",
+              "acceptedVariants": ["subjective assessment"],
+              "explanation": "Official Cambridge answer: D (subjective assessment)"
             },
             {
               "questionNumber": 35,
-              "prompt": "The tracking software replaces human estimation with a defined 3D zone rather than a [ 35 ].",
-              "correctAnswer": "perceived area",
-              "explanation": "Paragraph 6: The computer applies mathematical boundaries instead of an umpire's perceived area."
+              "prompt": "A ball was considered a strike when it crossed the home plate through a [ 35 ] extending roughly from the batter's knee to his chest.",
+              "correctAnswer": "H",
+              "acceptedVariants": ["perceived area"],
+              "explanation": "Official Cambridge answer: H (perceived area)"
             },
             {
               "questionNumber": 36,
-              "prompt": "In previous eras, controversial calls regularly provoked [ 36 ] between managers and umpires.",
-              "correctAnswer": "numerous disputes",
-              "explanation": "Paragraph 7: Close pitches routinely triggered heated arguments and numerous disputes on the field."
+              "prompt": "In the past, many close calls over whether a pitch was a strike or a ball led to [ 36 ].",
+              "correctAnswer": "B",
+              "acceptedVariants": ["numerous disputes"],
+              "explanation": "Official Cambridge answer: B (numerous disputes)"
             },
             {
               "questionNumber": 37,
-              "prompt": "When the automated system was trialed, borderline calls were met with [ 37 ] from both dugouts.",
-              "correctAnswer": "total silence",
-              "explanation": "Paragraph 8: Without a human target to argue with, the players and dugouts reacted with total silence."
+              "prompt": "However, during the first game where ABS was used, close decisions were followed by [ 37 ] from players and spectators.",
+              "correctAnswer": "G",
+              "acceptedVariants": ["total silence"],
+              "explanation": "Official Cambridge answer: G (total silence)"
             }
           ]
         },
@@ -1263,9 +1274,119 @@ export const cambridge20Test2Listening: IELTSMockTest = {
     {
       "sectionNumber": 2,
       "title": "Listening Part 2",
-      "subtitle": "A   providing entertainment",
+      "subtitle": "Questions 11–20",
       "audioUrl": "/audio/cam20-test2-part2.mp3",
       "questionGroups": [
+        {
+          "id": "l-part2-g0-11-16",
+          "type": "matching_information",
+          "title": "Questions 11–16",
+          "instructions": "What is the role of the volunteers in each of the following activities? Choose SIX answers from the box and write the correct letter, A–I, next to Questions 11–16.",
+          "questions": [
+            {
+              "questionNumber": 11,
+              "prompt": "walking around the town centre",
+              "options": [
+                "A   providing entertainment",
+                "B   providing publicity about a council service",
+                "C   contacting local businesses",
+                "D   giving advice to visitors",
+                "E   collecting feedback on events",
+                "F   selling tickets",
+                "G   introducing guest speakers at an event",
+                "H   encouraging cooperation between local organisations",
+                "I   helping people find their seats"
+              ],
+              "correctAnswer": "D",
+              "explanation": "Official Cambridge answer: D"
+            },
+            {
+              "questionNumber": 12,
+              "prompt": "helping at concerts",
+              "options": [
+                "A   providing entertainment",
+                "B   providing publicity about a council service",
+                "C   contacting local businesses",
+                "D   giving advice to visitors",
+                "E   collecting feedback on events",
+                "F   selling tickets",
+                "G   introducing guest speakers at an event",
+                "H   encouraging cooperation between local organisations",
+                "I   helping people find their seats"
+              ],
+              "correctAnswer": "I",
+              "explanation": "Official Cambridge answer: I"
+            },
+            {
+              "questionNumber": 13,
+              "prompt": "getting involved with community groups",
+              "options": [
+                "A   providing entertainment",
+                "B   providing publicity about a council service",
+                "C   contacting local businesses",
+                "D   giving advice to visitors",
+                "E   collecting feedback on events",
+                "F   selling tickets",
+                "G   introducing guest speakers at an event",
+                "H   encouraging cooperation between local organisations",
+                "I   helping people find their seats"
+              ],
+              "correctAnswer": "H",
+              "explanation": "Official Cambridge answer: H"
+            },
+            {
+              "questionNumber": 14,
+              "prompt": "helping with a magazine",
+              "options": [
+                "A   providing entertainment",
+                "B   providing publicity about a council service",
+                "C   contacting local businesses",
+                "D   giving advice to visitors",
+                "E   collecting feedback on events",
+                "F   selling tickets",
+                "G   introducing guest speakers at an event",
+                "H   encouraging cooperation between local organisations",
+                "I   helping people find their seats"
+              ],
+              "correctAnswer": "E",
+              "explanation": "Official Cambridge answer: E"
+            },
+            {
+              "questionNumber": 15,
+              "prompt": "participating at lunches for retired people",
+              "options": [
+                "A   providing entertainment",
+                "B   providing publicity about a council service",
+                "C   contacting local businesses",
+                "D   giving advice to visitors",
+                "E   collecting feedback on events",
+                "F   selling tickets",
+                "G   introducing guest speakers at an event",
+                "H   encouraging cooperation between local organisations",
+                "I   helping people find their seats"
+              ],
+              "correctAnswer": "A",
+              "explanation": "Official Cambridge answer: A"
+            },
+            {
+              "questionNumber": 16,
+              "prompt": "helping with the website",
+              "options": [
+                "A   providing entertainment",
+                "B   providing publicity about a council service",
+                "C   contacting local businesses",
+                "D   giving advice to visitors",
+                "E   collecting feedback on events",
+                "F   selling tickets",
+                "G   introducing guest speakers at an event",
+                "H   encouraging cooperation between local organisations",
+                "I   helping people find their seats"
+              ],
+              "correctAnswer": "B",
+              "explanation": "Official Cambridge answer: B"
+            }
+          ]
+        },
         {
           "id": "l-part2-g1-17-20",
           "type": "multiple_choice",
@@ -1323,9 +1444,92 @@ export const cambridge20Test2Listening: IELTSMockTest = {
     {
       "sectionNumber": 3,
       "title": "Listening Part 3",
-      "subtitle": "A   The information given about this was too vague.",
+      "subtitle": "Questions 21–30",
       "audioUrl": "/audio/cam20-test2-part3.mp3",
       "questionGroups": [
+        {
+          "id": "l-part3-g0-21-25",
+          "type": "matching_information",
+          "title": "Questions 21–25",
+          "instructions": "What is Rosie and Colin's opinion about each of the following aspects of human geography? Choose FIVE answers from the box and write the correct letter, A–G, next to Questions 21–25.",
+          "questions": [
+            {
+              "questionNumber": 21,
+              "prompt": "Population",
+              "options": [
+                "A   The information given about this was too vague.",
+                "B   This may not be relevant to their course.",
+                "C   This will involve only a small number of statistics.",
+                "D   It will be easy to find facts about this.",
+                "E   The facts about this may not be reliable.",
+                "F   No useful research has been done on this.",
+                "G   The information provided about this was interesting."
+              ],
+              "correctAnswer": "D",
+              "explanation": "Official Cambridge answer: D"
+            },
+            {
+              "questionNumber": 22,
+              "prompt": "Health",
+              "options": [
+                "A   The information given about this was too vague.",
+                "B   This may not be relevant to their course.",
+                "C   This will involve only a small number of statistics.",
+                "D   It will be easy to find facts about this.",
+                "E   The facts about this may not be reliable.",
+                "F   No useful research has been done on this.",
+                "G   The information provided about this was interesting."
+              ],
+              "correctAnswer": "G",
+              "explanation": "Official Cambridge answer: G"
+            },
+            {
+              "questionNumber": 23,
+              "prompt": "Economies",
+              "options": [
+                "A   The information given about this was too vague.",
+                "B   This may not be relevant to their course.",
+                "C   This will involve only a small number of statistics.",
+                "D   It will be easy to find facts about this.",
+                "E   The facts about this may not be reliable.",
+                "F   No useful research has been done on this.",
+                "G   The information provided about this was interesting."
+              ],
+              "correctAnswer": "B",
+              "explanation": "Official Cambridge answer: B"
+            },
+            {
+              "questionNumber": 24,
+              "prompt": "Culture",
+              "options": [
+                "A   The information given about this was too vague.",
+                "B   This may not be relevant to their course.",
+                "C   This will involve only a small number of statistics.",
+                "D   It will be easy to find facts about this.",
+                "E   The facts about this may not be reliable.",
+                "F   No useful research has been done on this.",
+                "G   The information provided about this was interesting."
+              ],
+              "correctAnswer": "A",
+              "explanation": "Official Cambridge answer: A"
+            },
+            {
+              "questionNumber": 25,
+              "prompt": "Poverty",
+              "options": [
+                "A   The information given about this was too vague.",
+                "B   This may not be relevant to their course.",
+                "C   This will involve only a small number of statistics.",
+                "D   It will be easy to find facts about this.",
+                "E   The facts about this may not be reliable.",
+                "F   No useful research has been done on this.",
+                "G   The information provided about this was interesting."
+              ],
+              "correctAnswer": "E",
+              "explanation": "Official Cambridge answer: E"
+            }
+          ]
+        },
         {
           "id": "l-part3-g1-26-30",
           "type": "multiple_choice",
@@ -1441,51 +1645,51 @@ export const cambridge20Test3Reading: IELTSMockTest = {
           "id": "r-sec1-g1-1-7",
           "type": "form_completion",
           "title": "Questions 1–7",
-          "summaryTitle": "Georgia O'Keeffe: Artistic journey",
+          "summaryTitle": "The history of frozen food",
           "instructions": "Complete the notes below. Choose ONE WORD ONLY from the passage for each answer. Write your answers in boxes 1–7 on your answer sheet.",
           "wordLimitRule": "ONE WORD ONLY",
           "questions": [
             {
               "questionNumber": 1,
-              "prompt": "She worked as an art [ 1 ] in elementary schools, high schools, and colleges.",
-              "correctAnswer": "teacher",
-              "explanation": "Paragraph 1: O'Keeffe supported herself initially by teaching art across schools and universities."
+              "prompt": "2,000 years ago, South America: People conserved the nutritional value of [ 1 ], using a method of freezing then drying.",
+              "correctAnswer": "potatoes",
+              "explanation": "Official Cambridge answer: potatoes"
             },
             {
               "questionNumber": 2,
-              "prompt": "She experimented with creating abstract compositions in [ 2 ].",
-              "correctAnswer": "charcoal",
-              "explanation": "Paragraph 2: Her radical breakthrough emerged in highly original charcoal sketches sent to New York."
+              "prompt": "1851, USA: [ 2 ] was kept cool by ice during transportation in specially adapted trains.",
+              "correctAnswer": "butter",
+              "explanation": "Official Cambridge answer: butter"
             },
             {
               "questionNumber": 3,
-              "prompt": "She became widely known for her architectural pictures of New York's [ 3 ].",
-              "correctAnswer": "skyscrapers",
-              "explanation": "Paragraph 3: During the late 1920s she captured the soaring geometric profiles of Manhattan skyscrapers."
+              "prompt": "1880, Australia: Two kinds of [ 3 ] were the first frozen food shipped to England.",
+              "correctAnswer": "meat",
+              "explanation": "Official Cambridge answer: meat"
             },
             {
               "questionNumber": 4,
-              "prompt": "She produced innovative, magnified images depicting [ 4 ].",
-              "correctAnswer": "flowers",
-              "explanation": "Paragraph 4: Her renowned series of close-up flowers depicted natural forms in startling, immense scale."
+              "prompt": "1917 onwards, USA: Clarence Birdseye introduced innovations including quick-freezing methods, so that [ 4 ] did not spoil the food.",
+              "correctAnswer": "crystals",
+              "explanation": "Official Cambridge answer: crystals"
             },
             {
               "questionNumber": 5,
-              "prompt": "Sun-bleached [ 5 ] she found in the rugged terrain sparked her imagination.",
-              "correctAnswer": "bones",
-              "explanation": "Paragraph 5: In the desert of New Mexico, weathered animal bones and skulls became central motifs."
+              "prompt": "1917 onwards, USA: packaging products with [ 5 ] so the product was visible.",
+              "correctAnswer": "cellophane",
+              "explanation": "Official Cambridge answer: cellophane"
             },
             {
               "questionNumber": 6,
-              "prompt": "The region's spectacular [ 6 ] held her imagination for many years.",
-              "correctAnswer": "landscape",
-              "explanation": "Paragraph 6: The austere red hills and vibrant Southwestern landscape captivated her for decades."
+              "prompt": "Early 1940s, USA: Frozen food became popular because of a shortage of [ 6 ].",
+              "correctAnswer": "tin",
+              "explanation": "Official Cambridge answer: tin"
             },
             {
               "questionNumber": 7,
-              "prompt": "Her later work included aerial views of [ 7 ].",
-              "correctAnswer": "rivers",
-              "explanation": "Paragraph 7: While traveling by airplane in her senior years, she painted sweeping aerial vistas of winding rivers."
+              "prompt": "1950s, USA: A large number of homes now had a [ 7 ].",
+              "correctAnswer": "refrigerator",
+              "explanation": "Official Cambridge answer: refrigerator"
             }
           ]
         },
@@ -1596,69 +1800,69 @@ export const cambridge20Test3Reading: IELTSMockTest = {
         },
         {
           "id": "r-sec2-g2-20-21",
-          "type": "multiple_choice",
+          "type": "multiple_choice_multi",
           "title": "Questions 20 and 21",
-          "instructions": "Choose TWO letters, A–E. Which TWO statements about the London Zoo coral reef project are mentioned in the passage?",
+          "instructions": "Choose TWO letters, A–E. Write the correct letters in boxes 20 and 21 on your answer sheet. Which TWO of these causes of damage to coral reefs are mentioned by the writer of the text?",
           "questions": [
             {
               "questionNumber": 20,
-              "prompt": "Which TWO statements about the London Zoo coral reef project are mentioned in the passage? (Choose first letter)",
+              "prompt": "Which TWO of these causes of damage to coral reefs are mentioned by the writer of the text? (Choose first letter)",
               "options": [
-                "A. Corals in the exhibit are grown twice as fast as in wild environments",
-                "B. The zoo displays species that have completely vanished from oceans",
-                "C. Marine invertebrates other than corals are incorporated into the exhibit",
-                "D. Rising water temperatures have already damaged corals in laboratory tanks",
-                "E. Public education and awareness are primary objectives of the installation"
+                "A. a rising number of extreme storms",
+                "B. the removal of too many fish from the sea",
+                "C. the contamination of the sea from waste",
+                "D. increased disease among marine species",
+                "E. alterations in the usual flow of water in the seas"
               ],
               "correctAnswer": "C",
-              "explanation": "Paragraph A & B: The Tiny Giants gallery houses miniature invertebrates alongside the corals."
+              "explanation": "Official Cambridge answer: C (pollution by humans)"
             },
             {
               "questionNumber": 21,
-              "prompt": "Which TWO statements about the London Zoo coral reef project are mentioned in the passage? (Choose second letter)",
+              "prompt": "Which TWO of these causes of damage to coral reefs are mentioned by the writer of the text? (Choose second letter)",
               "options": [
-                "A. Corals in the exhibit are grown twice as fast as in wild environments",
-                "B. The zoo displays species that have completely vanished from oceans",
-                "C. Marine invertebrates other than corals are incorporated into the exhibit",
-                "D. Rising water temperatures have already damaged corals in laboratory tanks",
-                "E. Public education and awareness are primary objectives of the installation"
+                "A. a rising number of extreme storms",
+                "B. the removal of too many fish from the sea",
+                "C. the contamination of the sea from waste",
+                "D. increased disease among marine species",
+                "E. alterations in the usual flow of water in the seas"
               ],
               "correctAnswer": "E",
-              "explanation": "Paragraph B: Pearce-Kelly emphasizes that informing visitors about coral endangerment is fundamental."
+              "explanation": "Official Cambridge answer: E (ocean current changes)"
             }
           ]
         },
         {
           "id": "r-sec2-g3-22-23",
-          "type": "multiple_choice",
+          "type": "multiple_choice_multi",
           "title": "Questions 22 and 23",
-          "instructions": "Choose TWO letters, A–E. Which TWO threats to coral reefs are discussed in the passage?",
+          "instructions": "Choose TWO letters, A–E. Write the correct letters in boxes 22 and 23 on your answer sheet. Which TWO of the following statements are true of the researchers at London Zoo?",
           "questions": [
             {
               "questionNumber": 22,
-              "prompt": "Which TWO threats to coral reefs are discussed in the passage? (Choose first letter)",
+              "prompt": "Which TWO of the following statements are true of the researchers at London Zoo? (Choose first letter)",
               "options": [
-                "A. Unsustainable overfishing near protected shallow coastal reefs",
-                "B. Coral bleaching driven by elevated ocean surface temperatures",
-                "C. Agricultural chemical run-off and sediment pollution into waterways",
-                "D. Physical anchor damage from commercial container shipping fleets",
-                "E. Rapid proliferation of predatory crown-of-thorns starfish"
+                "A. They are hoping to expand the numbers of different corals being bred in laboratories.",
+                "B. They want to identify corals that can cope well with thechanged sea conditions.",
+                "C. They are looking at ways of creating artificial reefs that corals could grow on.",
+                "D. They are trying out methods that would speed up reproduction in some corals.",
+                "E. They are investigating materials that might protect reefs from higher temperatures."
               ],
               "correctAnswer": "B",
-              "explanation": "Paragraph C: Warming seas cause polyps to expel symbiotic algae, triggering bleaching."
+              "explanation": "Official Cambridge answer: B"
             },
             {
               "questionNumber": 23,
-              "prompt": "Which TWO threats to coral reefs are discussed in the passage? (Choose second letter)",
+              "prompt": "Which TWO of the following statements are true of the researchers at London Zoo? (Choose second letter)",
               "options": [
-                "A. Unsustainable overfishing near protected shallow coastal reefs",
-                "B. Coral bleaching driven by elevated ocean surface temperatures",
-                "C. Agricultural chemical run-off and sediment pollution into waterways",
-                "D. Physical anchor damage from commercial container shipping fleets",
-                "E. Rapid proliferation of predatory crown-of-thorns starfish"
+                "A. They are hoping to expand the numbers of different corals being bred in laboratories.",
+                "B. They want to identify corals that can cope well with thechanged sea conditions.",
+                "C. They are looking at ways of creating artificial reefs that corals could grow on.",
+                "D. They are trying out methods that would speed up reproduction in some corals.",
+                "E. They are investigating materials that might protect reefs from higher temperatures."
               ],
-              "correctAnswer": "C",
-              "explanation": "Paragraph D: Run-off carrying agricultural fertilizers and topsoil smothers fragile reefs."
+              "correctAnswer": "D",
+              "explanation": "Official Cambridge answer: D"
             }
           ]
         },
@@ -1684,6 +1888,7 @@ export const cambridge20Test3Reading: IELTSMockTest = {
               "questionNumber": 26,
               "prompt": "Increases in the warmth of the sea water can remove the ____________ from coral. ",
               "correctAnswer": "colour",
+              "acceptedVariants": ["color"],
               "explanation": "Official Cambridge answer: colour"
             }
           ]
@@ -1827,35 +2032,57 @@ export const cambridge20Test3Reading: IELTSMockTest = {
         },
         {
           "id": "r-sec3-g3-37-40",
-          "type": "summary_completion",
+          "type": "multiple_choice",
           "title": "Questions 37–40",
-          "summaryTitle": "Ecological impacts of livestock guard dogs",
-          "instructions": "Complete the summary below. Choose ONE WORD ONLY from the passage for each answer. Write your answers in boxes 37–40 on your answer sheet.",
-          "wordLimitRule": "ONE WORD ONLY",
+          "instructions": "Choose the correct letter, A, B, C or D. Write the correct letter in boxes 37–40 on your answer sheet.",
           "questions": [
             {
               "questionNumber": 37,
-              "prompt": "In Namibia, the introduction of guard dogs led to a rise in the number of [ 37 ] killed.",
-              "correctAnswer": "jackals",
-              "explanation": "Paragraph 4: Guard dogs effectively deterred cheetahs but caused higher mortality rates among jackals."
+              "prompt": "What point does Richardson make about fear of machines?",
+              "options": [
+                "A   It has grown alongside the development of ever more advanced robots.",
+                "B   It is the result of our inclination to attribute human characteristics to non-human entities.",
+                "C   It has its origins in basic misunderstandings about how inanimate objects function.",
+                "D   It demonstrates a key difference between human intelligence and machine intelligence."
+              ],
+              "correctAnswer": "B",
+              "explanation": "Official Cambridge answer: B"
             },
             {
               "questionNumber": 38,
-              "prompt": "Guard dogs could potentially pass on harmful [ 38 ] to wild populations.",
-              "correctAnswer": "diseases",
-              "explanation": "Paragraph 5: Domestic canines risk transmitting rabies and other contagious diseases to endangered carnivores."
+              "prompt": "What potential advance does Rees see as a cause for concern?",
+              "options": [
+                "A   robots outnumbering people",
+                "B   robots having abilities which humans do not",
+                "C   artificial intelligence developing independent thought",
+                "D   artificial intelligence taking over every aspect of our lives"
+              ],
+              "correctAnswer": "C",
+              "explanation": "Official Cambridge answer: C"
             },
             {
               "questionNumber": 39,
-              "prompt": "In some areas, dogs may enter into conflict with local carnivores over [ 39 ].",
-              "correctAnswer": "food",
-              "explanation": "Paragraph 6: Uncontrolled dogs scavenge and compete directly with native predators for wild prey and food."
+              "prompt": "What does Wolpert emphasise in his response to the question about science fiction?",
+              "options": [
+                "A   how science fiction influences our attitudes to robots",
+                "B   how fundamental robots are to the science fiction genre",
+                "C   how the image of robots in science fiction has changed over time",
+                "D   how reactions to similar portrayals of robots in science fiction may vary"
+              ],
+              "correctAnswer": "B",
+              "explanation": "Official Cambridge answer: B"
             },
             {
               "questionNumber": 40,
-              "prompt": "On Phillip Island, guard dogs protected penguins against predation by [ 40 ].",
-              "correctAnswer": "foxes",
-              "explanation": "Paragraph 7: Maremma livestock dogs stationed on the island shielded vulnerable fairy penguins from foxes."
+              "prompt": "What is Richardson doing in her comment about reality and fantasy?",
+              "options": [
+                "A   warning people not to confuse one with the other",
+                "B   outlining ways in which one has impacted on the other",
+                "C   recommending a change of approach in how people view them",
+                "D   explaining why scientists have a different perspective on them from other people"
+              ],
+              "correctAnswer": "C",
+              "explanation": "Official Cambridge answer: C"
             }
           ]
         }
@@ -1905,9 +2132,83 @@ export const cambridge20Test3Listening: IELTSMockTest = {
     {
       "sectionNumber": 2,
       "title": "Listening Part 2",
-      "subtitle": "Choose the correct letter, A, B or C.",
+      "subtitle": "Questions 11–20",
       "audioUrl": "/audio/cam20-test3-part2.mp3",
       "questionGroups": [
+        {
+          "id": "l-part2-g0-11-16",
+          "type": "multiple_choice",
+          "title": "Questions 11–16",
+          "instructions": "Choose the correct letter, A, B or C.",
+          "questions": [
+            {
+              "questionNumber": 11,
+              "prompt": "Who was responsible for starting the community project?",
+              "options": [
+                "A   the castle owners",
+                "B   a national charity",
+                "C   the local council"
+              ],
+              "correctAnswer": "B",
+              "explanation": "Official Cambridge answer: B"
+            },
+            {
+              "questionNumber": 12,
+              "prompt": "How was the gold coin found?",
+              "options": [
+                "A   Heavy rain had removed some of the soil.",
+                "B   The ground was dug up by wild rabbits.",
+                "C   A person with a metal detector searched the area."
+              ],
+              "correctAnswer": "A",
+              "explanation": "Official Cambridge answer: A"
+            },
+            {
+              "questionNumber": 13,
+              "prompt": "What led the archaeologists to believe there was an ancient village on this site?",
+              "options": [
+                "A   the lucky discovery of old records",
+                "B   the bases of several structures visible in the grass",
+                "C   the unusual stones found near the castle"
+              ],
+              "correctAnswer": "A",
+              "explanation": "Official Cambridge answer: A"
+            },
+            {
+              "questionNumber": 14,
+              "prompt": "What are the team still hoping to find?",
+              "options": [
+                "A   everyday pottery",
+                "B   animal bones",
+                "C   pieces of jewellery"
+              ],
+              "correctAnswer": "C",
+              "explanation": "Official Cambridge answer: C"
+            },
+            {
+              "questionNumber": 15,
+              "prompt": "What was found on the other side of the river to the castle?",
+              "options": [
+                "A   the remains of a large palace",
+                "B   the outline of fields",
+                "C   a number of small huts"
+              ],
+              "correctAnswer": "B",
+              "explanation": "Official Cambridge answer: B"
+            },
+            {
+              "questionNumber": 16,
+              "prompt": "What do the team plan to do after work ends this summer?",
+              "options": [
+                "A   prepare a display for a museum",
+                "B   take part in a television programme",
+                "C   start to organise school visits"
+              ],
+              "correctAnswer": "C",
+              "explanation": "Official Cambridge answer: C"
+            }
+          ]
+        },
         {
           "id": "l-part2-g1-17-20",
           "type": "diagram_labelling",
@@ -1945,9 +2246,83 @@ export const cambridge20Test3Listening: IELTSMockTest = {
     {
       "sectionNumber": 3,
       "title": "Listening Part 3",
-      "subtitle": "Choose the correct letter, A, B or C.",
+      "subtitle": "Questions 21–30",
       "audioUrl": "/audio/cam20-test3-part3.mp3",
       "questionGroups": [
+        {
+          "id": "l-part3-g0-21-26",
+          "type": "multiple_choice",
+          "title": "Questions 21–26",
+          "instructions": "Choose the correct letter, A, B or C.",
+          "questions": [
+            {
+              "questionNumber": 21,
+              "prompt": "Finn was pleased to discover that their topic",
+              "options": [
+                "A   was not familiar to their module leader.",
+                "B   had not been chosen by other students.",
+                "C   did not prove to be difficult to research."
+              ],
+              "correctAnswer": "B",
+              "explanation": "Official Cambridge answer: B"
+            },
+            {
+              "questionNumber": 22,
+              "prompt": "Maya says a mistaken belief about theatre programmes is that",
+              "options": [
+                "A   theatres pay companies to produce them.",
+                "B   few theatre-goers buy them nowadays.",
+                "C   they contain far more adverts than previously."
+              ],
+              "correctAnswer": "A",
+              "explanation": "Official Cambridge answer: A"
+            },
+            {
+              "questionNumber": 23,
+              "prompt": "Finn was surprised that, in early British theatre, programmes",
+              "options": [
+                "A   were difficult for audiences to obtain.",
+                "B   were given out free of charge.",
+                "C   were seen as a kind of contract."
+              ],
+              "correctAnswer": "C",
+              "explanation": "Official Cambridge answer: C"
+            },
+            {
+              "questionNumber": 24,
+              "prompt": "Maya feels their project should include an explanation of why companies of actors",
+              "options": [
+                "A   promoted their own plays.",
+                "B   performed plays outdoors.",
+                "C   had to tour with their plays."
+              ],
+              "correctAnswer": "A",
+              "explanation": "Official Cambridge answer: A"
+            },
+            {
+              "questionNumber": 25,
+              "prompt": "Finn and Maya both think that, compared to nineteenth-century programmes, those from the eighteenth century",
+              "options": [
+                "A   were more original.",
+                "B   were more colourful.",
+                "C   were more informative."
+              ],
+              "correctAnswer": "C",
+              "explanation": "Official Cambridge answer: C"
+            },
+            {
+              "questionNumber": 26,
+              "prompt": "Maya doesn't fully understand why, in the twentieth century,",
+              "options": [
+                "A   very few theatre programmes were printed in the USA.",
+                "B   British theatre programmes failed to develop for so long.",
+                "C   theatre programmes in Britain copied fashions from the USA."
+              ],
+              "correctAnswer": "B",
+              "explanation": "Official Cambridge answer: B"
+            }
+          ]
+        },
         {
           "id": "l-part3-g1-27-30",
           "type": "multiple_choice",
@@ -2495,20 +2870,55 @@ export const cambridge20Test4Listening: IELTSMockTest = {
     {
       "sectionNumber": 2,
       "title": "Listening Part 2",
-      "subtitle": "Choose TWO letters, A-E.",
+      "subtitle": "Questions 11–20",
       "audioUrl": "/audio/cam20-test4-part2.mp3",
       "questionGroups": [
+        {
+          "id": "l-part2-g0-11-12",
+          "type": "multiple_choice_multi",
+          "title": "Questions 11 and 12",
+          "instructions": "Choose TWO letters, A–E. Which TWO things does the speaker say about visiting the football stadium with children?",
+          "questions": [
+            {
+              "questionNumber": 11,
+              "prompt": "Which TWO things does the speaker say about visiting the football stadium with children? (First choice)",
+              "options": [
+                "A   Children can get their photo taken with a football player.",
+                "B   There is a competition for children today.",
+                "C   Parents must stay with their children at all times.",
+                "D   Children will need sunhats and drinks.",
+                "E   The café has a special offer on meals for children."
+              ],
+              "correctAnswer": "B",
+              "explanation": "Official Cambridge answer: B"
+            },
+            {
+              "questionNumber": 12,
+              "prompt": "Which TWO things does the speaker say about visiting the football stadium with children? (Second choice)",
+              "options": [
+                "A   Children can get their photo taken with a football player.",
+                "B   There is a competition for children today.",
+                "C   Parents must stay with their children at all times.",
+                "D   Children will need sunhats and drinks.",
+                "E   The café has a special offer on meals for children."
+              ],
+              "correctAnswer": "C",
+              "explanation": "Official Cambridge answer: C"
+            }
+          ]
+        },
         {
           "id": "l-part2-g1-13-14",
           "type": "multiple_choice_multi",
           "title": "Questions 13 and 14",
-          "instructions": "Choose TWO letters, A-E. Which TWO features of the stadium tour are new this year? A   VIP tour",
+          "instructions": "Choose TWO letters, A-E. Which TWO features of the stadium tour are new this year?",
           "questions": [
             {
               "questionNumber": 13,
               "prompt": "Which TWO features of the stadium tour are new this year? (First choice)",
               "options": [
                 "A   VIP tour",
+                "B   360 cinema experience",
                 "C   audio guide",
                 "D   dressing room tour",
                 "E   tours in other languages"
@@ -2521,6 +2931,7 @@ export const cambridge20Test4Listening: IELTSMockTest = {
               "prompt": "Which TWO features of the stadium tour are new this year? (Second choice)",
               "options": [
                 "A   VIP tour",
+                "B   360 cinema experience",
                 "C   audio guide",
                 "D   dressing room tour",
                 "E   tours in other languages"
@@ -2639,9 +3050,43 @@ export const cambridge20Test4Listening: IELTSMockTest = {
     {
       "sectionNumber": 3,
       "title": "Listening Part 3",
-      "subtitle": "Choose TWO letters, A-E.",
+      "subtitle": "Questions 21–30",
       "audioUrl": "/audio/cam20-test4-part3.mp3",
       "questionGroups": [
+        {
+          "id": "l-part3-g0-21-22",
+          "type": "multiple_choice_multi",
+          "title": "Questions 21 and 22",
+          "instructions": "Choose TWO letters, A–E. Which TWO benefits of learning to write by hand do the students agree are most important?",
+          "questions": [
+            {
+              "questionNumber": 21,
+              "prompt": "Which TWO benefits of learning to write by hand do the students agree are most important? (First choice)",
+              "options": [
+                "A   improved fine motor skills",
+                "B   improved memory",
+                "C   improved concentration",
+                "D   improved imagination",
+                "E   improved spatial awareness"
+              ],
+              "correctAnswer": "C",
+              "explanation": "Official Cambridge answer: C"
+            },
+            {
+              "questionNumber": 22,
+              "prompt": "Which TWO benefits of learning to write by hand do the students agree are most important? (Second choice)",
+              "options": [
+                "A   improved fine motor skills",
+                "B   improved memory",
+                "C   improved concentration",
+                "D   improved imagination",
+                "E   improved spatial awareness"
+              ],
+              "correctAnswer": "E",
+              "explanation": "Official Cambridge answer: E"
+            }
+          ]
+        },
         {
           "id": "l-part3-g1-23-24",
           "type": "multiple_choice_multi",

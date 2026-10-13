@@ -162,30 +162,27 @@ def init_db():
 def seed_data(conn: sqlite3.Connection):
     cursor = conn.cursor()
 
-    # Check tests
-    cursor.execute("SELECT COUNT(*) as count FROM tests")
-    test_count = cursor.fetchone()["count"]
-    if test_count == 0:
-        tests_file = DATA_DIR / "tests.json"
-        if tests_file.exists():
-            with open(tests_file, "r", encoding="utf-8") as f:
-                tests_data = json.load(f)
-                for t in tests_data:
-                    cursor.execute("""
-                    INSERT OR REPLACE INTO tests (id, book, test_number, module, title, duration_minutes, audio_url, raw_json)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-                    """, (
-                        t["id"],
-                        t.get("book", 0),
-                        t.get("testNumber", 0),
-                        t.get("module", ""),
-                        t.get("title", ""),
-                        t.get("durationMinutes", 60),
-                        t.get("audioUrl", ""),
-                        json.dumps(t)
-                    ))
-            conn.commit()
-            print(f"[OK] Database seeded with {len(tests_data)} IELTS tests.")
+    # Always sync Cambridge tests from data/tests.json so updates propagate on restart
+    tests_file = DATA_DIR / "tests.json"
+    if tests_file.exists():
+        with open(tests_file, "r", encoding="utf-8") as f:
+            tests_data = json.load(f)
+            for t in tests_data:
+                cursor.execute("""
+                INSERT OR REPLACE INTO tests (id, book, test_number, module, title, duration_minutes, audio_url, raw_json)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                """, (
+                    t["id"],
+                    t.get("book", 0),
+                    t.get("testNumber", 0),
+                    t.get("module", ""),
+                    t.get("title", ""),
+                    t.get("durationMinutes", 60),
+                    t.get("audioUrl", ""),
+                    json.dumps(t)
+                ))
+        conn.commit()
+        print(f"[OK] Database synced with {len(tests_data)} IELTS tests.")
 
     # Check consultancies
     cursor.execute("SELECT COUNT(*) as count FROM consultancies")

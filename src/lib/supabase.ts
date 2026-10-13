@@ -28,41 +28,48 @@ const supabaseAnonKey =
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
+let mockTestsTableUnavailable = false;
+let resultsTableUnavailable = false;
+
 /**
  * Fetch all mock tests from Supabase (from live Storage bucket or table)
  */
 export async function fetchMockTestsFromSupabase(): Promise<IELTSMockTest[] | null> {
   // 1. Try loading from Supabase Database Table if configured
-  try {
-    const { data, error } = await supabase
-      .from('ielts_mock_tests')
-      .select('*')
-      .order('book', { ascending: true })
-      .order('test_number', { ascending: true });
+  if (!mockTestsTableUnavailable) {
+    try {
+      const { data, error } = await supabase
+        .from('ielts_mock_tests')
+        .select('*')
+        .order('book', { ascending: true })
+        .order('test_number', { ascending: true });
 
-    if (!error && data && data.length > 0) {
-      return data.map((row) => ({
-        id: row.id,
-        book: row.book,
-        testNumber: row.test_number,
-        module: row.module,
-        title: row.title,
-        durationMinutes: row.duration_minutes,
-        audioUrl: row.audio_url,
-        sections: row.sections
-      }));
+      if (error && (error.code === 'PGRST205' || error.message?.includes('schema cache'))) {
+        mockTestsTableUnavailable = true;
+      } else if (!error && data && data.length >= 60) {
+        return data.map((row) => ({
+          id: row.id,
+          book: row.book,
+          testNumber: row.test_number,
+          module: row.module,
+          title: row.title,
+          durationMinutes: row.duration_minutes,
+          audioUrl: row.audio_url,
+          sections: row.sections
+        }));
+      }
+    } catch {
+      // Database table not yet created or offline - fallback to storage
     }
-  } catch {
-    // Database table not yet created or offline - fallback to storage
   }
 
-  // 2. Fetch directly from Supabase Public Storage bucket (contains all 32 Cambridge tests)
+  // 2. Fetch directly from Supabase Public Storage bucket (require all 60 Cambridge tests)
   try {
     const storageUrl = `${supabaseUrl}/storage/v1/object/public/ielts-mock-tests/all-tests.json`;
     const res = await fetch(storageUrl);
     if (res.ok) {
       const storageData = await res.json();
-      if (Array.isArray(storageData) && storageData.length > 0) {
+      if (Array.isArray(storageData) && storageData.length >= 60) {
         return storageData as IELTSMockTest[];
       }
     }
@@ -77,6 +84,7 @@ export async function fetchMockTestsFromSupabase(): Promise<IELTSMockTest[] | nu
  * Save candidate test result to Supabase
  */
 export async function saveTestResultToSupabase(result: TestResult): Promise<boolean> {
+  if (resultsTableUnavailable) return false;
   try {
     const { error } = await supabase.from('user_test_results').insert([
       {
@@ -95,6 +103,10 @@ export async function saveTestResultToSupabase(result: TestResult): Promise<bool
     ]);
 
     if (error) {
+      if (error.code === 'PGRST205' || error.message?.includes('schema cache')) {
+        resultsTableUnavailable = true;
+        return false;
+      }
       console.warn('Failed to save result to Supabase:', error.message);
       return false;
     }

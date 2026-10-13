@@ -190,6 +190,8 @@ export const App: React.FC = () => {
   currentTestRef.current = currentTest;
   const activeCandidateInfoRef = useRef(activeCandidateInfo);
   activeCandidateInfoRef.current = activeCandidateInfo;
+  const activeRouteRef = useRef(activeRoute);
+  activeRouteRef.current = activeRoute;
   const writingDraftRef = useRef<{
     task1Essay: string;
     task1WordCount: number;
@@ -410,8 +412,19 @@ export const App: React.FC = () => {
   useEffect(() => {
     parseUrlRoute();
     ConsultancyService.syncFromSupabase().catch(() => {});
-    window.addEventListener('popstate', parseUrlRoute);
-    return () => window.removeEventListener('popstate', parseUrlRoute);
+    const handlePopState = () => {
+      if (
+        activeRouteRef.current === 'kiosk-exam' &&
+        localStorage.getItem('ielts_active_kiosk_exam_session')
+      ) {
+        window.history.pushState(null, '', '/kiosk/exam');
+        setShowExitExamModal(true);
+        return;
+      }
+      parseUrlRoute();
+    };
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
   }, []);
 
   // Fetch mock tests dynamically from Supabase if valid
@@ -431,7 +444,7 @@ export const App: React.FC = () => {
             if (!remote) return localTest;
             const localCount = countQ(localTest);
             const remoteCount = countQ(remote);
-            if (remoteCount >= 38 && remoteCount >= localCount) {
+            if (remoteCount >= 38 && remoteCount > localCount) {
               return remote;
             }
             return localTest;
@@ -668,34 +681,55 @@ export const App: React.FC = () => {
 
   // Invigilator remote commands listener (Pause, Resume, Extend Time, Message, Force Submit, End)
   useEffect(() => {
+    const concludeActiveExamByInvigilator = () => {
+      const currentAdmin = adminUser || ConsultancyService.getCurrentAdmin();
+      localStorage.removeItem('ielts_active_kiosk_exam_session');
+      setShowExitExamModal(false);
+      alert('The examination session has been concluded by the consultancy invigilator.');
+      if (currentAdmin?.role === 'super_admin') {
+        navigateTo('/admin');
+      } else if (currentAdmin?.role === 'consultancy_admin' || Boolean(currentAdmin)) {
+        navigateTo('/consultancy/dashboard');
+      } else {
+        if (currentBranchCode) {
+          navigateTo(`/b/${currentBranchCode}`);
+        } else {
+          navigateTo('/kiosk/student');
+        }
+      }
+    };
+
     const unsubscribe = ConsultancyService.subscribe((event) => {
       const cStation = activeCandidateInfo?.stationName || terminalStationName;
       const cId = activeCandidateInfo?.consultancyId || selectedConsultancyId;
       const currentAdmin = adminUser || ConsultancyService.getCurrentAdmin();
       const isDirectorOrAdminPortal = Boolean(currentAdmin) || activeRoute === 'consultancy' || activeRoute === 'super-admin';
-      // Only auto-transition if the student has already entered their name and is on kiosk-test or kiosk-confirm
+      // Only auto-transition if the student has already entered their name and is on kiosk-test
       const isReadyForAutoLaunch =
-        (activeRoute === 'kiosk-test' || activeRoute === 'kiosk-confirm') &&
+        activeRoute === 'kiosk-test' &&
         Boolean(activeCandidateInfo?.name);
 
-      if (event.type === 'BRANCH_TEST_LAUNCHED') {
+      if (event.type === 'BRANCH_TEST_LAUNCHED' || event.type === 'ADMIN_FORCE_RESET_TEST') {
         const payload = event.payload;
-        if (!payload?.testId) {
-          if (!payload?.consultancyId || payload.consultancyId === cId) {
-            if (activeRoute === 'kiosk-exam') {
-              localStorage.removeItem('ielts_active_kiosk_exam_session');
-              alert('The examination session has been concluded by the consultancy invigilator.');
-              if (currentAdmin?.role === 'super_admin') {
-                navigateTo('/admin');
-              } else if (currentAdmin?.role === 'consultancy_admin' || Boolean(currentAdmin)) {
-                navigateTo('/consultancy/dashboard');
-              } else {
-                if (currentBranchCode) {
-                  navigateTo(`/b/${currentBranchCode}`);
-                } else {
-                  navigateTo('/kiosk/student');
-                }
-              }
+        if (event.type === 'ADMIN_FORCE_RESET_TEST' || !payload?.testId) {
+          const isExplicitTargetBranch =
+            Boolean(payload?.consultancyId) &&
+            (payload.consultancyId === cId ||
+              payload.consultancyId === currentBranchCode ||
+              ConsultancyService.getCanonicalConsultancyId(payload.consultancyId) ===
+                ConsultancyService.getCanonicalConsultancyId(cId));
+          const stoppedAt = Number(payload?.stoppedAt || 0);
+          const isStopAfterExamStart =
+            stoppedAt > 0 &&
+            (!examStartTimeRef.current || stoppedAt >= examStartTimeRef.current - 2000);
+
+          if (isExplicitTargetBranch) {
+            if (activeRoute === 'kiosk-exam' && isStopAfterExamStart) {
+              concludeActiveExamByInvigilator();
+            } else if (activeRoute === 'kiosk-confirm') {
+              setCurrentTest(null);
+              setSelectedFullMock(undefined);
+              setActiveRoute('kiosk-test');
             }
           }
         } else {
@@ -708,7 +742,9 @@ export const App: React.FC = () => {
             !payload?.consultancyId ||
             !cId ||
             payload.consultancyId === cId ||
-            payload.consultancyId === currentBranchCode;
+            payload.consultancyId === currentBranchCode ||
+            ConsultancyService.getCanonicalConsultancyId(payload.consultancyId) ===
+              ConsultancyService.getCanonicalConsultancyId(cId);
 
           if (isTargetBranch) {
             const testId = payload.testId;
@@ -730,16 +766,22 @@ export const App: React.FC = () => {
           }
         }
       } else if (event.type === 'STATION_COMMAND') {
-        const { stationId, stationName, command, payload, testId, consultancyId: cmdCid } = event.payload || {};
+        const { stationId, stationName, command, payload, testId, consultancyId: cmdCid, stoppedAt: cmdStoppedAt } = event.payload || {};
         const cleanStation = cStation ? ConsultancyService.normalizeStationName(cStation) : '';
 
         const isTargetStation =
-          cleanStation &&
-          (!stationId ||
-            ConsultancyService.normalizeStationName(stationId) === cleanStation ||
+          Boolean(cleanStation) &&
+          ((stationId && ConsultancyService.normalizeStationName(stationId) === cleanStation) ||
             (stationName && ConsultancyService.normalizeStationName(stationName) === cleanStation));
 
-        const isTargetBranch = !cmdCid || !cId || cmdCid === cId || cmdCid === currentBranchCode;
+        const isBroadcastToBranch = !stationId && !stationName;
+        const isTargetBranch =
+          !cmdCid ||
+          !cId ||
+          cmdCid === cId ||
+          cmdCid === currentBranchCode ||
+          ConsultancyService.getCanonicalConsultancyId(cmdCid) ===
+            ConsultancyService.getCanonicalConsultancyId(cId);
 
         if (command === 'START_TEST') {
           // Never hijack director/admin portal tabs or skip student name entry
@@ -766,7 +808,7 @@ export const App: React.FC = () => {
               }
             }
           }
-        } else if (isTargetStation || isTargetBranch) {
+        } else if (isTargetStation || (isBroadcastToBranch && isTargetBranch)) {
           if (command === 'PAUSE_EXAM') {
             if (activeRoute === 'kiosk-exam') setIsExamPausedByTeacher(true);
           } else if (command === 'RESUME_EXAM') {
@@ -786,20 +828,14 @@ export const App: React.FC = () => {
           } else if (command === 'FORCE_SUBMIT') {
             if (activeRoute === 'kiosk-exam') finishExam();
           } else if (command === 'RESET_STATION' || command === 'END_TEST') {
-            if (activeRoute === 'kiosk-exam') {
-              localStorage.removeItem('ielts_active_kiosk_exam_session');
-              alert('Your examination session was concluded by the consultancy invigilator.');
-              if (currentAdmin?.role === 'super_admin') {
-                navigateTo('/admin');
-              } else if (currentAdmin?.role === 'consultancy_admin' || Boolean(currentAdmin)) {
-                navigateTo('/consultancy/dashboard');
-              } else {
-                if (currentBranchCode) {
-                  navigateTo(`/b/${currentBranchCode}`);
-                } else {
-                  navigateTo('/kiosk/student');
-                }
-              }
+            const stopTs = Number(cmdStoppedAt || payload?.stoppedAt || Date.now());
+            const isStopAfterStart = !examStartTimeRef.current || stopTs >= examStartTimeRef.current - 2000;
+            if (activeRoute === 'kiosk-exam' && (isTargetStation || isStopAfterStart)) {
+              concludeActiveExamByInvigilator();
+            } else if (activeRoute === 'kiosk-confirm') {
+              setCurrentTest(null);
+              setSelectedFullMock(undefined);
+              setActiveRoute('kiosk-test');
             }
           }
         }
@@ -809,7 +845,7 @@ export const App: React.FC = () => {
     return () => unsubscribe();
   }, [activeRoute, activeCandidateInfo, terminalStationName, selectedConsultancyId, adminUser, currentBranchCode]);
 
-  // Active exam live telemetry heartbeat
+  // Active exam live telemetry heartbeat & remote stop check
   useEffect(() => {
     if (
       activeRoute !== 'kiosk-exam' ||
@@ -844,6 +880,7 @@ export const App: React.FC = () => {
           }
         }
       );
+      ConsultancyService.syncActiveLaunchFromCloud(selectedConsultancyId).catch(() => {});
     };
 
     sendHeartbeat();

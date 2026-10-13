@@ -85,19 +85,28 @@ export const TestSelectionView: React.FC<TestSelectionViewProps> = ({
       const stationAssigned = ConsultancyService.getStationAssignedTest(targetCid, stationName);
       const branchActive = ConsultancyService.getActiveLaunchedTest(targetCid);
       const resolved = stationAssigned || branchActive || null;
-      if (resolved) {
-        setActiveLaunch(resolved);
-      }
+      setActiveLaunch((prev) => {
+        if (!resolved && !prev) return null;
+        if (!resolved && prev) return null;
+        if (resolved && (!prev || prev.testId !== resolved.testId || prev.isFullMock !== resolved.isFullMock)) {
+          return resolved;
+        }
+        return prev;
+      });
     };
 
     // Keep station heartbeat updated on invigilator radar every 3 seconds
     const sendHeartbeat = () => {
       const savedCand = ConsultancyService.getCurrentCandidateSession();
+      const stationAssigned = ConsultancyService.getStationAssignedTest(targetCid, stationName);
+      const branchActive = ConsultancyService.getActiveLaunchedTest(targetCid);
+      const currentAssigned = stationAssigned || branchActive || activeLaunch;
+
       ConsultancyService.updateStationHeartbeat(targetCid, stationName, {
-        status: activeLaunch ? 'assigned' : 'idle',
-        assignedTestId: activeLaunch?.testId,
-        testTitle: activeLaunch?.title,
-        isFullMock: activeLaunch?.isFullMock,
+        status: currentAssigned ? 'assigned' : 'idle',
+        assignedTestId: currentAssigned?.testId,
+        testTitle: currentAssigned?.title,
+        isFullMock: currentAssigned?.isFullMock,
         currentCandidate: {
           candidateId: candidateId || savedCand?.candidateId || '004128',
           name: studentName || savedCand?.candidateName || 'Candidate',
@@ -106,21 +115,27 @@ export const TestSelectionView: React.FC<TestSelectionViewProps> = ({
       });
     };
 
+    const syncFromRemote = () => {
+      Promise.all([
+        ConsultancyService.syncActiveLaunchFromCloud(targetCid),
+        ConsultancyService.syncStationsFromCloud(targetCid)
+      ])
+        .then(() => {
+          syncLaunch();
+        })
+        .catch(() => {});
+    };
+
     syncLaunch();
     sendHeartbeat();
-
-    // Query cloud immediately on mount
-    ConsultancyService.syncActiveLaunchFromCloud(targetCid)
-      .then((res) => {
-        if (res) setActiveLaunch(res);
-      })
-      .catch(() => {});
+    syncFromRemote();
 
     const unsub = ConsultancyService.subscribe((event) => {
       if (
         event.type === 'BRANCH_TEST_LAUNCHED' ||
         event.type === 'ACTIVE_LAUNCH_UPDATED' ||
         event.type === 'STATION_COMMAND' ||
+        event.type === 'STATION_UPDATED' ||
         event.type === 'MODULE_TEST_ASSIGNED' ||
         event.type === 'ADMIN_FORCE_RESET_TEST' ||
         event.type === 'STORAGE_SYNC' ||
@@ -128,8 +143,14 @@ export const TestSelectionView: React.FC<TestSelectionViewProps> = ({
       ) {
         if (event.type === 'BRANCH_TEST_LAUNCHED' && event.payload?.testId) {
           setActiveLaunch(event.payload);
-        } else if (event.type === 'BRANCH_TEST_LAUNCHED' && !event.payload?.testId) {
+        } else if (
+          (event.type === 'BRANCH_TEST_LAUNCHED' && !event.payload?.testId) ||
+          event.type === 'ADMIN_FORCE_RESET_TEST' ||
+          (event.type === 'STATION_COMMAND' && (event.payload?.command === 'END_TEST' || event.payload?.command === 'RESET_STATION'))
+        ) {
           setActiveLaunch(null);
+        } else if (event.type === 'STATION_COMMAND' && event.payload?.command === 'START_TEST' && event.payload?.testId) {
+          syncLaunch();
         } else {
           syncLaunch();
         }
@@ -142,14 +163,8 @@ export const TestSelectionView: React.FC<TestSelectionViewProps> = ({
     // Heartbeat transmitter every 3 seconds to keep radar status online
     const hbInterval = setInterval(sendHeartbeat, 3000);
 
-    // Poll cloud for active launches every 2 seconds while on this view
-    const cloudInterval = setInterval(() => {
-      ConsultancyService.syncActiveLaunchFromCloud(targetCid)
-        .then((res) => {
-          if (res) setActiveLaunch(res);
-        })
-        .catch(() => {});
-    }, 2000);
+    // Poll cloud & backend for active launches and station assignments every 2 seconds while on this view
+    const cloudInterval = setInterval(syncFromRemote, 2000);
 
     return () => {
       unsub();

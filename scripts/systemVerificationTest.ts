@@ -113,8 +113,8 @@ function assertEqual(actual: any, expected: any, message?: string) {
 
 // --- SUITE 1: TEST DATA INTEGRITY & AUDIT ---
 suite('Suite 1: Mock Test Papers Data Integrity', () => {
-  test('Total mock tests pool should contain exactly 44 authentic Cambridge tests', () => {
-    assertEqual(allMockTests.length, 44, 'Total test paper count');
+  test('Total mock tests pool should contain all 60 authentic Cambridge tests (20 Reading, 20 Listening, 20 Writing)', () => {
+    assertEqual(allMockTests.length, 60, 'Total test paper count');
   });
 
   test('All Cambridge 16 tests (Reading 1-4, Listening 1-4, Writing 1-4) must exist', () => {
@@ -155,41 +155,19 @@ suite('Suite 1: Mock Test Papers Data Integrity', () => {
     }
   });
 
-  test('Core Listening tests (Books 16, 18, 19, 20 Test 1) must have exactly 40 sequential questions', () => {
-    const coreListeningIds = [
-      'cambridge-16-test-1-listening', 'cambridge-16-test-2-listening', 'cambridge-16-test-3-listening', 'cambridge-16-test-4-listening',
-      'cambridge-18-test-1-listening', 'cambridge-18-test-2-listening', 'cambridge-18-test-3-listening', 'cambridge-18-test-4-listening',
-      'cambridge-19-test-1-listening', 'cambridge-19-test-2-listening', 'cambridge-19-test-3-listening', 'cambridge-19-test-4-listening',
-      'cambridge-20-test-1-listening'
-    ];
-
-    for (const id of coreListeningIds) {
-      const lt = getMockTestById(id);
-      assert(lt, `${id} exists`);
-      const allQuestions = lt!.sections.flatMap((s) => s.questionGroups.flatMap((g) => g.questions));
-      assertEqual(allQuestions.length, 40, `${id} should have exactly 40 questions`);
-
-      const numbers = allQuestions.map((q) => q.questionNumber).sort((a, b) => a - b);
-      for (let i = 1; i <= 40; i++) {
-        assertEqual(numbers[i - 1], i, `${id} question number sequence missing ${i}`);
-      }
-
-      for (const sec of lt!.sections) {
-        assert(sec.audioUrl || sec.transcript, `${id} Section ${sec.sectionNumber} has audioUrl or transcript`);
-      }
-    }
-  });
-
-  test('All remaining listening papers must have 4 sections, audio/transcripts, and zero duplicate question numbers', () => {
+  test('All 20 Listening tests (Books 16, 18, 19, 20, 21) must have exactly 40 sequential questions', () => {
     const listeningTests = allMockTests.filter((t) => t.module === 'listening');
     assertEqual(listeningTests.length, 20, 'Total listening tests count across all books');
 
     for (const lt of listeningTests) {
       assertEqual(lt.sections.length, 4, `${lt.id} has 4 sections`);
       const allQuestions = lt.sections.flatMap((s) => s.questionGroups.flatMap((g) => g.questions));
-      const numbers = allQuestions.map((q) => q.questionNumber);
-      const uniqueNumbers = new Set(numbers);
-      assertEqual(uniqueNumbers.size, numbers.length, `${lt.id} should have zero duplicate question numbers`);
+      assertEqual(allQuestions.length, 40, `${lt.id} should have exactly 40 questions`);
+
+      const numbers = allQuestions.map((q) => q.questionNumber).sort((a, b) => a - b);
+      for (let i = 1; i <= 40; i++) {
+        assertEqual(numbers[i - 1], i, `${lt.id} question number sequence missing ${i}`);
+      }
 
       for (const sec of lt.sections) {
         assert(sec.audioUrl || sec.transcript, `${lt.id} Section ${sec.sectionNumber} has audioUrl or transcript`);
@@ -197,9 +175,9 @@ suite('Suite 1: Mock Test Papers Data Integrity', () => {
     }
   });
 
-  test('All Writing tests (Cambridge 16) must have Task 1 (150 words) and Task 2 (250 words)', () => {
+  test('All 20 Writing tests (Books 16, 18, 19, 20, 21) must have Task 1 (150 words) and Task 2 (250 words)', () => {
     const writingTests = allMockTests.filter((t) => t.module === 'writing');
-    assertEqual(writingTests.length, 4, 'Writing tests count in Cambridge 16');
+    assertEqual(writingTests.length, 20, 'Writing tests count across Books 16, 18, 19, 20, 21');
 
     for (const wt of writingTests) {
       assertEqual(wt.sections.length, 2, `${wt.id} must have 2 sections`);
@@ -556,8 +534,8 @@ suite('Suite 3: Consultancy Test Launch & Terminal Waiting Logic', () => {
 
   test('Station deduplication: Multiple registrations of PC-01 result in strictly one unique station', () => {
     const testCid = 'test-consultancy-dedup';
-    // Clean any prior state
-    localStorage.removeItem(`ielts_stations_${testCid}`);
+    // Initialize with empty station list so default 12-station seed is not triggered
+    localStorage.setItem(`ielts_stations_${testCid}`, '[]');
 
     // Register PC-01 three times with slight variations (e.g. pc-01, PC-1, PC-01)
     const st1 = ConsultancyService.addStation(testCid, 'PC-01');
@@ -668,7 +646,7 @@ suite('Suite 3: Consultancy Test Launch & Terminal Waiting Logic', () => {
 
   test('Batch Station Creation & Flexible Workstation Verification', () => {
     const batchCid = 'test-batch-consultancy';
-    localStorage.removeItem(`ielts_stations_${batchCid}`);
+    localStorage.setItem(`ielts_stations_${batchCid}`, '[]');
 
     // Initial station
     ConsultancyService.addStation(batchCid, 'PC-01');
@@ -683,11 +661,11 @@ suite('Suite 3: Consultancy Test Launch & Terminal Waiting Logic', () => {
     const allStations = ConsultancyService.getStations(batchCid);
     assertEqual(allStations.length, 4, 'Total 4 stations present');
 
-    // Test verifyTerminalLogin with consultancy ID "apex-global"
-    const loginRes = ConsultancyService.verifyTerminalLogin('apex-global', 'PC-02', '1234');
+    // Test verifyTerminalLogin with consultancy ID "kiec-lalitpur"
+    const loginRes = ConsultancyService.verifyTerminalLogin('kiec-lalitpur', 'PC-02', '1234');
     assert(loginRes.success, 'verifyTerminalLogin succeeded with consultancy ID');
     assertEqual(loginRes.stationName, 'PC-02');
-    assertEqual(loginRes.consultancy?.id, 'apex-global');
+    assertEqual(loginRes.consultancy?.id, 'kiec-lalitpur');
 
     // Cleanup
     localStorage.removeItem(`ielts_stations_${batchCid}`);
@@ -696,7 +674,7 @@ suite('Suite 3: Consultancy Test Launch & Terminal Waiting Logic', () => {
 
 // --- SUITE 4: WRITING SUBMISSION & EXAMINER EVALUATION WORKFLOW ---
 suite('Suite 4: Writing Submission & Evaluation Flow', () => {
-  const branchId = 'apex-global';
+  const branchId = 'kiec-lalitpur';
   const candId = '008899';
   const candName = 'Sujan Karki';
   const testId = 'cambridge-16-test-1-writing';
@@ -717,7 +695,7 @@ suite('Suite 4: Writing Submission & Evaluation Flow', () => {
       candidateName: candName,
       candidateId: candId,
       consultancyId: branchId,
-      consultancyName: 'Apex Global Education',
+      consultancyName: 'KIEC Lalitpur',
       isPublished: false,
       writingSubmission: {
         task1Essay: 'The bar chart illustrates reasons for study across different age brackets...'.repeat(5),
@@ -760,7 +738,7 @@ suite('Suite 4: Writing Submission & Evaluation Flow', () => {
 
 // --- SUITE 5: CANDIDATE LOOKUP & PUBLISHING CONTROL ---
 suite('Suite 5: Publishing Control & Name/ID Candidate Search', () => {
-  const branchId = 'apex-global';
+  const branchId = 'kiec-lalitpur';
   const candId = '008899';
   const candName = 'Sujan Karki';
   const testId = 'cambridge-16-test-1-writing';

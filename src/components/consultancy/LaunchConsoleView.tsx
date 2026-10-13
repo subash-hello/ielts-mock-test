@@ -126,38 +126,27 @@ export const LaunchConsoleView: React.FC<LaunchConsoleViewProps> = ({
 
   const modeAPreview = getSelectedModeATest();
 
-  // Execute Mode A Broadcast Launch
+  // Execute Mode A Broadcast Launch immediately (0ms delay)
   const handleLaunchModeA = () => {
     if (!modeAPreview.test && !modeAPreview.fullMock) {
       alert('Selected test is not available in library.');
       return;
     }
 
-    setIsBroadcastingCountdown(true);
-    setCountdownNum(5);
+    setIsBroadcastingCountdown(false);
+    setCountdownNum(0);
 
-    let count = 5;
-    const interval = setInterval(() => {
-      count--;
-      if (count <= 0) {
-        clearInterval(interval);
-        setIsBroadcastingCountdown(false);
+    // Broadcast test to lab terminals immediately
+    const targetTestId = (selectedSection === 'full' && modeAPreview.fullMock ? modeAPreview.fullMock.id : modeAPreview.test?.id) || 'cambridge-16-test-1-full';
+    ConsultancyService.launchBranchTest(
+      consultancy.id,
+      targetTestId,
+      modeAPreview.title,
+      selectedSection === 'full',
+      sessionName.trim() || undefined
+    );
 
-        // Broadcast test to lab terminals
-        const targetTestId = (selectedSection === 'full' && modeAPreview.fullMock ? modeAPreview.fullMock.id : modeAPreview.test?.id) || 'cambridge-16-test-1-full';
-        ConsultancyService.launchBranchTest(
-          consultancy.id,
-          targetTestId,
-          modeAPreview.title,
-          selectedSection === 'full',
-          sessionName.trim() || undefined
-        );
-
-        onSessionLaunched();
-      } else {
-        setCountdownNum(count);
-      }
-    }, 1000);
+    onSessionLaunched();
   };
 
   // Update assignment for a station in Mode B
@@ -192,14 +181,15 @@ export const LaunchConsoleView: React.FC<LaunchConsoleViewProps> = ({
       if (!st) return;
 
       const matchedTest = tests.find((t) => t.id === val.testId);
-      const isFull = val.isFullMock || val.testId.endsWith('-full');
+      const matchedFull = allFullMockTests.find((fm) => fm.id === val.testId);
+      const isFull = val.isFullMock || val.testId.endsWith('-full') || Boolean(matchedFull);
 
       // Assign student & test to station in service
       ConsultancyService.assignStationTest(
         consultancy.id,
         st.name,
         val.testId,
-        matchedTest?.title || 'Assigned Mock Test',
+        matchedTest?.title || matchedFull?.title || 'Assigned Mock Test',
         val.studentName || undefined,
         val.candidateId || undefined,
         undefined,
@@ -208,7 +198,6 @@ export const LaunchConsoleView: React.FC<LaunchConsoleViewProps> = ({
     });
 
     onSessionLaunched();
-    alert(`Successfully launched ${assignedEntries.length} assigned workstation tests!`);
   };
 
   // Count assigned stations in Mode B
@@ -218,9 +207,14 @@ export const LaunchConsoleView: React.FC<LaunchConsoleViewProps> = ({
 
   // Execute End Lab Session
   const handleConfirmEndSession = () => {
+    stations.forEach((st) => {
+      if (st.assignedTestId || st.status === 'assigned' || st.status === 'in_progress' || st.status === 'paused') {
+        ConsultancyService.resetStation(consultancy.id, st.id);
+      }
+    });
     ConsultancyService.launchBranchTest(consultancy.id, null);
     ConsultancyService.setActiveBatchName(consultancy.id, undefined);
-    ConsultancyService.broadcastStationCommand(consultancy.id, 'END_TEST');
+    ConsultancyService.broadcastStationCommand(consultancy.id, 'END_TEST', { stoppedAt: Date.now() });
     setShowEndSessionModal(false);
     onSessionEnded();
   };
