@@ -2691,7 +2691,7 @@ export class ConsultancyService {
       }
     }
 
-    if (!foundRaw || stationsList.length === 0) {
+    if (!foundRaw) {
       if (canonical === 'apex-global') {
         stationsList = [...DEFAULT_STATIONS];
       } else {

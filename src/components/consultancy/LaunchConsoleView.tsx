@@ -1,19 +1,20 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   Rocket,
   Users,
   Radio,
   CheckCircle2,
   Play,
-  StopCircle
+  StopCircle,
+  Clock,
+  Layers,
+  Activity
 } from 'lucide-react';
 import type { Consultancy, LabStation, ConsultancyStudent } from '../../types/consultancy';
 import type { IELTSMockTest, FullMockTest } from '../../types/ielts';
 import { allFullMockTests } from '../../data/mockTests';
 import { ConsultancyService } from '../../services/consultancyService';
 import { ConfirmationModal } from '../common/ConfirmationModal';
-
-import { useEffect } from 'react';
 
 interface LaunchConsoleViewProps {
   consultancy: Consultancy;
@@ -24,6 +25,7 @@ interface LaunchConsoleViewProps {
   preselectedCandidate?: ConsultancyStudent | null;
   onSessionLaunched: () => void;
   onSessionEnded: () => void;
+  onNavigateToMonitor?: () => void;
 }
 
 export const LaunchConsoleView: React.FC<LaunchConsoleViewProps> = ({
@@ -35,9 +37,39 @@ export const LaunchConsoleView: React.FC<LaunchConsoleViewProps> = ({
   preselectedCandidate,
   onSessionLaunched,
   onSessionEnded,
+  onNavigateToMonitor,
 }) => {
   const [activeMode, setActiveMode] = useState<'modeA' | 'modeB'>(initialMode || 'modeA');
   const [sessionName, setSessionName] = useState<string>(() => ConsultancyService.getActiveBatchName(consultancy.id) || '');
+  const [activeLaunch, setActiveLaunch] = useState(() => ConsultancyService.getActiveLaunchedTest(consultancy.id));
+
+  // Sync active test launch from memory and cloud in real time
+  useEffect(() => {
+    const sync = () => {
+      setActiveLaunch(ConsultancyService.getActiveLaunchedTest(consultancy.id));
+    };
+    sync();
+    ConsultancyService.syncActiveLaunchFromCloud(consultancy.id).then((l) => {
+      if (l) setActiveLaunch(l);
+    }).catch(() => {});
+
+    const unsub = ConsultancyService.subscribe((event) => {
+      if (
+        event.type === 'BRANCH_TEST_LAUNCHED' ||
+        event.type === 'STATION_UPDATED' ||
+        event.type === 'STATION_COMMAND' ||
+        event.type === 'STORAGE_SYNC'
+      ) {
+        sync();
+      }
+    });
+
+    const interval = setInterval(sync, 1500);
+    return () => {
+      unsub();
+      clearInterval(interval);
+    };
+  }, [consultancy.id]);
 
   useEffect(() => {
     if (initialMode) {
@@ -219,12 +251,78 @@ export const LaunchConsoleView: React.FC<LaunchConsoleViewProps> = ({
     onSessionEnded();
   };
 
-  const activeLaunch = ConsultancyService.getActiveLaunchedTest(consultancy.id);
   const activeBatch = ConsultancyService.getActiveBatchName(consultancy.id);
+  const stationsInExam = stations.filter((s) => s.status === 'in_progress' || s.status === 'paused').length;
+  const stationsAssigned = stations.filter((s) => s.status === 'assigned').length;
   const hasActiveStations = stations.some(
     (s) => s.status === 'in_progress' || s.status === 'paused' || s.status === 'assigned'
   );
-  const hasActiveSession = Boolean(activeLaunch || activeBatch || hasActiveStations);
+  const hasActiveSession = Boolean(activeLaunch?.testId || activeBatch || hasActiveStations);
+
+  // Resolve which test is running in the lab
+  const resolvedRunningTest = useMemo(() => {
+    if (activeLaunch?.testId) {
+      const full = allFullMockTests.find((fm) => fm.id === activeLaunch.testId);
+      const std = tests.find((t) => t.id === activeLaunch.testId);
+      const isFull = Boolean(activeLaunch.isFullMock || full || activeLaunch.testId.includes('full'));
+      const moduleName = isFull
+        ? 'Full Mock (L+R+W)'
+        : std?.module === 'reading'
+        ? 'Academic Reading'
+        : std?.module === 'listening'
+        ? 'Academic Listening'
+        : std?.module === 'writing'
+        ? 'Academic Writing'
+        : 'Mock Exam';
+
+      return {
+        title: full?.title || std?.title || activeLaunch.title || activeLaunch.testId,
+        isFullMock: isFull,
+        module: moduleName,
+        duration: full?.totalDurationMinutes || std?.durationMinutes || (isFull ? 95 : 60),
+        mode: 'Mode A: Lab-Wide Broadcast',
+        launchedAt: activeLaunch.launchedAt,
+        testId: activeLaunch.testId,
+        questionCount: isFull ? '40 Listening + 40 Reading + 2 Writing Tasks' : (std?.module === 'writing' ? 'Task 1 & Task 2' : '40 Questions'),
+        testList: undefined as Array<{ stationName: string; studentName: string; title: string }> | undefined,
+      };
+    }
+
+    // Mode B: individual station assignments
+    const runningStations = stations.filter(
+      (st) => (st.status === 'in_progress' || st.status === 'assigned' || st.status === 'paused') && st.assignedTestId
+    );
+    if (runningStations.length > 0) {
+      const distinctTestIds = Array.from(new Set(runningStations.map((st) => st.assignedTestId!)));
+      const titles = distinctTestIds.map((id) => {
+        const full = allFullMockTests.find((fm) => fm.id === id);
+        const std = tests.find((t) => t.id === id);
+        return full?.title || std?.title || id;
+      });
+
+      const firstId = distinctTestIds[0];
+      const isFull = distinctTestIds.some((id) => id.includes('full'));
+      const firstStd = tests.find((t) => t.id === firstId);
+
+      return {
+        title: titles.length === 1 ? titles[0] : `${titles.length} Distinct Papers Assigned`,
+        isFullMock: isFull,
+        module: titles.length === 1 ? (firstId.includes('full') ? 'Full Mock' : (firstStd?.module ? firstStd.module.toUpperCase() : 'EXAM')) : 'Multi-Paper',
+        duration: firstStd?.durationMinutes || 60,
+        mode: 'Mode B: Per-Student Assignment',
+        launchedAt: runningStations[0].lastHeartbeat,
+        testId: firstId,
+        questionCount: `${runningStations.length} Active Workstations Assigned`,
+        testList: runningStations.map((st) => ({
+          stationName: st.name,
+          studentName: st.currentCandidate?.name || 'Assigned Student',
+          title: st.testTitle || st.assignedTestId || 'Test',
+        })),
+      };
+    }
+
+    return null;
+  }, [activeLaunch, stations, tests]);
 
   return (
     <div className="space-y-6">
@@ -245,15 +343,52 @@ export const LaunchConsoleView: React.FC<LaunchConsoleViewProps> = ({
           <p className="text-xs text-[#5B6B82]">
             Send synchronized exams lab-wide or map specific test papers per student
           </p>
+
+          {/* Running Test Indicator (Shows directly in header) */}
+          {hasActiveSession && resolvedRunningTest && (
+            <div className="flex flex-wrap items-center gap-2 mt-3 pt-2.5 border-t border-[#5B6B82]/15">
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-emerald-600 text-white text-[11px] font-black uppercase tracking-wider shadow-2xs">
+                <span className="relative flex h-2 w-2">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-white"></span>
+                </span>
+                <span>Running Test:</span>
+              </span>
+              <span className="text-xs sm:text-sm font-bold text-[#0F1E33] bg-white px-3 py-1 rounded-md border border-slate-300 shadow-2xs">
+                {resolvedRunningTest.title}
+              </span>
+              <span className="text-[11px] font-bold px-2 py-0.5 rounded bg-blue-100 text-blue-800 border border-blue-200">
+                {resolvedRunningTest.module}
+              </span>
+              <span className="text-[11px] font-medium px-2 py-0.5 rounded bg-slate-100 text-slate-700 border border-slate-200">
+                {resolvedRunningTest.mode}
+              </span>
+              {activeBatch && (
+                <span className="text-[11px] font-semibold px-2 py-0.5 rounded bg-purple-100 text-purple-800 border border-purple-200">
+                  Batch: {activeBatch}
+                </span>
+              )}
+            </div>
+          )}
         </div>
 
-        {/* End Session Button (Blueprint 6.7: Red, separated, ALWAYS confirms!) */}
+        {/* Action Buttons in Header */}
         {hasActiveSession && (
-          <div>
+          <div className="flex items-center gap-2">
+            {onNavigateToMonitor && (
+              <button
+                type="button"
+                onClick={onNavigateToMonitor}
+                className="btn-texture px-3.5 py-2 bg-[#0F1E33] hover:bg-[#1a2e4c] text-white text-xs font-bold shadow-2xs flex items-center gap-2 cursor-pointer transition rounded-xl"
+              >
+                <Activity className="w-4 h-4 text-[#C9A24B]" />
+                <span>Live Monitor</span>
+              </button>
+            )}
             <button
               type="button"
               onClick={() => setShowEndSessionModal(true)}
-              className="btn-texture px-4 py-2 bg-white hover:bg-red-50 text-[#C0392B] border border-[#C0392B]/40 text-xs font-bold shadow-2xs flex items-center gap-2"
+              className="btn-texture px-4 py-2 bg-white hover:bg-red-50 text-[#C0392B] border border-[#C0392B]/40 text-xs font-bold shadow-2xs flex items-center gap-2 cursor-pointer transition rounded-xl"
             >
               <StopCircle className="w-4 h-4" />
               <span>End Active Lab Session</span>
@@ -261,6 +396,104 @@ export const LaunchConsoleView: React.FC<LaunchConsoleViewProps> = ({
           </div>
         )}
       </div>
+
+      {/* Active Exam Session in Lab Banner Card */}
+      {hasActiveSession && resolvedRunningTest && (
+        <div className="bg-gradient-to-r from-emerald-50/80 via-white to-emerald-50/50 border-2 border-emerald-500 rounded-2xl p-5 sm:p-6 shadow-md space-y-4 animate-in fade-in">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-emerald-100 pb-3">
+            <div className="flex items-center gap-2.5">
+              <span className="relative flex h-3 w-3">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-3 w-3 bg-emerald-500"></span>
+              </span>
+              <span className="text-xs font-black uppercase tracking-wider text-emerald-800">
+                Active Exam Session Running in Lab
+              </span>
+              <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-200">
+                {resolvedRunningTest.mode}
+              </span>
+            </div>
+
+            {resolvedRunningTest.launchedAt && (
+              <span className="text-xs font-mono text-slate-500 flex items-center gap-1.5">
+                <Clock className="w-3.5 h-3.5 text-slate-400" />
+                <span>Launched: {new Date(resolvedRunningTest.launchedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+              </span>
+            )}
+          </div>
+
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div className="space-y-1.5">
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-purple-100 text-purple-800 font-bold text-xs">
+                  <Layers className="w-3 h-3 text-purple-600" />
+                  <span>{resolvedRunningTest.module}</span>
+                </span>
+                {resolvedRunningTest.duration > 0 && (
+                  <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-700 font-semibold text-xs">
+                    <Clock className="w-3 h-3 text-slate-500" />
+                    <span>{resolvedRunningTest.duration} Mins Total</span>
+                  </span>
+                )}
+                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 font-semibold text-xs">
+                  <CheckCircle2 className="w-3 h-3 text-emerald-600" />
+                  <span>{stationsInExam} in Exam · {stationsAssigned} Ready · {connectedCount} Online</span>
+                </span>
+              </div>
+
+              <h2 className="text-xl sm:text-2xl font-black text-[#0F1E33] tracking-tight">
+                {resolvedRunningTest.title}
+              </h2>
+              <p className="text-xs text-[#5B6B82]">
+                {resolvedRunningTest.questionCount} • All connected candidate workstations in this branch are receiving this test.
+              </p>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-2.5 shrink-0">
+              {onNavigateToMonitor && (
+                <button
+                  type="button"
+                  onClick={onNavigateToMonitor}
+                  className="btn-texture px-4 py-2.5 bg-[#0F1E33] hover:bg-[#1a2e4c] text-white text-xs font-bold rounded-xl shadow-sm flex items-center gap-2 cursor-pointer transition"
+                >
+                  <Activity className="w-4 h-4 text-[#C9A24B]" />
+                  <span>View Live Monitor</span>
+                </button>
+              )}
+              <button
+                type="button"
+                onClick={() => setShowEndSessionModal(true)}
+                className="btn-texture px-4 py-2.5 bg-white hover:bg-red-50 text-[#C0392B] border border-[#C0392B]/40 text-xs font-bold rounded-xl shadow-2xs flex items-center gap-2 cursor-pointer transition"
+              >
+                <StopCircle className="w-4 h-4" />
+                <span>End Active Session</span>
+              </button>
+            </div>
+          </div>
+
+          {/* Mode B Station Breakdown if multiple papers */}
+          {resolvedRunningTest.testList && Array.isArray(resolvedRunningTest.testList) && (
+            <div className="pt-2 border-t border-emerald-100/70">
+              <div className="text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">
+                Assigned Workstation Breakdown:
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {resolvedRunningTest.testList.map((item, idx) => (
+                  <span
+                    key={idx}
+                    className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-white border border-slate-200 text-xs text-[#0F1E33] shadow-2xs"
+                  >
+                    <span className="font-mono font-bold text-blue-700">{item.stationName}:</span>
+                    <span className="font-medium text-slate-700">{item.studentName}</span>
+                    <span className="text-slate-400">→</span>
+                    <span className="font-semibold text-slate-900">{item.title}</span>
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Mode Selector Tabs (Blueprint 6.7: Mode A & Mode B side by side) */}
       <div className="grid grid-cols-2 gap-3 max-w-lg">

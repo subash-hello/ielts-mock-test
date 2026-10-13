@@ -716,7 +716,7 @@ export const ConsultancyPortal: React.FC<ConsultancyPortalProps> = ({
                 {consultancy.branch}
               </span>
             </div>
-            <div className="flex items-center gap-2 text-xs text-slate-500 mt-0.5">
+            <div className="flex flex-wrap items-center gap-2 text-xs text-slate-500 mt-0.5">
               <span className="flex items-center gap-1 font-medium text-emerald-600">
                 <span className="w-2 h-2 rounded-full bg-emerald-500" />
                 <span>{stations.length} Lab Stations Configured</span>
@@ -725,6 +725,15 @@ export const ConsultancyPortal: React.FC<ConsultancyPortalProps> = ({
               <span className="text-slate-600 font-medium">
                 {activeStations.length} Active in Test
               </span>
+              {activeLaunchedTest && (
+                <>
+                  <span>•</span>
+                  <span className="inline-flex items-center gap-1.5 font-bold text-emerald-800 bg-emerald-100 px-2 py-0.5 rounded border border-emerald-300 font-sans shadow-2xs">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-600 animate-ping" />
+                    <span>Running: {activeLaunchedTest.title || activeLaunchedTest.testId}</span>
+                  </span>
+                </>
+              )}
             </div>
           </div>
         </div>

@@ -39,14 +39,39 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   const [selectedStation, setSelectedStation] = useState<LabStation | null>(null);
   const [stationMessage, setStationMessage] = useState('');
   const [messageSentFeedback, setMessageSentFeedback] = useState(false);
+  const [activeLaunch, setActiveLaunch] = useState(() =>
+    ConsultancyService.getActiveLaunchedTest(consultancy.id)
+  );
 
   useEffect(() => {
+    const sync = () => {
+      setActiveLaunch(ConsultancyService.getActiveLaunchedTest(consultancy.id));
+    };
+    sync();
+
+    const unsub = ConsultancyService.subscribe((event) => {
+      if (
+        event.type === 'BRANCH_TEST_LAUNCHED' ||
+        event.type === 'STATION_UPDATED' ||
+        event.type === 'STATION_COMMAND' ||
+        event.type === 'STORAGE_SYNC'
+      ) {
+        sync();
+      }
+    });
+
     Promise.all([
       ConsultancyService.syncResultsFromBackend(consultancy.id),
       ConsultancyService.syncStationsFromBackend(consultancy.id)
     ]).then(() => {
       onRefresh();
     }).catch(() => {});
+
+    const interval = setInterval(sync, 2000);
+    return () => {
+      unsub();
+      clearInterval(interval);
+    };
   }, [consultancy.id]);
 
   // Compute live lab stats (Blueprint 6.6)
@@ -150,6 +175,42 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
           </button>
         </div>
       </div>
+
+      {/* Live Exam in Progress Alert Banner */}
+      {activeLaunch?.testId && (
+        <div className="bg-gradient-to-r from-emerald-950 via-[#0F1E33] to-[#0F1E33] border-2 border-emerald-500 rounded-2xl p-5 text-white shadow-lg flex flex-col md:flex-row md:items-center justify-between gap-4 animate-in fade-in">
+          <div className="space-y-1.5">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="relative flex h-2.5 w-2.5">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
+              </span>
+              <span className="text-xs font-black uppercase tracking-wider text-emerald-400">
+                Live Exam Running Now
+              </span>
+              <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">
+                {inExamCount} Students in Exam · {connectedCount} Stations Connected
+              </span>
+            </div>
+            <h3 className="text-xl font-black text-white tracking-tight">
+              {activeLaunch.title || activeLaunch.testId}
+            </h3>
+            <p className="text-xs text-slate-300">
+              Exam session is active across student workstations in this branch.
+            </p>
+          </div>
+          <div className="flex items-center gap-2.5 shrink-0">
+            <button
+              type="button"
+              onClick={onOpenLaunchModeA}
+              className="btn-texture px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-bold transition shadow-sm cursor-pointer flex items-center gap-2"
+            >
+              <Rocket className="w-3.5 h-3.5" />
+              <span>Launch Console</span>
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Pending Writing Evaluation Direct Alert Banner */}
       {pendingWritingResults.length > 0 && (

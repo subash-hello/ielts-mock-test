@@ -41,6 +41,30 @@ export const LiveMonitorView: React.FC<LiveMonitorViewProps> = ({
     return () => clearInterval(interval);
   }, [consultancy.id]);
 
+  const [activeLaunch, setActiveLaunch] = useState(() =>
+    ConsultancyService.getActiveLaunchedTest(consultancy.id)
+  );
+
+  useEffect(() => {
+    const sync = () => {
+      setActiveLaunch(ConsultancyService.getActiveLaunchedTest(consultancy.id));
+    };
+    sync();
+
+    const unsub = ConsultancyService.subscribe((event) => {
+      if (
+        event.type === 'BRANCH_TEST_LAUNCHED' ||
+        event.type === 'STATION_UPDATED' ||
+        event.type === 'STATION_COMMAND' ||
+        event.type === 'STORAGE_SYNC'
+      ) {
+        sync();
+      }
+    });
+
+    return () => unsub();
+  }, [consultancy.id]);
+
   const activeBatchName = ConsultancyService.getActiveBatchName(consultancy.id);
 
   // Invigilator actions
@@ -122,6 +146,24 @@ export const LiveMonitorView: React.FC<LiveMonitorViewProps> = ({
           <p className="text-xs text-slate-300">
             Authoritative clock source · Live answer count · Disconnect anomaly detection
           </p>
+
+          {/* Running Test Badge in Live Monitor Header */}
+          {activeLaunch?.testId && (
+            <div className="flex flex-wrap items-center gap-2 mt-2.5">
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-500/20 border border-emerald-400/40 text-emerald-300 text-xs font-mono font-bold">
+                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
+                <span>RUNNING TEST:</span>
+              </span>
+              <span className="text-xs sm:text-sm font-bold text-white bg-white/10 px-3 py-0.5 rounded-md border border-white/20">
+                {activeLaunch.title || activeLaunch.testId}
+              </span>
+              {activeLaunch.isFullMock && (
+                <span className="text-[11px] font-bold px-2 py-0.5 rounded bg-purple-500/20 border border-purple-400/40 text-purple-300">
+                  Full Mock (L+R+W)
+                </span>
+              )}
+            </div>
+          )}
         </div>
 
         {/* Global Invigilator Controls */}

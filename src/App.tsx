@@ -1646,6 +1646,10 @@ export const App: React.FC = () => {
               tests={tests}
               initialMode={launchMode}
               preselectedCandidate={assigningCandidate}
+              onNavigateToMonitor={() => {
+                setConsultancySubTab('monitor');
+                navigateTo('/consultancy/monitor');
+              }}
               onSessionLaunched={() => {
                 setConsultancySubTab('monitor');
                 navigateTo('/consultancy/monitor');

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Monitor,
   Rocket,
@@ -12,6 +12,7 @@ import {
   LogOut
 } from 'lucide-react';
 import type { Consultancy } from '../../types/consultancy';
+import { ConsultancyService } from '../../services/consultancyService';
 
 export type ConsultancySubTab =
   | 'dashboard'
@@ -42,6 +43,32 @@ export const ConsultancyLayout: React.FC<ConsultancyLayoutProps> = ({
   onLogout,
   children,
 }) => {
+  const [activeLaunch, setActiveLaunch] = useState(() =>
+    ConsultancyService.getActiveLaunchedTest(consultancy.id)
+  );
+
+  useEffect(() => {
+    const sync = () => {
+      setActiveLaunch(ConsultancyService.getActiveLaunchedTest(consultancy.id));
+    };
+    sync();
+    const unsub = ConsultancyService.subscribe((event) => {
+      if (
+        event.type === 'BRANCH_TEST_LAUNCHED' ||
+        event.type === 'STATION_UPDATED' ||
+        event.type === 'STATION_COMMAND' ||
+        event.type === 'STORAGE_SYNC'
+      ) {
+        sync();
+      }
+    });
+    const interval = setInterval(sync, 2000);
+    return () => {
+      unsub();
+      clearInterval(interval);
+    };
+  }, [consultancy.id]);
+
   const navItems: { id: ConsultancySubTab; label: string; icon: React.ReactNode }[] = [
     { id: 'dashboard', label: 'Dashboard', icon: <Monitor className="w-4 h-4" /> },
     { id: 'launch', label: 'Launch Console', icon: <Rocket className="w-4 h-4" /> },
@@ -78,6 +105,25 @@ export const ConsultancyLayout: React.FC<ConsultancyLayoutProps> = ({
               </p>
             </div>
           </div>
+
+          {/* Center: Live Running Test Indicator */}
+          {activeLaunch?.testId && (
+            <button
+              type="button"
+              onClick={() => onTabChange('launch')}
+              className="hidden md:flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-emerald-950/90 border border-emerald-500/60 hover:border-emerald-400 text-emerald-300 text-xs font-bold transition shadow-sm cursor-pointer group"
+              title="Test is currently running. Click to manage in Launch Console."
+            >
+              <span className="relative flex h-2.5 w-2.5">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
+              </span>
+              <span className="text-slate-300 font-semibold text-[11px] uppercase tracking-wider">RUNNING:</span>
+              <span className="text-white font-black max-w-[240px] truncate group-hover:text-emerald-200">
+                {activeLaunch.title || activeLaunch.testId}
+              </span>
+            </button>
+          )}
 
           {/* Right: Primary Launch Action & Logout */}
           <div className="flex items-center gap-3">
