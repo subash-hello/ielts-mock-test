@@ -272,6 +272,8 @@ export class ConsultancyService {
       if (st?.consultancyId && st?.name) {
         try {
           const canonical = this.getCanonicalConsultancyId(st.consultancyId);
+          this.removeDeletedStation(canonical, st.name);
+          if (st.id) this.removeDeletedStation(canonical, st.id);
           const aliases = this.getConsultancyAliases(st.consultancyId);
           const list = this.getStations(canonical);
           const norm = this.normalizeStationName(st.name);
@@ -294,6 +296,7 @@ export class ConsultancyService {
       if (cid && res) {
         try {
           const canonical = this.getCanonicalConsultancyId(cid);
+          this.removeDeletedResult(canonical, res.testId, res.candidateId, res.completedAt, res.id);
           const aliases = this.getConsultancyAliases(cid);
           const list = this.getResults(canonical);
           if (res.isPublished === undefined) {
@@ -365,6 +368,7 @@ export class ConsultancyService {
       if (cid && rep) {
         try {
           const canonical = this.getCanonicalConsultancyId(cid);
+          this.removeDeletedReport(canonical, rep.testId, rep.candidateId, rep.completedAt, rep.id);
           const aliases = this.getConsultancyAliases(cid);
           const list = this.getReports(canonical);
           const exists = list.some(
@@ -387,6 +391,9 @@ export class ConsultancyService {
       if (p?.consultancyId) {
         try {
           const canonical = this.getCanonicalConsultancyId(p.consultancyId);
+          if (p.candidateNumber || p.candidateName) {
+            this.removeDeletedStudent(canonical, undefined, p.candidateNumber, p.candidateName);
+          }
           const aliases = this.getConsultancyAliases(p.consultancyId);
           const students = this.getStudents(canonical);
           if (p.candidateNumber && p.result) {
@@ -1031,24 +1038,33 @@ export class ConsultancyService {
     this.deleteStationFromBackend(consultancyId, stationIdentifier).catch(() => {});
     if (!supabase) return;
     try {
-      const canonical = this.getCanonicalConsultancyId(consultancyId);
+      const aliases = this.getConsultancyAliases(consultancyId);
       const norm = this.normalizeStationName(stationIdentifier);
       await supabase
         .from('consultancy_stations')
         .delete()
-        .eq('consultancy_id', canonical)
-        .or(`id.eq.${stationIdentifier},name.eq.${norm}`);
+        .in('consultancy_id', aliases)
+        .or(`id.eq.${stationIdentifier},id.eq.${norm},name.eq.${stationIdentifier},name.eq.${norm}`);
     } catch {}
   }
 
   public static async deleteStationFromBackend(consultancyId: string, stationId: string): Promise<void> {
     if (!BACKEND_BASE_URL) return;
     try {
-      const canonical = this.getCanonicalConsultancyId(consultancyId);
-      await fetch(`${BACKEND_BASE_URL}/api/consultancies/${encodeURIComponent(canonical)}/stations/${encodeURIComponent(stationId)}`, {
-        method: 'DELETE',
-        signal: AbortSignal.timeout(4000)
-      });
+      const aliases = this.getConsultancyAliases(consultancyId);
+      const norm = this.normalizeStationName(stationId);
+      for (const cid of aliases) {
+        await fetch(`${BACKEND_BASE_URL}/api/consultancies/${encodeURIComponent(cid)}/stations/${encodeURIComponent(stationId)}`, {
+          method: 'DELETE',
+          signal: AbortSignal.timeout(4000)
+        }).catch(() => {});
+        if (norm && norm !== stationId) {
+          await fetch(`${BACKEND_BASE_URL}/api/consultancies/${encodeURIComponent(cid)}/stations/${encodeURIComponent(norm)}`, {
+            method: 'DELETE',
+            signal: AbortSignal.timeout(4000)
+          }).catch(() => {});
+        }
+      }
     } catch {}
   }
 
@@ -1063,19 +1079,27 @@ export class ConsultancyService {
       if (res.ok) {
         const rawStations = await res.json();
         if (Array.isArray(rawStations)) {
-          const mapped: LabStation[] = rawStations.map((r: any) => ({
-            id: r.id,
-            name: r.name || r.station_name || r.id,
-            consultancyId: canonical,
-            status: r.status || 'idle',
-            currentCandidate: r.currentCandidate || r.current_candidate || undefined,
-            assignedTestId: r.assignedTestId || r.currentTestId || r.current_test_id || undefined,
-            testTitle: r.testTitle || r.currentTestId || undefined,
-            module: r.module || r.currentModule || r.current_module || undefined,
-            answeredCount: r.answeredCount ?? r.answersCount ?? r.answers_count ?? 0,
-            remainingSeconds: r.remainingSeconds ?? r.remaining_seconds ?? undefined,
-            lastHeartbeat: r.lastHeartbeat || r.last_heartbeat || new Date().toISOString()
-          }));
+          const mapped: LabStation[] = [];
+          for (const r of rawStations) {
+            const stName = r.name || r.station_name || r.id;
+            if (this.isStationDeleted(canonical, r.id) || this.isStationDeleted(canonical, stName)) {
+              this.deleteStationFromBackend(canonical, r.id).catch(() => {});
+              continue;
+            }
+            mapped.push({
+              id: r.id,
+              name: stName,
+              consultancyId: canonical,
+              status: r.status || 'idle',
+              currentCandidate: r.currentCandidate || r.current_candidate || undefined,
+              assignedTestId: r.assignedTestId || r.currentTestId || r.current_test_id || undefined,
+              testTitle: r.testTitle || r.currentTestId || undefined,
+              module: r.module || r.currentModule || r.current_module || undefined,
+              answeredCount: r.answeredCount ?? r.answersCount ?? r.answers_count ?? 0,
+              remainingSeconds: r.remainingSeconds ?? r.remaining_seconds ?? undefined,
+              lastHeartbeat: r.lastHeartbeat || r.last_heartbeat || new Date().toISOString()
+            });
+          }
           const aliases = this.getConsultancyAliases(canonical);
           for (const k of aliases) {
             localStorage.setItem(`ielts_stations_${k}`, JSON.stringify(mapped));
@@ -1130,23 +1154,25 @@ export class ConsultancyService {
     this.deleteStudentFromBackend(consultancyId, studentId).catch(() => {});
     if (!supabase) return;
     try {
-      const canonical = this.getCanonicalConsultancyId(consultancyId);
+      const aliases = this.getConsultancyAliases(consultancyId);
       await supabase
         .from('consultancy_students')
         .delete()
-        .eq('consultancy_id', canonical)
+        .in('consultancy_id', aliases)
         .or(`id.eq.${studentId},candidate_number.eq.${studentId}`);
     } catch {}
   }
 
-  public static async deleteStudentFromBackend(consultancyId: string, studentId: string): Promise<void> {
+  public static async deleteStudentFromBackend(consultancyId: string, studentId: string, deleteResults: boolean = false): Promise<void> {
     if (!BACKEND_BASE_URL) return;
     try {
-      const canonical = this.getCanonicalConsultancyId(consultancyId);
-      await fetch(`${BACKEND_BASE_URL}/api/consultancies/${encodeURIComponent(canonical)}/students/${encodeURIComponent(studentId)}`, {
-        method: 'DELETE',
-        signal: AbortSignal.timeout(4000)
-      });
+      const aliases = this.getConsultancyAliases(consultancyId);
+      for (const cid of aliases) {
+        await fetch(`${BACKEND_BASE_URL}/api/consultancies/${encodeURIComponent(cid)}/students/${encodeURIComponent(studentId)}?delete_results=${deleteResults}`, {
+          method: 'DELETE',
+          signal: AbortSignal.timeout(4000)
+        }).catch(() => {});
+      }
     } catch {}
   }
 
@@ -1161,11 +1187,24 @@ export class ConsultancyService {
       if (res.ok) {
         const rawList = await res.json();
         if (Array.isArray(rawList)) {
-          // Reconcile any candidates from local/synced results so student roster is always complete
+          // Filter out any student marked deleted in local tombstone
+          const validStudents: ConsultancyStudent[] = [];
+          for (const s of rawList) {
+            const sid = s.id || s.candidateNumber || s.candidate_number || '';
+            const sname = s.fullName || s.full_name || '';
+            if (this.isStudentDeleted(canonical, sid, sname)) {
+              // Asynchronously clean up remote backend row
+              this.deleteStudentFromBackend(canonical, sid).catch(() => {});
+              continue;
+            }
+            validStudents.push(s);
+          }
+
+          // Reconcile any non-deleted candidates from local/synced results so student roster is complete
           const localResults = this.getResults(canonical);
-          const mergedStudents: ConsultancyStudent[] = [...rawList];
+          const mergedStudents: ConsultancyStudent[] = [...validStudents];
           for (const r of localResults) {
-            if (r.candidateId || r.candidateName) {
+            if ((r.candidateId || r.candidateName) && !this.isStudentDeleted(canonical, r.candidateId, r.candidateName)) {
               this.upsertStudentForResult(
                 mergedStudents,
                 canonical,
@@ -1255,10 +1294,30 @@ export class ConsultancyService {
       if (res.ok) {
         const rawResults = await res.json();
         if (Array.isArray(rawResults)) {
-          const existingLocal = this.getResults(canonical);
+          const canonical = this.getCanonicalConsultancyId(consultancyId);
+          const clearedAtStr = typeof window !== 'undefined' ? localStorage.getItem(`ielts_results_cleared_at_${canonical}`) : null;
+          const clearedTime = clearedAtStr ? new Date(clearedAtStr).getTime() : 0;
+
+          // Filter out any results that are marked deleted in local tombstone or cleared before clearedAt
+          const validRaw = rawResults.filter((r: any) => {
+            if (this.isResultDeleted(canonical, r)) {
+              this.deleteResultFromBackend(canonical, r.testId || r.test_id, r.candidateId || r.candidate_number, r.completedAt || r.submitted_at, r.id).catch(() => {});
+              return false;
+            }
+            if (clearedTime > 0) {
+              const rTime = r.completedAt || r.submitted_at ? new Date(r.completedAt || r.submitted_at).getTime() : 0;
+              if (rTime > 0 && rTime <= clearedTime) {
+                this.deleteResultFromBackend(canonical, r.testId || r.test_id, r.candidateId || r.candidate_number, r.completedAt || r.submitted_at, r.id).catch(() => {});
+                return false;
+              }
+            }
+            return true;
+          });
+
+          const existingLocal = this.getResults(canonical).filter((r) => !this.isResultDeleted(canonical, r));
           const countW = (txt?: string) => (txt && txt.trim() ? txt.trim().split(/\s+/).filter(Boolean).length : 0);
 
-          const mapped: TestResult[] = rawResults.map((r: any) => {
+          const mapped: TestResult[] = validRaw.map((r: any) => {
             const scores = r.scores || {};
             const testId = r.testId || r.test_id || '';
             const mod = r.module || (testId.includes('writing') ? 'writing' : testId.includes('listening') ? 'listening' : 'reading');
@@ -1293,7 +1352,7 @@ export class ConsultancyService {
             const candidateId = r.candidateId || r.candidateNumber || undefined;
             const bandVal = r.bandScore ?? r.overallBand ?? 0;
 
-            // Match against existing local record to preserve any richer local state (e.g., essay text, grading, publish state)
+            // Match against existing local record to preserve any richer local state
             const localMatch = existingLocal.find(
               (loc) =>
                 ((loc as any).id && r.id && (loc as any).id === r.id) ||
@@ -1367,6 +1426,7 @@ export class ConsultancyService {
           // Preserve any very recent local results (within last 20s) that are still in-flight to the backend
           const nowMs = Date.now();
           for (const loc of existingLocal) {
+            if (this.isResultDeleted(canonical, loc)) continue;
             const locTime = loc.completedAt ? new Date(loc.completedAt).getTime() : 0;
             const isRecent = nowMs - locTime < 20000;
             const alreadyInMapped = mapped.some(
@@ -1385,12 +1445,15 @@ export class ConsultancyService {
             localStorage.setItem(`ielts_results_${k}`, serialized);
           }
 
-          // Auto-reconcile student roster & AI reports from synced results
+          // Auto-reconcile student roster & AI reports from synced results (skipping deleted entities)
           try {
             const students = this.getStudents(canonical);
             let studentsChanged = false;
             for (const m of mapped) {
-              if (m.candidateId || m.candidateName) {
+              if (
+                (m.candidateId || m.candidateName) &&
+                !this.isStudentDeleted(canonical, m.candidateId, m.candidateName)
+              ) {
                 this.upsertStudentForResult(
                   students,
                   canonical,
@@ -1411,6 +1474,7 @@ export class ConsultancyService {
             const reports = this.getReports(canonical);
             let reportsChanged = false;
             for (const m of mapped) {
+              if (this.isReportDeleted(canonical, m)) continue;
               const existsIdx = reports.findIndex(
                 (rep) => rep.testId === m.testId && rep.candidateId === m.candidateId && rep.completedAt === m.completedAt
               );
@@ -1460,18 +1524,31 @@ export class ConsultancyService {
 
   private static async deleteResultFromSupabase(
     consultancyId: string,
-    testId: string,
+    testId?: string,
     candidateId?: string,
-    completedAt?: string
+    completedAt?: string,
+    resultId?: string
   ): Promise<void> {
-    this.deleteResultFromBackend(consultancyId, testId, candidateId, completedAt).catch(() => {});
+    this.deleteResultFromBackend(consultancyId, testId, candidateId, completedAt, resultId).catch(() => {});
     if (!supabase) return;
     try {
-      const canonical = this.getCanonicalConsultancyId(consultancyId);
-      let query = supabase.from('consultancy_results').delete().eq('consultancy_id', canonical).eq('test_id', testId);
-      if (candidateId) query = query.eq('candidate_id', candidateId);
+      const aliases = this.getConsultancyAliases(consultancyId);
+
+      if (resultId) {
+        await supabase.from('consultancy_results').delete().eq('id', resultId);
+      }
+
+      let query = supabase.from('consultancy_results').delete().in('consultancy_id', aliases);
+      if (testId) query = query.eq('test_id', testId);
+      if (candidateId) query = query.or(`candidate_id.eq.${candidateId},candidate_number.eq.${candidateId}`);
       if (completedAt) query = query.eq('completed_at', completedAt);
       await query;
+
+      let repQuery = supabase.from('consultancy_reports').delete().in('consultancy_id', aliases);
+      if (testId) repQuery = repQuery.eq('test_id', testId);
+      if (candidateId) repQuery = repQuery.eq('candidate_id', candidateId);
+      if (completedAt) repQuery = repQuery.eq('completed_at', completedAt);
+      await repQuery;
     } catch {}
   }
 
@@ -1479,20 +1556,31 @@ export class ConsultancyService {
     consultancyId: string,
     testId?: string,
     candidateId?: string,
-    completedAt?: string
+    completedAt?: string,
+    resultId?: string
   ): Promise<void> {
     if (!BACKEND_BASE_URL) return;
     try {
-      const canonical = this.getCanonicalConsultancyId(consultancyId);
+      const aliases = this.getConsultancyAliases(consultancyId);
       const params = new URLSearchParams();
+      if (resultId) params.set('result_id', resultId);
       if (testId) params.set('test_id', testId);
       if (candidateId) params.set('candidate_number', candidateId);
       if (completedAt) params.set('completed_at', completedAt);
       const qs = params.toString();
-      await fetch(`${BACKEND_BASE_URL}/api/results/consultancy/${encodeURIComponent(canonical)}${qs ? `?${qs}` : ''}`, {
-        method: 'DELETE',
-        signal: AbortSignal.timeout(5000)
-      });
+
+      for (const cid of aliases) {
+        await fetch(`${BACKEND_BASE_URL}/api/results/consultancy/${encodeURIComponent(cid)}${qs ? `?${qs}` : ''}`, {
+          method: 'DELETE',
+          signal: AbortSignal.timeout(5000)
+        }).catch(() => {});
+      }
+      if (resultId) {
+        await fetch(`${BACKEND_BASE_URL}/api/results/${encodeURIComponent(resultId)}`, {
+          method: 'DELETE',
+          signal: AbortSignal.timeout(5000)
+        }).catch(() => {});
+      }
     } catch {}
   }
 
@@ -1809,6 +1897,7 @@ export class ConsultancyService {
         stMap.set(this.normalizeStationName(s.name), s);
       }
       for (const r of remoteStations) {
+        if (this.isStationDeleted(canonical, r.id) || this.isStationDeleted(canonical, r.name)) continue;
         const norm = this.normalizeStationName(r.name);
         const existing = stMap.get(norm);
         if (!existing) {
@@ -1871,6 +1960,10 @@ export class ConsultancyService {
           const localSts = this.getStations(cid);
           const stMap = new Map<string, LabStation>();
           for (const s of remoteSts) {
+            if (this.isStationDeleted(cid, s.name) || (s.id && this.isStationDeleted(cid, s.id))) {
+              this.deleteStationFromSupabase(cid, s.id || s.name).catch(() => {});
+              continue;
+            }
             stMap.set(this.normalizeStationName(s.name), s);
           }
           for (const s of localSts) {
@@ -1904,6 +1997,10 @@ export class ConsultancyService {
           const localStds = this.getStudents(cid);
           const stdMap = new Map<string, ConsultancyStudent>();
           for (const s of remoteStds) {
+            if (this.isStudentDeleted(cid, s.id, s.fullName) || this.isStudentDeleted(cid, s.candidateNumber, s.fullName)) {
+              this.deleteStudentFromSupabase(cid, s.id).catch(() => {});
+              continue;
+            }
             stdMap.set(s.candidateNumber || s.id, s);
           }
           for (const s of localStds) {
@@ -1935,7 +2032,20 @@ export class ConsultancyService {
           const aliases = this.getConsultancyAliases(cid);
           const localRes = this.getResults(cid);
           const resMap = new Map<string, TestResult>();
+          const clearedAtStr = typeof window !== 'undefined' ? localStorage.getItem(`ielts_results_cleared_at_${cid}`) : null;
+          const clearedTime = clearedAtStr ? new Date(clearedAtStr).getTime() : 0;
           for (const r of remoteRes) {
+            if (this.isResultDeleted(cid, r)) {
+              this.deleteResultFromSupabase(cid, r.testId, r.candidateId, r.completedAt, (r as any).id).catch(() => {});
+              continue;
+            }
+            if (clearedTime > 0) {
+              const rTime = r.completedAt ? new Date(r.completedAt).getTime() : 0;
+              if (rTime > 0 && rTime <= clearedTime) {
+                this.deleteResultFromSupabase(cid, r.testId, r.candidateId, r.completedAt, (r as any).id).catch(() => {});
+                continue;
+              }
+            }
             resMap.set(`${r.testId}-${r.candidateId || ''}-${r.completedAt}`, r);
           }
           for (const r of localRes) {
@@ -2025,6 +2135,397 @@ export class ConsultancyService {
       deleted.some((d) => d === clean || d.replace(/[^a-z0-9]/g, '') === cleanAlphaNum)
     );
   }
+
+  // --- DELETED ENTITIES TOMBSTONES (PREVENTS ACCIDENTAL RESURRECTION) ---
+
+  // 1. Test Results Tombstone
+  public static getDeletedResultKeys(consultancyId: string): string[] {
+    if (typeof window === 'undefined') return [];
+    const canonical = this.getCanonicalConsultancyId(consultancyId);
+    try {
+      const raw = localStorage.getItem(`ielts_deleted_results_${canonical}`);
+      return raw ? JSON.parse(raw) : [];
+    } catch {
+      return [];
+    }
+  }
+
+  public static addDeletedResult(
+    consultancyId: string,
+    testId?: string,
+    candidateId?: string,
+    completedAt?: string,
+    resultId?: string
+  ): void {
+    if (typeof window === 'undefined') return;
+    const canonical = this.getCanonicalConsultancyId(consultancyId);
+    const existing = this.getDeletedResultKeys(canonical);
+    const set = new Set(existing);
+
+    if (resultId) set.add(resultId.toLowerCase().trim());
+    const cId = (candidateId || '').toLowerCase().trim();
+    const tId = (testId || '').toLowerCase().trim();
+    const cAt = (completedAt || '').toLowerCase().trim();
+
+    if (tId && cId && cAt) {
+      set.add(`${tId}_${cId}_${cAt}`);
+      const cleanDate = cAt.split('.')[0].replace(/z$/, '');
+      set.add(`${tId}_${cId}_${cleanDate}`);
+    }
+    if (tId && cId) {
+      set.add(`${tId}_${cId}`);
+    }
+    if (tId && cAt) {
+      set.add(`${tId}_${cAt}`);
+      const cleanDate = cAt.split('.')[0].replace(/z$/, '');
+      set.add(`${tId}_${cleanDate}`);
+    }
+
+    const aliases = this.getConsultancyAliases(consultancyId);
+    const serialized = JSON.stringify(Array.from(set));
+    for (const key of aliases) {
+      localStorage.setItem(`ielts_deleted_results_${key}`, serialized);
+    }
+  }
+
+  public static removeDeletedResult(
+    consultancyId: string,
+    testId?: string,
+    candidateId?: string,
+    completedAt?: string,
+    resultId?: string
+  ): void {
+    if (typeof window === 'undefined') return;
+    const canonical = this.getCanonicalConsultancyId(consultancyId);
+    const existing = this.getDeletedResultKeys(canonical);
+    if (existing.length === 0) return;
+    const set = new Set(existing);
+
+    if (resultId) set.delete(resultId.toLowerCase().trim());
+    const cId = (candidateId || '').toLowerCase().trim();
+    const tId = (testId || '').toLowerCase().trim();
+    const cAt = (completedAt || '').toLowerCase().trim();
+
+    if (tId && cId && cAt) {
+      set.delete(`${tId}_${cId}_${cAt}`);
+      const cleanDate = cAt.split('.')[0].replace(/z$/, '');
+      set.delete(`${tId}_${cId}_${cleanDate}`);
+    }
+    if (tId && cId) {
+      set.delete(`${tId}_${cId}`);
+    }
+    if (tId && cAt) {
+      set.delete(`${tId}_${cAt}`);
+      const cleanDate = cAt.split('.')[0].replace(/z$/, '');
+      set.delete(`${tId}_${cleanDate}`);
+    }
+
+    const aliases = this.getConsultancyAliases(consultancyId);
+    const serialized = JSON.stringify(Array.from(set));
+    for (const key of aliases) {
+      localStorage.setItem(`ielts_deleted_results_${key}`, serialized);
+    }
+  }
+
+  public static isResultDeleted(consultancyId: string, r: any): boolean {
+    if (!r) return false;
+    const canonical = this.getCanonicalConsultancyId(consultancyId);
+
+    const candId = r.candidateId || r.candidateNumber || '';
+    const candName = r.candidateName || '';
+    if (this.isStudentDeleted(canonical, candId, candName)) {
+      return true;
+    }
+
+    const deleted = this.getDeletedResultKeys(canonical);
+    if (deleted.length === 0) return false;
+
+    const rId = (r.id || '').toLowerCase().trim();
+    if (rId && deleted.includes(rId)) return true;
+
+    const testId = (r.testId || r.test_id || '').toLowerCase().trim();
+    const candidateId = candId.toLowerCase().trim();
+    const completedAt = (r.completedAt || r.submittedAt || '').toLowerCase().trim();
+
+    if (testId && candidateId && completedAt) {
+      if (deleted.includes(`${testId}_${candidateId}_${completedAt}`)) return true;
+      const cleanDate = completedAt.split('.')[0].replace(/z$/, '');
+      if (deleted.includes(`${testId}_${candidateId}_${cleanDate}`)) return true;
+    }
+    if (testId && candidateId && deleted.includes(`${testId}_${candidateId}`)) {
+      return true;
+    }
+    if (testId && completedAt) {
+      if (deleted.includes(`${testId}_${completedAt}`)) return true;
+      const cleanDate = completedAt.split('.')[0].replace(/z$/, '');
+      if (deleted.includes(`${testId}_${cleanDate}`)) return true;
+    }
+
+    return false;
+  }
+
+  // 2. Student Candidates Tombstone
+  public static getDeletedStudentIds(consultancyId: string): string[] {
+    if (typeof window === 'undefined') return [];
+    const canonical = this.getCanonicalConsultancyId(consultancyId);
+    try {
+      const raw = localStorage.getItem(`ielts_deleted_students_${canonical}`);
+      return raw ? JSON.parse(raw) : [];
+    } catch {
+      return [];
+    }
+  }
+
+  public static addDeletedStudent(
+    consultancyId: string,
+    studentId: string,
+    candidateNumber?: string,
+    fullName?: string
+  ): void {
+    if (typeof window === 'undefined') return;
+    const canonical = this.getCanonicalConsultancyId(consultancyId);
+    const existing = this.getDeletedStudentIds(canonical);
+    const set = new Set(existing);
+
+    if (studentId) set.add(studentId.toLowerCase().trim());
+    if (candidateNumber) set.add(candidateNumber.toLowerCase().trim());
+    if (fullName) {
+      const fn = fullName.toLowerCase().trim();
+      set.add(fn);
+      set.add(fn.replace(/\s+/g, ' '));
+    }
+
+    const aliases = this.getConsultancyAliases(consultancyId);
+    const serialized = JSON.stringify(Array.from(set));
+    for (const key of aliases) {
+      localStorage.setItem(`ielts_deleted_students_${key}`, serialized);
+    }
+  }
+
+  public static removeDeletedStudent(
+    consultancyId: string,
+    studentId?: string,
+    candidateNumber?: string,
+    fullName?: string
+  ): void {
+    if (typeof window === 'undefined') return;
+    const canonical = this.getCanonicalConsultancyId(consultancyId);
+    const existing = this.getDeletedStudentIds(canonical);
+    if (existing.length === 0) return;
+    const set = new Set(existing);
+
+    if (studentId) set.delete(studentId.toLowerCase().trim());
+    if (candidateNumber) set.delete(candidateNumber.toLowerCase().trim());
+    if (fullName) {
+      const fn = fullName.toLowerCase().trim();
+      set.delete(fn);
+      set.delete(fn.replace(/\s+/g, ' '));
+    }
+
+    const aliases = this.getConsultancyAliases(consultancyId);
+    const serialized = JSON.stringify(Array.from(set));
+    for (const key of aliases) {
+      localStorage.setItem(`ielts_deleted_students_${key}`, serialized);
+    }
+  }
+
+  public static isStudentDeleted(consultancyId: string, studentIdOrCandNum?: string, fullName?: string): boolean {
+    if (!studentIdOrCandNum && !fullName) return false;
+    const canonical = this.getCanonicalConsultancyId(consultancyId);
+    const deleted = this.getDeletedStudentIds(canonical);
+    if (deleted.length === 0) return false;
+
+    if (studentIdOrCandNum) {
+      const clean = studentIdOrCandNum.toLowerCase().trim();
+      if (deleted.includes(clean)) return true;
+    }
+    if (fullName) {
+      const cleanName = fullName.toLowerCase().trim();
+      if (deleted.includes(cleanName)) return true;
+      const normalizedName = cleanName.replace(/\s+/g, ' ');
+      if (deleted.includes(normalizedName)) return true;
+    }
+    return false;
+  }
+
+  // 3. Lab Stations Tombstone
+  public static getDeletedStationIds(consultancyId: string): string[] {
+    if (typeof window === 'undefined') return [];
+    const canonical = this.getCanonicalConsultancyId(consultancyId);
+    try {
+      const raw = localStorage.getItem(`ielts_deleted_stations_${canonical}`);
+      return raw ? JSON.parse(raw) : [];
+    } catch {
+      return [];
+    }
+  }
+
+  public static addDeletedStation(consultancyId: string, stationIdentifier: string): void {
+    if (typeof window === 'undefined' || !stationIdentifier) return;
+    const canonical = this.getCanonicalConsultancyId(consultancyId);
+    const existing = this.getDeletedStationIds(canonical);
+    const set = new Set(existing);
+
+    const clean = stationIdentifier.toLowerCase().trim();
+    const norm = this.normalizeStationName(stationIdentifier);
+    set.add(clean);
+    set.add(norm);
+    set.add(norm.toLowerCase());
+    set.add(`${canonical}-${norm.toLowerCase().replace(/[^a-z0-9]/g, '-')}`);
+
+    const aliases = this.getConsultancyAliases(consultancyId);
+    const serialized = JSON.stringify(Array.from(set));
+    for (const key of aliases) {
+      localStorage.setItem(`ielts_deleted_stations_${key}`, serialized);
+    }
+  }
+
+  public static removeDeletedStation(consultancyId: string, stationIdentifier: string): void {
+    if (typeof window === 'undefined' || !stationIdentifier) return;
+    const canonical = this.getCanonicalConsultancyId(consultancyId);
+    const existing = this.getDeletedStationIds(canonical);
+    if (existing.length === 0) return;
+    const set = new Set(existing);
+
+    const clean = stationIdentifier.toLowerCase().trim();
+    const norm = this.normalizeStationName(stationIdentifier);
+    set.delete(clean);
+    set.delete(norm);
+    set.delete(norm.toLowerCase());
+    set.delete(`${canonical}-${norm.toLowerCase().replace(/[^a-z0-9]/g, '-')}`);
+
+    const aliases = this.getConsultancyAliases(consultancyId);
+    const serialized = JSON.stringify(Array.from(set));
+    for (const key of aliases) {
+      localStorage.setItem(`ielts_deleted_stations_${key}`, serialized);
+    }
+  }
+
+  public static isStationDeleted(consultancyId: string, stationIdOrName: string): boolean {
+    if (!stationIdOrName) return false;
+    const canonical = this.getCanonicalConsultancyId(consultancyId);
+    const deleted = this.getDeletedStationIds(canonical);
+    if (deleted.length === 0) return false;
+
+    const clean = stationIdOrName.toLowerCase().trim();
+    const norm = this.normalizeStationName(stationIdOrName);
+    const generatedId = `${canonical}-${norm.toLowerCase().replace(/[^a-z0-9]/g, '-')}`;
+    return deleted.includes(clean) || deleted.includes(norm) || deleted.includes(norm.toLowerCase()) || deleted.includes(generatedId);
+  }
+
+  // 4. AI Reports Tombstone
+  public static getDeletedReportKeys(consultancyId: string): string[] {
+    if (typeof window === 'undefined') return [];
+    const canonical = this.getCanonicalConsultancyId(consultancyId);
+    try {
+      const raw = localStorage.getItem(`ielts_deleted_reports_${canonical}`);
+      return raw ? JSON.parse(raw) : [];
+    } catch {
+      return [];
+    }
+  }
+
+  public static addDeletedReport(
+    consultancyId: string,
+    testId?: string,
+    candidateId?: string,
+    completedAt?: string
+  ): void {
+    if (typeof window === 'undefined') return;
+    const canonical = this.getCanonicalConsultancyId(consultancyId);
+    const existing = this.getDeletedReportKeys(canonical);
+    const set = new Set(existing);
+
+    const cId = (candidateId || '').toLowerCase().trim();
+    const tId = (testId || '').toLowerCase().trim();
+    const cAt = (completedAt || '').toLowerCase().trim();
+
+    if (tId && cId && cAt) {
+      set.add(`${tId}_${cId}_${cAt}`);
+      const cleanDate = cAt.split('.')[0].replace(/z$/, '');
+      set.add(`${tId}_${cId}_${cleanDate}`);
+    }
+    if (tId && cId) {
+      set.add(`${tId}_${cId}`);
+    }
+    if (cId) {
+      set.add(`cand_${cId}`);
+    }
+
+    const aliases = this.getConsultancyAliases(consultancyId);
+    const serialized = JSON.stringify(Array.from(set));
+    for (const key of aliases) {
+      localStorage.setItem(`ielts_deleted_reports_${key}`, serialized);
+    }
+  }
+
+  public static removeDeletedReport(
+    consultancyId: string,
+    testId?: string,
+    candidateId?: string,
+    completedAt?: string,
+    reportId?: string
+  ): void {
+    if (typeof window === 'undefined') return;
+    const canonical = this.getCanonicalConsultancyId(consultancyId);
+    const existing = this.getDeletedReportKeys(canonical);
+    if (existing.length === 0) return;
+    const set = new Set(existing);
+
+    if (reportId) set.delete(reportId.toLowerCase().trim());
+    const cId = (candidateId || '').toLowerCase().trim();
+    const tId = (testId || '').toLowerCase().trim();
+    const cAt = (completedAt || '').toLowerCase().trim();
+
+    if (tId && cId && cAt) {
+      set.delete(`${tId}_${cId}_${cAt}`);
+      const cleanDate = cAt.split('.')[0].replace(/z$/, '');
+      set.delete(`${tId}_${cId}_${cleanDate}`);
+    }
+    if (tId && cId) {
+      set.delete(`${tId}_${cId}`);
+    }
+    if (cId) {
+      set.delete(`cand_${cId}`);
+    }
+
+    const aliases = this.getConsultancyAliases(consultancyId);
+    const serialized = JSON.stringify(Array.from(set));
+    for (const key of aliases) {
+      localStorage.setItem(`ielts_deleted_reports_${key}`, serialized);
+    }
+  }
+
+  public static isReportDeleted(consultancyId: string, report: any): boolean {
+    if (!report) return false;
+    const canonical = this.getCanonicalConsultancyId(consultancyId);
+
+    const candId = report.candidateId || '';
+    const candName = report.studentName || '';
+    if (this.isStudentDeleted(canonical, candId, candName)) return true;
+    if (this.isResultDeleted(canonical, report)) return true;
+
+    const deleted = this.getDeletedReportKeys(canonical);
+    if (deleted.length === 0) return false;
+
+    if (candId && deleted.includes(`cand_${candId.toLowerCase().trim()}`)) return true;
+
+    const testId = (report.testId || '').toLowerCase().trim();
+    const candidateId = candId.toLowerCase().trim();
+    const completedAt = (report.completedAt || '').toLowerCase().trim();
+
+    if (testId && candidateId && completedAt) {
+      if (deleted.includes(`${testId}_${candidateId}_${completedAt}`)) return true;
+      const cleanDate = completedAt.split('.')[0].replace(/z$/, '');
+      if (deleted.includes(`${testId}_${candidateId}_${cleanDate}`)) return true;
+    }
+    if (testId && candidateId && deleted.includes(`${testId}_${candidateId}`)) {
+      return true;
+    }
+
+    return false;
+  }
+
 
   public static getConsultancies(): Consultancy[] {
     const deletedIds = this.getDeletedConsultancyIds();
@@ -2672,8 +3173,8 @@ export class ConsultancyService {
   // --- LAB STATIONS MANAGEMENT ---
   public static normalizeStationName(stationName: string): string {
     const raw = stationName.trim().toUpperCase();
-    // Standardize PC1, PC01, PC-1 -> PC-01
-    const match = raw.match(/^PC-?0*(\d+)$/i);
+    // Standardize PC1, PC01, PC-1, or kiec-lalitpur-pc-01 -> PC-01
+    const match = raw.match(/(?:^|-)PC-?0*(\d+)$/i);
     if (match) {
       const num = parseInt(match[1], 10);
       return `PC-${num.toString().padStart(2, '0')}`;
@@ -2785,6 +3286,7 @@ export class ConsultancyService {
     });
 
     for (const st of sorted) {
+      if (this.isStationDeleted(canonical, st.id) || this.isStationDeleted(canonical, st.name)) continue;
       const norm = this.normalizeStationName(st.name);
       if (!seenNames.has(norm)) {
         seenNames.add(norm);
@@ -2805,6 +3307,8 @@ export class ConsultancyService {
 
   public static saveStation(station: LabStation): void {
     const canonical = this.getCanonicalConsultancyId(station.consultancyId);
+    this.removeDeletedStation(canonical, station.name);
+    if (station.id) this.removeDeletedStation(canonical, station.id);
     const aliases = this.getConsultancyAliases(station.consultancyId);
     const normName = this.normalizeStationName(station.name);
     const stationWithNorm = { ...station, name: normName, consultancyId: canonical };
@@ -2835,6 +3339,9 @@ export class ConsultancyService {
     updates: Partial<LabStation>
   ): void {
     const canonical = this.getCanonicalConsultancyId(consultancyId);
+    this.removeDeletedStation(canonical, stationIdentifier);
+    if (updates.name) this.removeDeletedStation(canonical, updates.name);
+    if (updates.id) this.removeDeletedStation(canonical, updates.id);
     const aliases = this.getConsultancyAliases(consultancyId);
     const list = this.getStations(canonical);
     const normSearch = this.normalizeStationName(stationIdentifier);
@@ -2907,6 +3414,7 @@ export class ConsultancyService {
 
   public static addStation(consultancyId: string, stationName: string): LabStation {
     const canonical = this.getCanonicalConsultancyId(consultancyId);
+    this.removeDeletedStation(canonical, stationName);
     const aliases = this.getConsultancyAliases(consultancyId);
     const normName = this.normalizeStationName(stationName);
     const list = this.getStations(canonical);
@@ -2974,9 +3482,17 @@ export class ConsultancyService {
     const aliases = this.getConsultancyAliases(consultancyId);
     const normIdentifier = this.normalizeStationName(stationIdentifier);
 
-    // Filter matching by BOTH station id AND normalized station name
+    // 1. Record in tombstone
+    this.addDeletedStation(canonical, stationIdentifier);
+    if (normIdentifier) this.addDeletedStation(canonical, normIdentifier);
+
+    // 2. Filter matching by BOTH station id AND normalized station name and tombstone
     const list = this.getStations(canonical).filter(
-      (s) => s.id !== stationIdentifier && this.normalizeStationName(s.name) !== normIdentifier
+      (s) =>
+        s.id !== stationIdentifier &&
+        this.normalizeStationName(s.name) !== normIdentifier &&
+        !this.isStationDeleted(canonical, s.id) &&
+        !this.isStationDeleted(canonical, s.name)
     );
     const serialized = JSON.stringify(list);
 
@@ -2988,6 +3504,7 @@ export class ConsultancyService {
     this.broadcast('STATION_DELETED', { consultancyId: canonical, stationId: stationIdentifier, stationName: normIdentifier });
     this.broadcast('STATION_UPDATED', { consultancyId: canonical });
     this.deleteStationFromSupabase(canonical, stationIdentifier).catch(() => {});
+    this.deleteStationFromBackend(canonical, stationIdentifier).catch(() => {});
   }
 
   public static deleteStations(consultancyId: string, stationIdentifiers: string[]): void {
@@ -2996,8 +3513,16 @@ export class ConsultancyService {
     const idSet = new Set(stationIdentifiers);
     const normSet = new Set(stationIdentifiers.map((id) => this.normalizeStationName(id)));
 
+    for (const sid of stationIdentifiers) {
+      this.addDeletedStation(canonical, sid);
+    }
+
     const list = this.getStations(canonical).filter(
-      (s) => !idSet.has(s.id) && !normSet.has(this.normalizeStationName(s.name))
+      (s) =>
+        !idSet.has(s.id) &&
+        !normSet.has(this.normalizeStationName(s.name)) &&
+        !this.isStationDeleted(canonical, s.id) &&
+        !this.isStationDeleted(canonical, s.name)
     );
     const serialized = JSON.stringify(list);
 
@@ -3009,6 +3534,7 @@ export class ConsultancyService {
     this.broadcast('STATION_UPDATED', { consultancyId: canonical });
     for (const sid of stationIdentifiers) {
       this.deleteStationFromSupabase(canonical, sid).catch(() => {});
+      this.deleteStationFromBackend(canonical, sid).catch(() => {});
     }
   }
 
@@ -3017,18 +3543,31 @@ export class ConsultancyService {
     const aliases = this.getConsultancyAliases(consultancyId);
     const now = Date.now();
 
-    const list = this.getStations(canonical).filter((s) => {
+    const currentList = this.getStations(canonical);
+    const removedStations: LabStation[] = [];
+    const keptList = currentList.filter((s) => {
       const lastHb = s.lastHeartbeat ? new Date(s.lastHeartbeat).getTime() : 0;
       const isOnline = now - lastHb < offlineThresholdMs;
-      return isOnline || s.status === 'in_progress' || s.status === 'assigned';
+      const shouldKeep = isOnline || s.status === 'in_progress' || s.status === 'assigned';
+      if (!shouldKeep) {
+        removedStations.push(s);
+      }
+      return shouldKeep;
     });
-    const serialized = JSON.stringify(list);
 
+    for (const s of removedStations) {
+      this.addDeletedStation(canonical, s.id);
+      this.addDeletedStation(canonical, s.name);
+      this.deleteStationFromSupabase(canonical, s.id).catch(() => {});
+      this.deleteStationFromBackend(canonical, s.id).catch(() => {});
+    }
+
+    const serialized = JSON.stringify(keptList);
     for (const key of aliases) {
       localStorage.setItem(`ielts_stations_${key}`, serialized);
     }
 
-    this.broadcast('STATION_DELETED', { consultancyId: canonical });
+    this.broadcast('STATION_DELETED', { consultancyId: canonical, removedCount: removedStations.length });
     this.broadcast('STATION_UPDATED', { consultancyId: canonical });
   }
 
@@ -3579,6 +4118,7 @@ export class ConsultancyService {
           const parsed = JSON.parse(raw);
           if (Array.isArray(parsed)) {
             parsed.forEach((s: ConsultancyStudent) => {
+              if (this.isStudentDeleted(canonical, s.id || s.candidateNumber, s.fullName)) return;
               const uKey = s.candidateNumber || s.id;
               if (!studentMap.has(uKey)) {
                 studentMap.set(uKey, { ...s, consultancyId: canonical });
@@ -3589,15 +4129,17 @@ export class ConsultancyService {
       }
     }
 
-    if (!foundRaw || studentMap.size === 0) {
-      if (canonical === 'apex-global') {
+    if (!foundRaw) {
+      if (canonical === 'apex-global' && this.getDeletedStudentIds(canonical).length === 0) {
         localStorage.setItem(`ielts_students_${canonical}`, JSON.stringify(DEFAULT_STUDENTS));
         return DEFAULT_STUDENTS;
       }
       return [];
     }
 
-    const merged = Array.from(studentMap.values());
+    const merged = Array.from(studentMap.values()).filter(
+      (s) => !this.isStudentDeleted(canonical, s.id || s.candidateNumber, s.fullName)
+    );
     const serialized = JSON.stringify(merged);
     for (const key of aliases) {
       localStorage.setItem(`ielts_students_${key}`, serialized);
@@ -3608,6 +4150,7 @@ export class ConsultancyService {
 
   public static saveStudent(student: ConsultancyStudent): void {
     const canonical = this.getCanonicalConsultancyId(student.consultancyId);
+    this.removeDeletedStudent(canonical, student.id, student.candidateNumber, student.fullName);
     const aliases = this.getConsultancyAliases(student.consultancyId);
     const list = this.getStudents(canonical);
     const existingIdx = list.findIndex(
@@ -3632,34 +4175,51 @@ export class ConsultancyService {
     const aliases = this.getConsultancyAliases(consultancyId);
     const list = this.getStudents(canonical);
     const targetStudent = list.find((s) => s.id === studentId || s.candidateNumber === studentId);
-    const updated = list.filter((s) => s.id !== studentId && s.candidateNumber !== studentId);
+
+    // 1. Record tombstone
+    this.addDeletedStudent(canonical, studentId, targetStudent?.candidateNumber, targetStudent?.fullName);
+
+    // 2. Filter students list
+    const updated = list.filter(
+      (s) =>
+        s.id !== studentId &&
+        s.candidateNumber !== studentId &&
+        !this.isStudentDeleted(canonical, s.id || s.candidateNumber, s.fullName)
+    );
     const serialized = JSON.stringify(updated);
     for (const key of aliases) {
       localStorage.setItem(`ielts_students_${key}`, serialized);
     }
 
+    const candNum = targetStudent?.candidateNumber || studentId;
+    const candName = targetStudent?.fullName;
+
+    // 3. Cascade delete results and AI reports if requested (or to ensure unlinked state)
     if (cascadeDeleteData && targetStudent) {
-      const candNum = targetStudent.candidateNumber;
-      // Delete results
+      // Record results and reports tombstones for this candidate
+      this.addDeletedResult(canonical, undefined, candNum);
+      this.addDeletedReport(canonical, undefined, candNum);
+
       const results = this.getResults(canonical);
-      const remainingResults = results.filter((r) => r.candidateId !== candNum);
+      const remainingResults = results.filter((r) => r.candidateId !== candNum && (!candName || r.candidateName !== candName));
       const resSerialized = JSON.stringify(remainingResults);
       for (const key of aliases) {
         localStorage.setItem(`ielts_results_${key}`, resSerialized);
       }
-      // Delete AI reports (QA-03)
       this.deleteReportsForStudent(canonical, candNum);
+
+      this.deleteResultFromBackend(canonical, undefined, candNum).catch(() => {});
+      this.deleteResultFromSupabase(canonical, undefined, candNum).catch(() => {});
     }
 
-    // Also reset any workstation currently showing this deleted candidate
+    // 4. Also reset any workstation currently showing this deleted candidate
     try {
-      const candNum = targetStudent?.candidateNumber || studentId;
-      const candName = targetStudent?.fullName?.trim().toLowerCase();
+      const candNameLower = candName?.trim().toLowerCase();
       const stations = this.getStations(canonical);
       let stationsChanged = false;
       stations.forEach((st) => {
         const matchesId = st.currentCandidate?.candidateId === candNum || st.currentCandidate?.candidateId === studentId;
-        const matchesName = candName && st.currentCandidate?.name?.trim().toLowerCase() === candName;
+        const matchesName = candNameLower && st.currentCandidate?.name?.trim().toLowerCase() === candNameLower;
         if (matchesId || matchesName) {
           st.status = 'idle';
           delete st.currentCandidate;
@@ -3681,8 +4241,10 @@ export class ConsultancyService {
       }
     } catch {}
 
+    this.broadcast('STUDENT_DELETED', { consultancyId: canonical, studentId, candidateNumber: candNum });
     this.broadcast('STUDENT_UPDATED', { consultancyId: canonical, studentId });
     this.deleteStudentFromSupabase(canonical, studentId).catch(() => {});
+    this.deleteStudentFromBackend(canonical, studentId, cascadeDeleteData).catch(() => {});
   }
 
   private static upsertStudentForResult(
@@ -3693,6 +4255,9 @@ export class ConsultancyService {
     candidateName?: string
   ): ConsultancyStudent {
     const cleanName = candidateName?.trim() || result.candidateName?.trim() || 'Candidate';
+    if (this.isStudentDeleted(consultancyId, candidateNumber, cleanName)) {
+      return students[0] || ({} as any);
+    }
     let student = students.find(
       (s) =>
         s.candidateNumber === candidateNumber ||
@@ -3771,6 +4336,7 @@ export class ConsultancyService {
           const parsed: TestResult[] = JSON.parse(raw);
           if (Array.isArray(parsed)) {
             parsed.forEach((r) => {
+              if (this.isResultDeleted(canonical, r)) return;
               const uniqueKey = `${r.testId}-${r.candidateId || ''}-${r.completedAt || ''}`;
               if (!resultMap.has(uniqueKey)) {
                 resultMap.set(uniqueKey, { ...r, consultancyId: canonical });
@@ -3782,7 +4348,8 @@ export class ConsultancyService {
     }
 
     if (!foundRaw) {
-      if (canonical === 'apex-global') {
+      const hasCleared = typeof window !== 'undefined' ? localStorage.getItem(`ielts_results_cleared_at_${canonical}`) : null;
+      if (canonical === 'apex-global' && this.getDeletedResultKeys(canonical).length === 0 && !hasCleared) {
         const defaultResults: TestResult[] = [
           {
             testId: 'cambridge-19-test-1-reading',
@@ -3852,9 +4419,9 @@ export class ConsultancyService {
       return [];
     }
 
-    const merged = Array.from(resultMap.values()).sort(
-      (a, b) => new Date(b.completedAt || 0).getTime() - new Date(a.completedAt || 0).getTime()
-    );
+    const merged = Array.from(resultMap.values())
+      .filter((r) => !this.isResultDeleted(canonical, r))
+      .sort((a, b) => new Date(b.completedAt || 0).getTime() - new Date(a.completedAt || 0).getTime());
 
     const serialized = JSON.stringify(merged);
     for (const key of aliases) {
@@ -3866,6 +4433,7 @@ export class ConsultancyService {
 
   public static saveTestResult(consultancyId: string, result: TestResult): void {
     const canonical = this.getCanonicalConsultancyId(consultancyId);
+    this.removeDeletedResult(canonical, result.testId, result.candidateId, result.completedAt, (result as any).id);
     const aliases = this.getConsultancyAliases(consultancyId);
     const list = this.getResults(canonical);
     if (result.isPublished === undefined) {
@@ -4124,16 +4692,25 @@ export class ConsultancyService {
     consultancyId: string,
     testId: string,
     candidateId?: string,
-    completedAt?: string
+    completedAt?: string,
+    resultId?: string
   ): void {
     const canonical = this.getCanonicalConsultancyId(consultancyId);
     const aliases = this.getConsultancyAliases(consultancyId);
+
+    // 1. Record persistent tombstones
+    this.addDeletedResult(canonical, testId, candidateId, completedAt, resultId);
+    this.addDeletedReport(canonical, testId, candidateId, completedAt);
+
+    // 2. Filter local results
     const list = this.getResults(canonical);
     const updated = list.filter((r) => {
+      if (resultId && (r as any).id === resultId) return false;
       const matchTest = r.testId === testId;
       const matchCand = !candidateId || r.candidateId === candidateId;
       const matchTime = !completedAt || r.completedAt === completedAt;
-      return !(matchTest && matchCand && matchTime);
+      if (matchTest && matchCand && matchTime) return false;
+      return !this.isResultDeleted(canonical, r);
     });
 
     const serialized = JSON.stringify(updated);
@@ -4141,29 +4718,32 @@ export class ConsultancyService {
       localStorage.setItem(`ielts_results_${key}`, serialized);
     }
 
-    // Also remove from global past results if present
+    // 3. Also remove from global past results if present
     try {
       const rawPast = localStorage.getItem('ielts_mock_past_results');
       if (rawPast) {
         const pastList: TestResult[] = JSON.parse(rawPast);
         const filteredPast = pastList.filter((r) => {
+          if (resultId && (r as any).id === resultId) return false;
           const matchTest = r.testId === testId;
           const matchCand = !candidateId || r.candidateId === candidateId;
           const matchTime = !completedAt || r.completedAt === completedAt;
-          return !(matchTest && matchCand && matchTime);
+          if (matchTest && matchCand && matchTime) return false;
+          return !this.isResultDeleted(canonical, r);
         });
         localStorage.setItem('ielts_mock_past_results', JSON.stringify(filteredPast));
       }
     } catch {}
 
-    // Also remove matching AI report if present (QA-03)
+    // 4. Also remove matching AI report if present
     try {
       const reports = this.getReports(canonical);
       const filteredReports = reports.filter((rep) => {
         const matchTest = !testId || rep.testId === testId;
         const matchCand = !candidateId || rep.candidateId === candidateId;
         const matchTime = !completedAt || rep.completedAt === completedAt;
-        return !(matchTest && matchCand && matchTime);
+        if (matchTest && matchCand && matchTime) return false;
+        return !this.isReportDeleted(canonical, rep);
       });
       const repSerialized = JSON.stringify(filteredReports);
       for (const key of aliases) {
@@ -4171,7 +4751,7 @@ export class ConsultancyService {
       }
     } catch {}
 
-    // Recalculate student candidate stats if candidateId is provided (QA-03)
+    // 5. Recalculate student candidate stats if candidateId is provided
     if (candidateId) {
       try {
         const students = this.getStudents(canonical);
@@ -4199,7 +4779,7 @@ export class ConsultancyService {
       } catch {}
     }
 
-    // Also reset any station that was displaying this candidate or result as submitted
+    // 6. Also reset any station that was displaying this candidate or result as submitted
     try {
       const stations = this.getStations(canonical);
       let stationsChanged = false;
@@ -4229,19 +4809,36 @@ export class ConsultancyService {
       }
     } catch {}
 
-    this.broadcast('RESULT_DELETED', { consultancyId: canonical, testId, candidateId, completedAt });
-    this.deleteResultFromSupabase(canonical, testId, candidateId, completedAt).catch(() => {});
+    this.broadcast('RESULT_DELETED', { consultancyId: canonical, testId, candidateId, completedAt, resultId });
+    this.broadcast('REPORT_DELETED', { consultancyId: canonical, testId, candidateId, completedAt });
+    this.deleteResultFromSupabase(canonical, testId, candidateId, completedAt, resultId).catch(() => {});
+    this.deleteResultFromBackend(canonical, testId, candidateId, completedAt, resultId).catch(() => {});
   }
 
   // Clear all test results for a consultancy
   public static clearAllResults(consultancyId: string): void {
     const canonical = this.getCanonicalConsultancyId(consultancyId);
     const aliases = this.getConsultancyAliases(consultancyId);
+    const now = new Date().toISOString();
+
     for (const key of aliases) {
+      localStorage.setItem(`ielts_results_cleared_at_${key}`, now);
+      localStorage.setItem(`ielts_reports_cleared_at_${key}`, now);
       localStorage.setItem(`ielts_results_${key}`, JSON.stringify([]));
       localStorage.setItem(`ielts_reports_${key}`, JSON.stringify([]));
     }
-    // Also reset candidate statistics
+
+    // Clear past results if consultancy matches
+    try {
+      const rawPast = localStorage.getItem('ielts_mock_past_results');
+      if (rawPast) {
+        const pastList: TestResult[] = JSON.parse(rawPast);
+        const filtered = pastList.filter((r) => !aliases.includes(r.consultancyId || ''));
+        localStorage.setItem('ielts_mock_past_results', JSON.stringify(filtered));
+      }
+    } catch {}
+
+    // Reset candidate statistics
     try {
       const students = this.getStudents(canonical);
       students.forEach((s) => {
@@ -4255,7 +4852,10 @@ export class ConsultancyService {
         localStorage.setItem(`ielts_students_${key}`, stdSerialized);
       }
     } catch {}
+
     this.broadcast('ALL_RESULTS_CLEARED', { consultancyId: canonical });
+    this.broadcast('ALL_REPORTS_DELETED', { consultancyId: canonical });
+    this.deleteResultFromSupabase(canonical).catch(() => {});
     this.deleteResultFromBackend(canonical).catch(() => {});
   }
 
@@ -4267,39 +4867,81 @@ export class ConsultancyService {
   ): void {
     const canonical = this.getCanonicalConsultancyId(consultancyId);
     const aliases = this.getConsultancyAliases(consultancyId);
+
+    // 1. Record report tombstone
+    this.addDeletedReport(canonical, testId, candidateId, completedAt);
+
+    // 2. Filter reports
     const list = this.getReports(canonical);
     const updated = list.filter((r) => {
       const matchTest = !testId || r.testId === testId;
       const matchCand = !candidateId || r.candidateId === candidateId;
       const matchTime = !completedAt || r.completedAt === completedAt;
-      return !(matchTest && matchCand && matchTime);
+      if (matchTest && matchCand && matchTime) return false;
+      return !this.isReportDeleted(canonical, r);
     });
     const serialized = JSON.stringify(updated);
     for (const key of aliases) {
       localStorage.setItem(`ielts_reports_${key}`, serialized);
     }
     this.broadcast('REPORT_DELETED', { consultancyId: canonical, testId, candidateId, completedAt });
+
+    if (supabase) {
+      try {
+        let repQuery = supabase.from('consultancy_reports').delete().in('consultancy_id', aliases);
+        if (testId) repQuery = repQuery.eq('test_id', testId);
+        if (candidateId) repQuery = repQuery.eq('candidate_id', candidateId);
+        if (completedAt) repQuery = repQuery.eq('completed_at', completedAt);
+        Promise.resolve(repQuery).catch(() => {});
+      } catch {}
+    }
   }
 
   public static deleteReportsForStudent(consultancyId: string, candidateId: string): void {
     const canonical = this.getCanonicalConsultancyId(consultancyId);
     const aliases = this.getConsultancyAliases(consultancyId);
+
+    this.addDeletedReport(canonical, undefined, candidateId);
+
     const list = this.getReports(canonical);
-    const updated = list.filter((r) => r.candidateId !== candidateId);
+    const updated = list.filter((r) => r.candidateId !== candidateId && !this.isReportDeleted(canonical, r));
     const serialized = JSON.stringify(updated);
     for (const key of aliases) {
       localStorage.setItem(`ielts_reports_${key}`, serialized);
     }
     this.broadcast('REPORTS_CLEARED_FOR_STUDENT', { consultancyId: canonical, candidateId });
+
+    if (supabase) {
+      try {
+        Promise.resolve(
+          supabase.from('consultancy_reports').delete().in('consultancy_id', aliases).eq('candidate_id', candidateId)
+        ).catch(() => {});
+      } catch {}
+    }
   }
 
   public static deleteAllReports(consultancyId: string): void {
     const canonical = this.getCanonicalConsultancyId(consultancyId);
     const aliases = this.getConsultancyAliases(consultancyId);
+    const now = new Date().toISOString();
+
     for (const key of aliases) {
+      localStorage.setItem(`ielts_reports_cleared_at_${key}`, now);
       localStorage.setItem(`ielts_reports_${key}`, JSON.stringify([]));
     }
     this.broadcast('ALL_REPORTS_DELETED', { consultancyId: canonical });
+
+    if (supabase) {
+      try {
+        Promise.resolve(
+          supabase.from('consultancy_reports').delete().in('consultancy_id', aliases)
+        ).catch(() => {});
+      } catch {}
+    }
+  }
+
+  public static clearAllReports(consultancyId: string): void {
+    this.deleteAllReports(consultancyId);
   }
 
   // --- LAB WORKSTATION TELEMETRY & SUBMISSION SYNC ENGINE ---
@@ -4327,6 +4969,7 @@ export class ConsultancyService {
             const arr = JSON.parse(raw);
             if (Array.isArray(arr)) {
               arr.forEach((r: TestResult) => {
+                if (this.isResultDeleted(canonical, r)) return;
                 const uid = `${r.testId}-${r.candidateId || ''}-${r.completedAt || ''}`;
                 if (!resultMap.has(uid)) {
                   resultMap.set(uid, { ...r, consultancyId: canonical });
@@ -4343,7 +4986,11 @@ export class ConsultancyService {
         try {
           const arr = JSON.parse(pastRaw);
           if (Array.isArray(arr)) {
-            arr.forEach((r: TestResult) => {
+            const filteredPast = arr.filter((r: TestResult) => !this.isResultDeleted(canonical, r));
+            if (filteredPast.length !== arr.length) {
+              localStorage.setItem('ielts_mock_past_results', JSON.stringify(filteredPast));
+            }
+            filteredPast.forEach((r: TestResult) => {
               const uid = `${r.testId}-${r.candidateId || ''}-${r.completedAt || ''}`;
               if (!resultMap.has(uid)) {
                 resultMap.set(uid, { ...r, consultancyId: canonical });
@@ -4353,14 +5000,14 @@ export class ConsultancyService {
         } catch {}
       }
 
-      const results = Array.from(resultMap.values());
+      const results = Array.from(resultMap.values()).filter((r) => !this.isResultDeleted(canonical, r));
       results.forEach((res) => {
         this.broadcast('RESULT_ADDED', {
           consultancyId: canonical,
           result: res
         });
         this.pushResultToSupabase(canonical, res).catch(() => {});
-        if (res.candidateId || res.candidateName) {
+        if ((res.candidateId || res.candidateName) && !this.isStudentDeleted(canonical, res.candidateId, res.candidateName)) {
           this.broadcast('STUDENT_UPDATED', {
             consultancyId: canonical,
             candidateNumber: res.candidateId,
@@ -4378,6 +5025,7 @@ export class ConsultancyService {
             const repArr = JSON.parse(repRaw);
             if (Array.isArray(repArr)) {
               repArr.forEach((rep) => {
+                if (this.isReportDeleted(canonical, rep)) return;
                 this.broadcast('REPORT_ADDED', {
                   consultancyId: canonical,
                   report: { ...rep, consultancyId: canonical }
@@ -4770,6 +5418,7 @@ export class ConsultancyService {
           const parsed = JSON.parse(raw);
           if (Array.isArray(parsed)) {
             parsed.forEach((r: SavedAIReport) => {
+              if (this.isReportDeleted(canonical, r)) return;
               const uKey = `${r.testId || r.testTitle}-${r.candidateId || ''}-${r.completedAt || ''}`;
               if (!reportMap.has(uKey)) {
                 reportMap.set(uKey, { ...r, consultancyId: canonical });
@@ -4780,8 +5429,9 @@ export class ConsultancyService {
       }
     }
 
-    if (!foundRaw || reportMap.size === 0) {
-      if (canonical === 'apex-global') {
+    if (!foundRaw) {
+      const hasCleared = typeof window !== 'undefined' ? localStorage.getItem(`ielts_reports_cleared_at_${canonical}`) : null;
+      if (canonical === 'apex-global' && this.getDeletedReportKeys(canonical).length === 0 && !hasCleared) {
         const defaultReports: SavedAIReport[] = [
           {
             studentName: 'Rohan Sharma',
@@ -4826,7 +5476,7 @@ export class ConsultancyService {
       return [];
     }
 
-    const merged = Array.from(reportMap.values());
+    const merged = Array.from(reportMap.values()).filter((r) => !this.isReportDeleted(canonical, r));
     const serialized = JSON.stringify(merged);
     for (const key of aliases) {
       localStorage.setItem(`ielts_reports_${key}`, serialized);
@@ -4837,6 +5487,7 @@ export class ConsultancyService {
 
   public static saveReport(consultancyId: string, report: SavedAIReport): void {
     const canonical = this.getCanonicalConsultancyId(consultancyId);
+    this.removeDeletedReport(canonical, report.testId, report.candidateId, report.completedAt, (report as any).id);
     const aliases = this.getConsultancyAliases(consultancyId);
     const list = this.getReports(canonical);
     const cleanRep = { ...report, consultancyId: canonical };

@@ -246,7 +246,8 @@ export const ResultsView: React.FC<ResultsViewProps> = ({
           consultancy.id,
           res.testId || '',
           res.candidateId,
-          res.completedAt
+          res.completedAt,
+          (res as any).id
         );
         setConfirmModalConfig((prev) => ({ ...prev, isOpen: false }));
         onRefresh();

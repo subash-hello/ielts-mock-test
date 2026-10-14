@@ -108,11 +108,42 @@ def save_student(cid: str, s: StudentCreate):
     return {"status": "success", "id": sid, "candidateNumber": cand_num}
 
 @router.delete("/{student_id}")
-def delete_student(cid: str, student_id: str):
-    """Delete student from branch records."""
+def delete_student(cid: str, student_id: str, delete_results: bool = Query(False)):
+    """Delete student from branch records with alias support and optional result cascade."""
     conn = get_db()
     cursor = conn.cursor()
-    cursor.execute("DELETE FROM students WHERE consultancy_id = ? AND (id = ? OR candidate_number = ?)", (cid, student_id, student_id))
+
+    # Find all aliases for this consultancy (id, branch_code, access_code)
+    cids = {cid}
+    try:
+        cursor.execute(
+            "SELECT id, branch_code, access_code FROM consultancies WHERE id = ? OR branch_code = ? OR access_code = ?",
+            (cid, cid, cid)
+        )
+        for row in cursor.fetchall():
+            d = dict(row)
+            for k in ["id", "branch_code", "access_code"]:
+                if d.get(k):
+                    cids.add(d[k])
+    except Exception:
+        pass
+
+    placeholders = ",".join("?" * len(cids))
+    params = list(cids) + [student_id, student_id, student_id]
+
+    cursor.execute(
+        f"DELETE FROM students WHERE consultancy_id IN ({placeholders}) AND (id = ? OR candidate_number = ? OR LOWER(full_name) = LOWER(?))",
+        params
+    )
+
+    if delete_results:
+        res_params = list(cids) + [student_id, student_id, student_id]
+        cursor.execute(
+            f"DELETE FROM candidate_results WHERE consultancy_id IN ({placeholders}) AND (candidate_number = ? OR candidate_name = ? OR LOWER(candidate_name) = LOWER(?))",
+            res_params
+        )
+
     conn.commit()
     conn.close()
     return {"status": "success", "message": f"Student {student_id} removed."}
+

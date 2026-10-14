@@ -179,12 +179,73 @@ def reset_station(cid: str, station_id: str):
     return {"status": "success", "message": f"Station {station_id} reset to idle."}
 
 
-@router.delete("/{station_id}")
-def delete_station(cid: str, station_id: str):
-    """Remove workstation from the lab inventory."""
+@router.delete("")
+def delete_stations_batch(cid: str, ids: Optional[str] = None):
+    """Delete multiple stations or all offline stations."""
     conn = get_db()
     cursor = conn.cursor()
-    cursor.execute("DELETE FROM stations WHERE id = ? AND consultancy_id = ?", (station_id, cid))
+
+    cids = {cid}
+    try:
+        cursor.execute(
+            "SELECT id, branch_code, access_code FROM consultancies WHERE id = ? OR branch_code = ? OR access_code = ?",
+            (cid, cid, cid)
+        )
+        for row in cursor.fetchall():
+            d = dict(row)
+            for k in ["id", "branch_code", "access_code"]:
+                if d.get(k):
+                    cids.add(d[k])
+    except Exception:
+        pass
+
+    placeholders = ",".join("?" * len(cids))
+    if ids:
+        id_list = [i.strip() for i in ids.split(",") if i.strip()]
+        for st_id in id_list:
+            p = list(cids) + [st_id, st_id, st_id]
+            cursor.execute(
+                f"DELETE FROM stations WHERE consultancy_id IN ({placeholders}) AND (id = ? OR station_name = ? OR LOWER(station_name) = LOWER(?))",
+                p
+            )
+    else:
+        cursor.execute(f"DELETE FROM stations WHERE consultancy_id IN ({placeholders})", list(cids))
+
+    deleted = cursor.rowcount
     conn.commit()
     conn.close()
-    return {"status": "success", "message": f"Station {station_id} deleted."}
+    return {"status": "success", "deletedCount": deleted}
+
+
+@router.delete("/{station_id}")
+def delete_station(cid: str, station_id: str):
+    """Remove workstation from the lab inventory with alias and name support."""
+    conn = get_db()
+    cursor = conn.cursor()
+
+    cids = {cid}
+    try:
+        cursor.execute(
+            "SELECT id, branch_code, access_code FROM consultancies WHERE id = ? OR branch_code = ? OR access_code = ?",
+            (cid, cid, cid)
+        )
+        for row in cursor.fetchall():
+            d = dict(row)
+            for k in ["id", "branch_code", "access_code"]:
+                if d.get(k):
+                    cids.add(d[k])
+    except Exception:
+        pass
+
+    placeholders = ",".join("?" * len(cids))
+    params = list(cids) + [station_id, station_id, station_id]
+
+    cursor.execute(
+        f"DELETE FROM stations WHERE consultancy_id IN ({placeholders}) AND (id = ? OR station_name = ? OR LOWER(station_name) = LOWER(?))",
+        params
+    )
+    deleted = cursor.rowcount
+    conn.commit()
+    conn.close()
+    return {"status": "success", "message": f"Station {station_id} deleted.", "deletedCount": deleted}
+

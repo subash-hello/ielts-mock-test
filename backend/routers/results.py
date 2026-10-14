@@ -193,28 +193,52 @@ def delete_consultancy_results(
     cid: str,
     test_id: Optional[str] = Query(None),
     candidate_number: Optional[str] = Query(None),
-    completed_at: Optional[str] = Query(None)
+    completed_at: Optional[str] = Query(None),
+    result_id: Optional[str] = Query(None)
 ):
     """Delete specific or all candidate results for a consultancy branch."""
     conn = get_db()
     cursor = conn.cursor()
 
-    if test_id or candidate_number or completed_at:
-        query = "DELETE FROM candidate_results WHERE consultancy_id = ?"
-        params = [cid]
+    # Find all aliases for this consultancy (id, branch_code, access_code)
+    cids = {cid}
+    try:
+        cursor.execute(
+            "SELECT id, branch_code, access_code FROM consultancies WHERE id = ? OR branch_code = ? OR access_code = ?",
+            (cid, cid, cid)
+        )
+        for row in cursor.fetchall():
+            d = dict(row)
+            for k in ["id", "branch_code", "access_code"]:
+                if d.get(k):
+                    cids.add(d[k])
+    except Exception:
+        pass
+
+    placeholders = ",".join("?" * len(cids))
+    params = list(cids)
+
+    if result_id:
+        cursor.execute(
+            f"DELETE FROM candidate_results WHERE id = ? OR trf_number = ? OR (consultancy_id IN ({placeholders}) AND id LIKE ?)",
+            [result_id, result_id] + list(cids) + [f"%{result_id}%"]
+        )
+    elif test_id or candidate_number or completed_at:
+        query = f"DELETE FROM candidate_results WHERE consultancy_id IN ({placeholders})"
         if test_id:
             query += " AND test_id = ?"
             params.append(test_id)
         if candidate_number:
-            query += " AND candidate_number = ?"
-            params.append(candidate_number)
+            query += " AND (candidate_number = ? OR candidate_name = ? OR LOWER(candidate_name) = LOWER(?))"
+            params.extend([candidate_number, candidate_number, candidate_number])
         if completed_at:
-            query += " AND (submitted_at = ? OR id LIKE ?)"
-            params.append(completed_at)
-            params.append(f"%{completed_at}%")
+            # Match ISO timestamp flexibly (handling millis and timezone)
+            clean_date = completed_at.split(".")[0].rstrip("Z")
+            query += " AND (submitted_at = ? OR submitted_at LIKE ? OR id LIKE ?)"
+            params.extend([completed_at, f"{clean_date}%", f"%{clean_date}%"])
         cursor.execute(query, params)
     else:
-        cursor.execute("DELETE FROM candidate_results WHERE consultancy_id = ?", (cid,))
+        cursor.execute(f"DELETE FROM candidate_results WHERE consultancy_id IN ({placeholders})", params)
 
     deleted = cursor.rowcount
     conn.commit()
