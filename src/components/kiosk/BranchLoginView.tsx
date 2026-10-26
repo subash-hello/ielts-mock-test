@@ -36,6 +36,7 @@ export const BranchLoginView: React.FC<BranchLoginViewProps> = ({
     return saved || 'PC-01';
   });
   const [deviceRole, setDeviceRole] = useState<'student' | 'invigilator'>('student');
+  const [enteredWithAdminPass, setEnteredWithAdminPass] = useState(false);
 
   useEffect(() => {
     setIsLoading(true);
@@ -99,9 +100,17 @@ export const BranchLoginView: React.FC<BranchLoginViewProps> = ({
 
     const entered = password.trim();
     const validExamPass = consultancy.examPassword || '1234';
-    const validAdminPass = consultancy.adminPassword || '1234';
+    const validAdminPass = consultancy.adminPassword || 'admin123';
 
-    if (entered === validExamPass || entered === validAdminPass || entered === '1234' || entered === 'admin123') {
+    const isExamMatch = entered === validExamPass;
+    const isAdminMatch = entered === validAdminPass;
+
+    if (isExamMatch || isAdminMatch) {
+      setEnteredWithAdminPass(isAdminMatch);
+      if (!isAdminMatch) {
+        setDeviceRole('student');
+      }
+
       // Remember branch on device
       localStorage.setItem('ielts_terminal_branch', consultancy.branchCode || consultancy.accessCode || consultancy.id);
       
@@ -111,11 +120,19 @@ export const BranchLoginView: React.FC<BranchLoginViewProps> = ({
       // If station already configured and role remembered
       if (rememberedStation && rememberedRole) {
         if (rememberedRole === 'invigilator') {
-          onEnterInvigilator(consultancy);
+          if (isAdminMatch) {
+            onEnterInvigilator(consultancy);
+            return;
+          } else {
+            setError('Invigilator console requires branch administrator password.');
+            setIsShaking(true);
+            setTimeout(() => setIsShaking(false), 500);
+            return;
+          }
         } else {
           onEnterStudentKiosk(consultancy, rememberedStation);
+          return;
         }
-        return;
       }
 
       // If station was remembered without explicit role, default to student kiosk
@@ -128,7 +145,7 @@ export const BranchLoginView: React.FC<BranchLoginViewProps> = ({
       // If not yet configured, show first login station name & role modal
       setShowSetupModal(true);
     } else {
-      setError('Incorrect password, try again.');
+      setError('Incorrect branch password. Please check and try again.');
       setIsShaking(true);
       setTimeout(() => setIsShaking(false), 500);
     }
@@ -136,6 +153,11 @@ export const BranchLoginView: React.FC<BranchLoginViewProps> = ({
 
   const handleFinishSetup = () => {
     if (!consultancy) return;
+    if (deviceRole === 'invigilator' && !enteredWithAdminPass) {
+      setError('Administrator password required to configure as Invigilator Console.');
+      return;
+    }
+
     const finalStation = stationName.trim() ? stationName.trim().toUpperCase() : 'PC-01';
     const formatted = finalStation.startsWith('PC-') ? finalStation : `PC-${finalStation.replace(/^PC/i, '')}`;
 
@@ -306,15 +328,20 @@ export const BranchLoginView: React.FC<BranchLoginViewProps> = ({
 
                   <button
                     type="button"
+                    disabled={!enteredWithAdminPass}
                     onClick={() => setDeviceRole('invigilator')}
                     className={`p-3 rounded-[10px] border text-left transition flex flex-col gap-1 min-h-[48px] ${
-                      deviceRole === 'invigilator'
+                      !enteredWithAdminPass
+                        ? 'opacity-40 cursor-not-allowed border-[#5B6B82]/20 bg-slate-100'
+                        : deviceRole === 'invigilator'
                         ? 'border-[#0F1E33] bg-[#0F1E33]/5 ring-1 ring-[#0F1E33]'
                         : 'border-[#5B6B82]/30 bg-white hover:bg-slate-50'
                     }`}
                   >
                     <span className="text-xs font-bold text-[#0F1E33]">Invigilator Console</span>
-                    <span className="text-[10px] text-[#5B6B82]">Staff monitoring hub</span>
+                    <span className="text-[10px] text-[#5B6B82]">
+                      {enteredWithAdminPass ? 'Staff monitoring hub' : 'Requires Admin PIN'}
+                    </span>
                   </button>
                 </div>
               </div>

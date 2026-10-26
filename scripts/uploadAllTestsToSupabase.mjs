@@ -1,7 +1,7 @@
 import { createClient } from '@supabase/supabase-js';
 import { allMockTests } from '../src/data/mockTests.js';
 
-const SUPABASE_URL = process.env.SUPABASE_URL || 'https://fqwdzxaprsefutccdqns.supabase.co';
+const SUPABASE_URL = process.env.SUPABASE_URL || 'https://vdcaqvdgmliljyhcgdfj.supabase.co';
 const SUPABASE_KEY = process.env.SUPABASE_SECRET_KEY || process.env.SUPABASE_KEY || '';
 
 console.log('Connecting to Supabase at:', SUPABASE_URL);
@@ -35,7 +35,7 @@ async function uploadTests() {
         console.error('\n❌ ERROR: Table "ielts_mock_tests" does not exist in your Supabase database yet.');
         console.log('\n📋 TO FIX THIS:');
         console.log('1. Open your Supabase Dashboard:');
-        console.log('   https://supabase.com/dashboard/project/fqwdzxaprsefutccdqns/sql/new');
+        console.log('   https://supabase.com/dashboard/project/vdcaqvdgmliljyhcgdfj/sql/new');
         console.log('2. Paste the SQL script from "supabase/schema.sql" and click "RUN".');
         console.log('3. Re-run this script: npm run upload:supabase');
         return;

@@ -1154,8 +1154,16 @@ export const App: React.FC = () => {
       const readResult = activeFullMock.readingResult;
       const listBand = listResult ? listResult.bandScore : 0;
       const readBand = readResult ? readResult.bandScore : 0;
-      const writBand = newResult.bandScore || 0;
-      const overallBand = Math.round(((listBand + readBand + writBand) / 3) * 2) / 2;
+      const writBand = newResult.bandScore && newResult.bandScore > 0 ? newResult.bandScore : 0;
+      
+      // If writing hasn't been graded yet (bandScore === 0), keep provisional average from completed sections
+      const activeSections = [listBand, readBand].filter((b) => b > 0);
+      const overallBand = writBand > 0
+        ? Math.round(((listBand + readBand + writBand) / 3) * 2) / 2
+        : activeSections.length > 0
+        ? Math.round((activeSections.reduce((a, b) => a + b, 0) / activeSections.length) * 2) / 2
+        : 0;
+
       setActiveFullMock((prev) => (prev ? { ...prev, writingResult: newResult, overallBand } : null));
     }
 

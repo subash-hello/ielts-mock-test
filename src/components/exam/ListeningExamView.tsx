@@ -61,11 +61,11 @@ export const ListeningExamView: React.FC<ListeningExamViewProps> = ({
     // 3. Supabase Storage CDN (Public bucket with Access-Control-Allow-Origin: *)
     if (book === 19) {
       list.push(
-        `https://fqwdzxaprsefutccdqns.supabase.co/storage/v1/object/public/ielts-mock-tests/audio/cam19-test${testNum}-part${secNum}.m4a`
+        `https://vdcaqvdgmliljyhcgdfj.supabase.co/storage/v1/object/public/ielts-mock-tests/audio/cam19-test${testNum}-part${secNum}.m4a`
       );
     } else {
       list.push(
-        `https://fqwdzxaprsefutccdqns.supabase.co/storage/v1/object/public/ielts-mock-tests/audio/cam${book}-test${testNum}-part${secNum}.mp3`
+        `https://vdcaqvdgmliljyhcgdfj.supabase.co/storage/v1/object/public/ielts-mock-tests/audio/cam${book}-test${testNum}-part${secNum}.mp3`
       );
     }
 

@@ -2796,22 +2796,6 @@ export class ConsultancyService {
       }
     }
 
-    // 3. Demo fallback if user logs in with admin@ or demo credentials
-    if (
-      cleanEmail !== 'admin@mock.com' &&
-      cleanEmail.includes('admin') &&
-      (cleanPass === 'admin123' || cleanPass === '1234' || cleanPass === 'admin')
-    ) {
-      const user: AdminUser = {
-        id: 'super-admin-user',
-        name: 'System Super Administrator',
-        email: cleanEmail,
-        role: 'super_admin'
-      };
-      this.setCurrentAdmin(user);
-      return { success: true, user };
-    }
-
     return {
       success: false,
       error: 'Invalid administrator email or password. Please verify your credentials.'

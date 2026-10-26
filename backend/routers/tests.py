@@ -26,10 +26,10 @@ def calculate_ielts_band(raw: int, module: str, test_type: str = "academic") -> 
         if raw >= 16: return 5.0
         if raw >= 13: return 4.5
         if raw >= 10: return 4.0
-        if raw >= 6: return 3.5
-        if raw >= 4: return 3.0
-        if raw >= 2: return 2.5
-        if raw >= 1: return 2.0
+        if raw >= 8: return 3.5
+        if raw >= 6: return 3.0
+        if raw >= 4: return 2.5
+        if raw >= 2: return 2.0
         return 1.0
 
     # Reading Academic
@@ -70,6 +70,17 @@ def calculate_ielts_band(raw: int, module: str, test_type: str = "academic") -> 
         return 1.0
 
 
+def extract_questions_from_section(section: dict) -> list:
+    """Extracts questions whether top-level or nested inside questionGroups."""
+    questions = []
+    if "questions" in section and isinstance(section["questions"], list):
+        questions.extend(section["questions"])
+    for group in section.get("questionGroups", []):
+        if isinstance(group, dict) and "questions" in group and isinstance(group["questions"], list):
+            questions.extend(group["questions"])
+    return questions
+
+
 @router.get("", response_model=List[TestSummary])
 def get_all_tests(
     book: Optional[int] = Query(None, description="Filter by Cambridge book number e.g. 16, 18, 19"),
@@ -104,7 +115,7 @@ def get_all_tests(
             raw = json.loads(r["raw_json"])
             sections = raw.get("sections", [])
             for sec in sections:
-                q_count += len(sec.get("questions", []))
+                q_count += len(extract_questions_from_section(sec))
         except Exception:
             pass
 
@@ -197,16 +208,27 @@ def evaluate_answers(
     breakdown = []
 
     for section in test_data.get("sections", []):
-        for question in section.get("questions", []):
-            qid = question.get("id")
+        for question in extract_questions_from_section(section):
+            qid = question.get("id") or str(question.get("questionNumber"))
+            qnum = question.get("questionNumber")
             official_answer = str(question.get("correctAnswer", "")).strip().lower()
-            student_answer = str(answers.get(qid, "")).strip().lower()
+            
+            # Look up student answer by qid or question number
+            raw_student_ans = answers.get(qid)
+            if raw_student_ans is None and qnum is not None:
+                raw_student_ans = answers.get(str(qnum)) or answers.get(qnum)
+
+            student_answer = str(raw_student_ans or "").strip().lower()
             total_questions += 1
 
             is_correct = False
             # Check direct match or multiple acceptable variations (e.g. "A / B" or "centre;center")
             if official_answer:
                 acceptable = [a.strip() for a in official_answer.replace(";", "/").split("/")]
+                # Also include question's acceptedVariants if present
+                for variant in question.get("acceptedVariants", []):
+                    acceptable.extend([v.strip().lower() for v in str(variant).replace(";", "/").split("/")])
+
                 if student_answer in acceptable:
                     is_correct = True
             
@@ -215,8 +237,8 @@ def evaluate_answers(
 
             breakdown.append({
                 "questionId": qid,
-                "questionNumber": question.get("questionNumber"),
-                "studentAnswer": answers.get(qid, ""),
+                "questionNumber": qnum,
+                "studentAnswer": raw_student_ans or "",
                 "correctAnswer": question.get("correctAnswer"),
                 "isCorrect": is_correct
             })

@@ -1,8 +1,8 @@
 import { createClient } from '@supabase/supabase-js';
 import { allMockTests } from '../src/data/mockTests';
 
-const SUPABASE_URL = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://fqwdzxaprsefutccdqns.supabase.co';
-const SUPABASE_KEY = process.env.SUPABASE_SECRET_KEY || process.env.SUPABASE_KEY || process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY || 'sb_publishable_seh5sW-Yt3mlaq8u2_dwLA_iu1A3ibO';
+const SUPABASE_URL = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://vdcaqvdgmliljyhcgdfj.supabase.co';
+const SUPABASE_KEY = process.env.SUPABASE_SECRET_KEY || process.env.SUPABASE_KEY || process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY || 'sb_publishable_jy7lbhdYRYRekPgPsp60Vw_dqV6fGfP';
 
 console.log('--------------------------------------------------');
 console.log('Connecting to Supabase at:', SUPABASE_URL);
@@ -32,7 +32,7 @@ async function uploadTests() {
       console.error('\n❌ TABLE MISSING: Table "public.ielts_mock_tests" does not exist in Supabase yet.');
       console.log('\n📋 IMMEDIATE ACTION REQUIRED:');
       console.log('1. Go to your Supabase Dashboard:');
-      console.log('   https://supabase.com/dashboard/project/fqwdzxaprsefutccdqns/sql/new');
+      console.log('   https://supabase.com/dashboard/project/vdcaqvdgmliljyhcgdfj/sql/new');
       console.log('2. Copy and paste the SQL script from "supabase/schema.sql" and click "RUN" (green button).');
       console.log('3. Run this script again: npm run upload:supabase\n');
       process.exit(1);
@@ -60,7 +60,7 @@ async function uploadTests() {
 
   console.log(`\n🎉 SUCCESS! All ${allMockTests.length} Cambridge Academic Mock Tests are now permanently stored in Supabase!`);
   console.log('You can view them in the Supabase Table Editor:');
-  console.log('https://supabase.com/dashboard/project/fqwdzxaprsefutccdqns/editor/ielts_mock_tests\n');
+  console.log('https://supabase.com/dashboard/project/vdcaqvdgmliljyhcgdfj/editor/ielts_mock_tests\n');
 }
 
 uploadTests().catch((err) => {

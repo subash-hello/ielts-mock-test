@@ -169,10 +169,18 @@ export function evaluateTestAnswers(
         // Collect all acceptable answers across the multi-choice group
         const correctPool: string[] = [];
         group.questions.forEach((q) => {
-          if (Array.isArray(q.correctAnswer)) {
-            q.correctAnswer.forEach((c) => correctPool.push(normalizeAnswer(c)));
-          } else if (q.correctAnswer) {
-            correctPool.push(normalizeAnswer(q.correctAnswer));
+          const rawAnswers = Array.isArray(q.correctAnswer)
+            ? q.correctAnswer
+            : q.correctAnswer
+            ? [q.correctAnswer]
+            : [];
+          rawAnswers.forEach((c) => {
+            expandOfficialAnswerVariants(c).forEach((v) => correctPool.push(v));
+          });
+          if (q.acceptedVariants && Array.isArray(q.acceptedVariants)) {
+            q.acceptedVariants.forEach((v) => {
+              expandOfficialAnswerVariants(v).forEach((ev) => correctPool.push(ev));
+            });
           }
         });
 

@@ -19,12 +19,12 @@ const getEnv = (key: string): string | undefined => {
 const supabaseUrl =
   getEnv('VITE_SUPABASE_URL') ||
   getEnv('NEXT_PUBLIC_SUPABASE_URL') ||
-  'https://fqwdzxaprsefutccdqns.supabase.co';
+  'https://vdcaqvdgmliljyhcgdfj.supabase.co';
 
 const supabaseAnonKey =
   getEnv('VITE_SUPABASE_ANON_KEY') ||
   getEnv('NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY') ||
-  'sb_publishable_seh5sW-Yt3mlaq8u2_dwLA_iu1A3ibO';
+  'sb_publishable_jy7lbhdYRYRekPgPsp60Vw_dqV6fGfP';
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey);
 

@@ -1,7 +1,7 @@
 -- ==========================================================
 -- IELTS Mock Exam Platform: Supabase Database Schema
 -- Run this in your Supabase Project -> SQL Editor
--- (https://supabase.com/dashboard/project/fqwdzxaprsefutccdqns/sql/new)
+-- (https://supabase.com/dashboard/project/vdcaqvdgmliljyhcgdfj/sql/new)
 -- ==========================================================
 
 -- 1. Table for Cambridge Academic Mock Tests (Books 15, 16, 17, 18, 19, 20, 21)

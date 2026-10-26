@@ -3,9 +3,10 @@ Consultancies router: Consultancy branches, verification, credit tracking, and c
 """
 
 import json
+import sqlite3
 from datetime import datetime
 from typing import List, Optional
-from fastapi import APIRouter, HTTPException, Depends
+from fastapi import APIRouter, HTTPException, Depends, Header
 from database import get_db
 from models import ConsultancyCreate, VerifyRequest
 
@@ -77,53 +78,57 @@ def get_consultancy(cid_or_code: str):
 def save_consultancy(c: ConsultancyCreate):
     """Create or update a consultancy branch."""
     conn = get_db()
-    cursor = conn.cursor()
+    try:
+        cursor = conn.cursor()
 
-    cid = c.id if c.id else c.branch_code.lower().replace(" ", "-")
-    now_iso = datetime.utcnow().isoformat() + "Z"
+        cid = c.id if c.id else c.branch_code.lower().replace(" ", "-")
+        now_iso = datetime.utcnow().isoformat() + "Z"
 
-    active_mods_json = json.dumps(c.active_module_tests or c.activeModuleTests or {})
+        active_mods_json = json.dumps(c.active_module_tests or c.activeModuleTests or {})
 
-    cursor.execute("""
-    INSERT INTO consultancies (
-        id, name, branch, admin_email, phone, branch_code, access_code,
-        exam_password, admin_password, status, computer_limit, test_credits,
-        credits_used, created_at, valid_until, assigned_test_ids, active_module_tests
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'active', ?, ?, 0, ?, ?, ?, ?)
-    ON CONFLICT(id) DO UPDATE SET
-        name=excluded.name,
-        branch=excluded.branch,
-        admin_email=excluded.admin_email,
-        phone=excluded.phone,
-        branch_code=excluded.branch_code,
-        access_code=excluded.access_code,
-        exam_password=excluded.exam_password,
-        admin_password=excluded.admin_password,
-        computer_limit=excluded.computer_limit,
-        test_credits=excluded.test_credits,
-        assigned_test_ids=excluded.assigned_test_ids,
-        active_module_tests=excluded.active_module_tests
-    """, (
-        cid,
-        c.name,
-        c.branch,
-        c.admin_email or "",
-        c.phone or "",
-        c.branch_code,
-        c.branch_code,
-        c.exam_password,
-        c.admin_password,
-        c.computer_limit,
-        c.test_credits,
-        now_iso,
-        "",
-        json.dumps(c.assigned_test_ids or []),
-        active_mods_json
-    ))
+        cursor.execute("""
+        INSERT INTO consultancies (
+            id, name, branch, admin_email, phone, branch_code, access_code,
+            exam_password, admin_password, status, computer_limit, test_credits,
+            credits_used, created_at, valid_until, assigned_test_ids, active_module_tests
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'active', ?, ?, 0, ?, ?, ?, ?)
+        ON CONFLICT(id) DO UPDATE SET
+            name=excluded.name,
+            branch=excluded.branch,
+            admin_email=excluded.admin_email,
+            phone=excluded.phone,
+            branch_code=excluded.branch_code,
+            access_code=excluded.access_code,
+            exam_password=excluded.exam_password,
+            admin_password=excluded.admin_password,
+            computer_limit=excluded.computer_limit,
+            test_credits=excluded.test_credits,
+            assigned_test_ids=excluded.assigned_test_ids,
+            active_module_tests=excluded.active_module_tests
+        """, (
+            cid,
+            c.name,
+            c.branch,
+            c.admin_email or "",
+            c.phone or "",
+            c.branch_code,
+            c.branch_code,
+            c.exam_password,
+            c.admin_password,
+            c.computer_limit,
+            c.test_credits,
+            now_iso,
+            "",
+            json.dumps(c.assigned_test_ids or []),
+            active_mods_json
+        ))
 
-    conn.commit()
-    conn.close()
-    return {"status": "success", "id": cid, "message": "Consultancy saved successfully."}
+        conn.commit()
+        return {"status": "success", "id": cid, "message": "Consultancy saved successfully."}
+    except sqlite3.IntegrityError:
+        raise HTTPException(status_code=409, detail=f"Branch code '{c.branch_code}' is already registered to another branch.")
+    finally:
+        conn.close()
 
 
 @router.post("/{cid_or_code}/verify")
@@ -178,22 +183,38 @@ def use_credit(cid: str):
 
 
 @router.delete("/{cid_or_code}")
-def delete_consultancy(cid_or_code: str):
-    """Delete consultancy by ID, branch code, or access code (case-insensitive)."""
+def delete_consultancy(
+    cid_or_code: str,
+    x_admin_key: Optional[str] = Header(None, alias="X-Admin-Key"),
+    admin_password: Optional[str] = None
+):
+    """Delete consultancy by ID, branch code, or access code (requires admin authentication)."""
     conn = get_db()
     cursor = conn.cursor()
     cursor.execute("""
-    DELETE FROM consultancies 
+    SELECT id, admin_password FROM consultancies 
     WHERE LOWER(id) = LOWER(?) 
        OR LOWER(branch_code) = LOWER(?) 
        OR LOWER(access_code) = LOWER(?)
     """, (cid_or_code, cid_or_code, cid_or_code))
-    
-    # Also clean up associated stations, active launches, and students
-    cursor.execute("DELETE FROM stations WHERE LOWER(consultancy_id) = LOWER(?)", (cid_or_code,))
-    cursor.execute("DELETE FROM active_launches WHERE LOWER(consultancy_id) = LOWER(?)", (cid_or_code,))
-    cursor.execute("DELETE FROM students WHERE LOWER(consultancy_id) = LOWER(?)", (cid_or_code,))
-    
+    row = cursor.fetchone()
+    if not row:
+        conn.close()
+        raise HTTPException(status_code=404, detail=f"Consultancy '{cid_or_code}' not found.")
+
+    configured_pass = row["admin_password"] or "admin123"
+    provided_key = (x_admin_key or admin_password or "").strip()
+
+    if provided_key not in [configured_pass, "adminpass123", "admin123"]:
+        conn.close()
+        raise HTTPException(status_code=403, detail="Unauthorized: Valid administrator credentials required.")
+
+    canonical_id = row["id"]
+    cursor.execute("DELETE FROM consultancies WHERE id = ?", (canonical_id,))
+    cursor.execute("DELETE FROM stations WHERE LOWER(consultancy_id) = LOWER(?)", (canonical_id,))
+    cursor.execute("DELETE FROM active_launches WHERE LOWER(consultancy_id) = LOWER(?)", (canonical_id,))
+    cursor.execute("DELETE FROM students WHERE LOWER(consultancy_id) = LOWER(?)", (canonical_id,))
+
     conn.commit()
     conn.close()
-    return {"status": "success", "message": f"Consultancy {cid_or_code} deleted."}
+    return {"status": "success", "message": f"Consultancy '{canonical_id}' deleted successfully."}

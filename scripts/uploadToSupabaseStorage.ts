@@ -4,12 +4,12 @@ import { allMockTests } from '../src/data/mockTests';
 const SUPABASE_URL =
   process.env.SUPABASE_URL ||
   process.env.VITE_SUPABASE_URL ||
-  'https://fqwdzxaprsefutccdqns.supabase.co';
+  'https://vdcaqvdgmliljyhcgdfj.supabase.co';
 const SUPABASE_KEY =
   process.env.SUPABASE_SECRET_KEY ||
   process.env.SUPABASE_KEY ||
   process.env.VITE_SUPABASE_ANON_KEY ||
-  'sb_publishable_seh5sW-Yt3mlaq8u2_dwLA_iu1A3ibO';
+  'sb_publishable_jy7lbhdYRYRekPgPsp60Vw_dqV6fGfP';
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 
