@@ -16,6 +16,7 @@ import type { IELTSMockTest, FullMockTest } from '../../types/ielts';
 import type { Consultancy } from '../../types/consultancy';
 import { allMockTests, allFullMockTests } from '../../data/mockTests';
 import { ConsultancyService } from '../../services/consultancyService';
+import { isNewBuildAvailable } from '../../utils/autoUpdate';
 
 interface TestSelectionViewProps {
   consultancy?: Consultancy;
@@ -175,6 +176,25 @@ export const TestSelectionView: React.FC<TestSelectionViewProps> = ({
       clearInterval(cloudInterval);
     };
   }, [consultancy?.id, stationName, studentName, activeLaunch?.testId]);
+
+  // While idle on the waiting screen (no exam data to lose), pick up newly deployed builds automatically
+  // so a PC never stays stuck on an outdated bundle.
+  const isWaitingForLaunch = !activeLaunch;
+  useEffect(() => {
+    if (!isWaitingForLaunch) return;
+    let cancelled = false;
+    const check = async () => {
+      if (await isNewBuildAvailable()) {
+        if (!cancelled) window.location.reload();
+      }
+    };
+    const timer = setInterval(check, 30000);
+    check();
+    return () => {
+      cancelled = true;
+      clearInterval(timer);
+    };
+  }, [isWaitingForLaunch]);
 
   // ================= CONDITION: WAITING SIGN UNTIL CONSULTANCY LAUNCHES EXAM =================
   if (!activeLaunch) {
