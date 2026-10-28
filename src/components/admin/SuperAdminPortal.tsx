@@ -472,7 +472,7 @@ export const SuperAdminPortal: React.FC<SuperAdminPortalProps> = ({
                 Master Cambridge Academic Test Library
               </h1>
               <p className="text-xs text-[#5B6B82]">
-                Official Cambridge Academic papers (Books 16, 18, 19, 20, 21) containing complete reading passages, audio streams, and writing tasks
+                Official Cambridge Academic papers (Books 16, 17, 18, 19, 20, 21) containing complete reading passages, audio streams, and writing tasks
               </p>
             </div>
 

@@ -380,15 +380,14 @@ export const LandingPage: React.FC<LandingPageProps> = ({
     }
   };
 
-  const books = [16, 18, 19, 20, 21];
+  const books = [16, 17, 18, 19, 20, 21];
 
   const filteredTests = useMemo(() => {
     if (moduleFilter === 'full') return [];
     return candidateAvailableTests.filter((test) => {
       if (moduleFilter === 'writing') {
         if (test.module !== 'writing') return false;
-        // If specific book is selected and it has writing, respect it, otherwise show all writing
-        if (selectedBook === 16 && test.book !== 16) return false;
+        if (test.book !== selectedBook) return false;
       } else {
         if (test.book !== selectedBook) return false;
         if (moduleFilter !== 'all' && test.module !== moduleFilter) return false;

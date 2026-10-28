@@ -439,7 +439,7 @@ export const App: React.FC = () => {
               0
             );
 
-          return prev.map((localTest) => {
+          const merged = prev.map((localTest) => {
             const remote = data.find((r) => r.id === localTest.id);
             if (!remote) return localTest;
             const localCount = countQ(localTest);
@@ -449,6 +449,15 @@ export const App: React.FC = () => {
             }
             return localTest;
           });
+
+          const existingIds = new Set(merged.map((t) => t.id));
+          for (const remote of data) {
+            if (!existingIds.has(remote.id)) {
+              merged.push(remote);
+              existingIds.add(remote.id);
+            }
+          }
+          return merged;
         });
       }
     });

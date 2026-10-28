@@ -986,6 +986,24 @@ export const ConsultancyPortal: React.FC<ConsultancyPortalProps> = ({
                     <option value="cambridge-16-test-4-listening">Cambridge 16 Test 4 — Listening</option>
                     <option value="cambridge-16-test-4-full">Cambridge 16 Test 4 — Full Mock (L+R+W)</option>
                   </optgroup>
+                  <optgroup label="Cambridge 17 Academic">
+                    <option value="cambridge-17-test-1-writing">Cambridge 17 Test 1 — Writing</option>
+                    <option value="cambridge-17-test-1-reading">Cambridge 17 Test 1 — Reading</option>
+                    <option value="cambridge-17-test-1-listening">Cambridge 17 Test 1 — Listening</option>
+                    <option value="cambridge-17-test-1-full">Cambridge 17 Test 1 — Full Mock (L+R+W)</option>
+                    <option value="cambridge-17-test-2-writing">Cambridge 17 Test 2 — Writing</option>
+                    <option value="cambridge-17-test-2-reading">Cambridge 17 Test 2 — Reading</option>
+                    <option value="cambridge-17-test-2-listening">Cambridge 17 Test 2 — Listening</option>
+                    <option value="cambridge-17-test-2-full">Cambridge 17 Test 2 — Full Mock (L+R+W)</option>
+                    <option value="cambridge-17-test-3-writing">Cambridge 17 Test 3 — Writing</option>
+                    <option value="cambridge-17-test-3-reading">Cambridge 17 Test 3 — Reading</option>
+                    <option value="cambridge-17-test-3-listening">Cambridge 17 Test 3 — Listening</option>
+                    <option value="cambridge-17-test-3-full">Cambridge 17 Test 3 — Full Mock (L+R+W)</option>
+                    <option value="cambridge-17-test-4-writing">Cambridge 17 Test 4 — Writing</option>
+                    <option value="cambridge-17-test-4-reading">Cambridge 17 Test 4 — Reading</option>
+                    <option value="cambridge-17-test-4-listening">Cambridge 17 Test 4 — Listening</option>
+                    <option value="cambridge-17-test-4-full">Cambridge 17 Test 4 — Full Mock (L+R+W)</option>
+                  </optgroup>
                   <optgroup label="Cambridge 18 Academic">
                     <option value="cambridge-18-test-1-reading">Cambridge 18 Test 1 — Reading</option>
                     <option value="cambridge-18-test-1-listening">Cambridge 18 Test 1 — Listening</option>
@@ -2420,7 +2438,7 @@ export const ConsultancyPortal: React.FC<ConsultancyPortalProps> = ({
                 Selecting a full mock test enables both the reading and listening modules for that test. Students can take them as a combined real-like exam.
               </p>
 
-              {[16, 18, 19, 20, 21].map((book) => {
+              {[16, 17, 18, 19, 20, 21].map((book) => {
                 const bookFullTests = allFullMockTests.filter(f => f.book === book);
                 const bookTestIds = bookFullTests.flatMap(f => [
                   f.readingTest.id,
@@ -3787,6 +3805,20 @@ export const ConsultancyPortal: React.FC<ConsultancyPortalProps> = ({
                     <option value="cambridge-16-test-4-reading">Cambridge 16 Test 4 — Academic Reading</option>
                     <option value="cambridge-16-test-4-listening">Cambridge 16 Test 4 — Academic Listening</option>
                     <option value="cambridge-16-test-4-writing">Cambridge 16 Test 4 — Academic Writing</option>
+                  </optgroup>
+                  <optgroup label="Cambridge 17">
+                    <option value="cambridge-17-test-1-reading">Cambridge 17 Test 1 — Academic Reading</option>
+                    <option value="cambridge-17-test-1-listening">Cambridge 17 Test 1 — Academic Listening</option>
+                    <option value="cambridge-17-test-1-writing">Cambridge 17 Test 1 — Academic Writing</option>
+                    <option value="cambridge-17-test-2-reading">Cambridge 17 Test 2 — Academic Reading</option>
+                    <option value="cambridge-17-test-2-listening">Cambridge 17 Test 2 — Academic Listening</option>
+                    <option value="cambridge-17-test-2-writing">Cambridge 17 Test 2 — Academic Writing</option>
+                    <option value="cambridge-17-test-3-reading">Cambridge 17 Test 3 — Academic Reading</option>
+                    <option value="cambridge-17-test-3-listening">Cambridge 17 Test 3 — Academic Listening</option>
+                    <option value="cambridge-17-test-3-writing">Cambridge 17 Test 3 — Academic Writing</option>
+                    <option value="cambridge-17-test-4-reading">Cambridge 17 Test 4 — Academic Reading</option>
+                    <option value="cambridge-17-test-4-listening">Cambridge 17 Test 4 — Academic Listening</option>
+                    <option value="cambridge-17-test-4-writing">Cambridge 17 Test 4 — Academic Writing</option>
                   </optgroup>
                   <optgroup label="Cambridge 18">
                     <option value="cambridge-18-test-1-reading">Cambridge 18 Test 1 — Academic Reading</option>
