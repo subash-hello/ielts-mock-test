@@ -113,29 +113,31 @@ function assertEqual(actual: any, expected: any, message?: string) {
 
 // --- SUITE 1: TEST DATA INTEGRITY & AUDIT ---
 suite('Suite 1: Mock Test Papers Data Integrity', () => {
-  test('Total mock tests pool should contain all 60 authentic Cambridge tests (20 Reading, 20 Listening, 20 Writing)', () => {
-    assertEqual(allMockTests.length, 60, 'Total test paper count');
+  test('Total mock tests pool should contain all 72 authentic Cambridge tests (24 Reading, 24 Listening, 24 Writing)', () => {
+    assertEqual(allMockTests.length, 72, 'Total test paper count');
   });
 
-  test('All Cambridge 16 tests (Reading 1-4, Listening 1-4, Writing 1-4) must exist', () => {
-    for (let t = 1; t <= 4; t++) {
-      const r = getMockTestById(`cambridge-16-test-${t}-reading`);
-      assert(r, `Cambridge 16 Test ${t} Reading exists`);
-      assertEqual(r?.sections.length, 3, `Cambridge 16 Test ${t} Reading sections count`);
+  test('All Cambridge 16 and 17 tests (Reading 1-4, Listening 1-4, Writing 1-4) must exist', () => {
+    for (const book of [16, 17]) {
+      for (let t = 1; t <= 4; t++) {
+        const r = getMockTestById(`cambridge-${book}-test-${t}-reading`);
+        assert(r, `Cambridge ${book} Test ${t} Reading exists`);
+        assertEqual(r?.sections.length, 3, `Cambridge ${book} Test ${t} Reading sections count`);
 
-      const l = getMockTestById(`cambridge-16-test-${t}-listening`);
-      assert(l, `Cambridge 16 Test ${t} Listening exists`);
-      assertEqual(l?.sections.length, 4, `Cambridge 16 Test ${t} Listening sections count`);
+        const l = getMockTestById(`cambridge-${book}-test-${t}-listening`);
+        assert(l, `Cambridge ${book} Test ${t} Listening exists`);
+        assertEqual(l?.sections.length, 4, `Cambridge ${book} Test ${t} Listening sections count`);
 
-      const w = getMockTestById(`cambridge-16-test-${t}-writing`);
-      assert(w, `Cambridge 16 Test ${t} Writing exists`);
-      assertEqual(w?.sections.length, 2, `Cambridge 16 Test ${t} Writing sections count (Task 1 & 2)`);
+        const w = getMockTestById(`cambridge-${book}-test-${t}-writing`);
+        assert(w, `Cambridge ${book} Test ${t} Writing exists`);
+        assertEqual(w?.sections.length, 2, `Cambridge ${book} Test ${t} Writing sections count (Task 1 & 2)`);
+      }
     }
   });
 
-  test('All Reading tests (Books 16, 18, 19, 20, 21) must have exactly 40 sequential questions', () => {
+  test('All Reading tests (Books 16, 17, 18, 19, 20, 21) must have exactly 40 sequential questions', () => {
     const readingTests = allMockTests.filter((t) => t.module === 'reading');
-    assertEqual(readingTests.length, 20, 'Reading tests count across books 16, 18, 19, 20, 21');
+    assertEqual(readingTests.length, 24, 'Reading tests count across books 16, 17, 18, 19, 20, 21');
 
     for (const rt of readingTests) {
       const allQuestions = rt.sections.flatMap((s) => s.questionGroups.flatMap((g) => g.questions));
@@ -155,9 +157,9 @@ suite('Suite 1: Mock Test Papers Data Integrity', () => {
     }
   });
 
-  test('All 20 Listening tests (Books 16, 18, 19, 20, 21) must have exactly 40 sequential questions', () => {
+  test('All 24 Listening tests (Books 16, 17, 18, 19, 20, 21) must have exactly 40 sequential questions', () => {
     const listeningTests = allMockTests.filter((t) => t.module === 'listening');
-    assertEqual(listeningTests.length, 20, 'Total listening tests count across all books');
+    assertEqual(listeningTests.length, 24, 'Total listening tests count across all books');
 
     for (const lt of listeningTests) {
       assertEqual(lt.sections.length, 4, `${lt.id} has 4 sections`);
@@ -175,9 +177,9 @@ suite('Suite 1: Mock Test Papers Data Integrity', () => {
     }
   });
 
-  test('All 20 Writing tests (Books 16, 18, 19, 20, 21) must have Task 1 (150 words) and Task 2 (250 words)', () => {
+  test('All 24 Writing tests (Books 16, 17, 18, 19, 20, 21) must have Task 1 (150 words + image) and Task 2 (250 words)', () => {
     const writingTests = allMockTests.filter((t) => t.module === 'writing');
-    assertEqual(writingTests.length, 20, 'Writing tests count across Books 16, 18, 19, 20, 21');
+    assertEqual(writingTests.length, 24, 'Writing tests count across Books 16, 17, 18, 19, 20, 21');
 
     for (const wt of writingTests) {
       assertEqual(wt.sections.length, 2, `${wt.id} must have 2 sections`);
@@ -186,7 +188,8 @@ suite('Suite 1: Mock Test Papers Data Integrity', () => {
       const task1Group = wt.sections[0].questionGroups[0];
       assertEqual(task1Group.type, 'writing_task_1', `${wt.id} section 1 is writing_task_1`);
       assert(task1Group.questions[0].prompt.includes('150 words'), `${wt.id} Task 1 mentions 150 words`);
-      assert(wt.sections[0].passageContent.length > 50, `${wt.id} Task 1 contains visual description/SVG`);
+      assert(Boolean(task1Group.imageUrl), `${wt.id} Task 1 has official imageUrl`);
+      assert(wt.sections[0].passageContent!.length > 50, `${wt.id} Task 1 contains visual description/img`);
 
       // Task 2 check
       const task2Group = wt.sections[1].questionGroups[0];
@@ -195,8 +198,8 @@ suite('Suite 1: Mock Test Papers Data Integrity', () => {
     }
   });
 
-  test('Full mock bundles should equal 20 and Cambridge 16 bundles include Writing', () => {
-    assertEqual(allFullMockTests.length, 20, 'Total full mock bundles count');
+  test('Full mock bundles should equal 24 and include Writing', () => {
+    assertEqual(allFullMockTests.length, 24, 'Total full mock bundles count');
 
     const cam16FullMocks = allFullMockTests.filter((fm) => fm.book === 16);
     assertEqual(cam16FullMocks.length, 4, 'Cambridge 16 full mocks count');
@@ -276,7 +279,7 @@ suite('Suite 1: Mock Test Papers Data Integrity', () => {
     assertEqual(questions[2].correctAnswer, 'car', 'Q3 must be car');
     assertEqual(questions[3].correctAnswer, 'animals', 'Q4 must be animals');
     assertEqual(questions[4].correctAnswer, 'bridge', 'Q5 must be bridge');
-    assertEqual(questions[5].correctAnswer, 'movie', 'Q6 must be movie');
+    assertEqual(questions[5].correctAnswer, 'movie / film', 'Q6 must be movie / film');
     assertEqual(questions[6].correctAnswer, 'decorate', 'Q7 must be decorate');
     assertEqual(questions[7].correctAnswer, 'Wednesdays', 'Q8 must be Wednesdays');
     assertEqual(questions[8].correctAnswer, 'Fradstone', 'Q9 must be Fradstone');
@@ -306,17 +309,17 @@ suite('Suite 1: Mock Test Papers Data Integrity', () => {
     assertEqual(questions[28].correctAnswer, 'F', 'Q29 must be F');
     assertEqual(questions[29].correctAnswer, 'G', 'Q30 must be G');
 
-    // Part 4: Stoicism
-    assertEqual(questions[30].correctAnswer, 'practical', 'Q31 must be practical');
-    assertEqual(questions[31].correctAnswer, 'publication', 'Q32 must be publication');
-    assertEqual(questions[32].correctAnswer, 'choices', 'Q33 must be choices');
-    assertEqual(questions[33].correctAnswer, 'negative', 'Q34 must be negative');
-    assertEqual(questions[34].correctAnswer, 'play', 'Q35 must be play');
-    assertEqual(questions[35].correctAnswer, 'capitalism', 'Q36 must be capitalism');
-    assertEqual(questions[36].correctAnswer, 'depression', 'Q37 must be depression');
-    assertEqual(questions[37].correctAnswer, 'logic', 'Q38 must be logic');
-    assertEqual(questions[38].correctAnswer, 'opportunity', 'Q39 must be opportunity');
-    assertEqual(questions[39].correctAnswer, 'practice', 'Q40 must be practice');
+    // Part 4: Stoicism (Official Cambridge 16 Test 1 Listening Part 4 answer key)
+    assertEqual(questions[30].correctAnswer, 'appeal', 'Q31 must be appeal');
+    assertEqual(questions[31].correctAnswer, 'synonym', 'Q32 must be synonym');
+    assertEqual(questions[32].correctAnswer, 'light', 'Q33 must be light');
+    assertEqual(questions[33].correctAnswer, 'pity', 'Q34 must be pity');
+    assertEqual(questions[34].correctAnswer, 'drama', 'Q35 must be drama');
+    assertEqual(questions[35].correctAnswer, 'property', 'Q36 must be property');
+    assertEqual(questions[36].correctAnswer, 'anger', 'Q37 must be anger');
+    assertEqual(questions[37].correctAnswer, 'science', 'Q38 must be science');
+    assertEqual(questions[38].correctAnswer, 'economic', 'Q39 must be economic');
+    assertEqual(questions[39].correctAnswer, 'health', 'Q40 must be health');
   });
 });
 

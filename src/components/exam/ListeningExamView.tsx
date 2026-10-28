@@ -74,6 +74,13 @@ export const ListeningExamView: React.FC<ListeningExamViewProps> = ({
       list.push(
         `https://engnovatemedia.com/wp-content/uploads/2023/07/cambridge-ielts-16-academic-listening-test-${testNum}-part-${secNum}.mp3`
       );
+    } else if (book === 17) {
+      list.push(
+        `https://ieltstrainingonline.com/wp-content/uploads/2022/07/cam17-test${testNum}-part${secNum}.mp3`
+      );
+      list.push(
+        `https://engnovatemedia.com/wp-content/uploads/2023/07/cambridge-ielts-17-academic-listening-test-${testNum}-part-${secNum}.mp3`
+      );
     } else if (book === 19) {
       list.push(
         `https://ieltstrainingonline.com/wp-content/uploads/2024/07/cam19-test${testNum}-part${secNum}.m4a`
@@ -842,12 +849,21 @@ export const ListeningExamView: React.FC<ListeningExamViewProps> = ({
       if (cleanSearchStr.includes('stevenson') || test.id.includes('cambridge-16-test-1')) {
         mapImage = '/images/cambridge16-test1-stevensons-site.png';
         diagramTitle = "Plan of Stevenson's site";
+      } else if (cleanSearchStr.includes('recreation') || test.id.includes('cambridge-16-test-4')) {
+        mapImage = '/images/maps/cam16-test4-recreation-ground.png';
+        diagramTitle = 'Recreation Ground after proposed changes';
+      } else if (cleanSearchStr.includes('sheepmarket') || test.id.includes('cambridge-17-test-3')) {
+        mapImage = '/images/maps/cam17-test3-sheepmarket.png';
+        diagramTitle = 'Map of Sheepmarket area';
       } else if (cleanSearchStr.includes('farley') || test.id.includes('cambridge-19-test-1')) {
         mapImage = '/images/maps/cam19-test1-farley-house.jpg';
         diagramTitle = 'Farley House and Grounds';
       } else if (cleanSearchStr.includes('housing') || cleanSearchStr.includes('residential') || test.id.includes('cambridge-18-test-2')) {
         mapImage = '/images/maps/cam18-test2-housing-development.jpg';
         diagramTitle = 'New Housing Development Plan';
+      } else if (cleanSearchStr.includes('bidcaster') || cleanSearchStr.includes('archaeological') || test.id.includes('cambridge-20-test-3')) {
+        mapImage = '/images/maps/cam20-test3-bidcaster-dig.jpg';
+        diagramTitle = 'Bidcaster Archaeological Dig';
       } else if (cleanSearchStr.includes('melby') || cleanSearchStr.includes('coal') || test.id.includes('cambridge-21-test-2')) {
         mapImage = '/images/maps/cam21-test2-melby-coal-mine.png';
         diagramTitle = 'Melby Coal Mine';

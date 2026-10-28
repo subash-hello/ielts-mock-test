@@ -14,7 +14,7 @@ High-performance FastAPI production backend for the **Master IELTS Mock Test Pla
 
 ## 🌟 Key Features
 
-- **60 Official Cambridge Tests**: Complete Reading, Listening, and Writing sections preloaded from Books 16, 18, 19, 20, and 21.
+- **72 Official Cambridge Tests**: Complete Reading, Listening, and Writing sections preloaded from Books 16, 17, 18, 19, 20, and 21.
 - **Kiosk Workstation Telemetry**: Real-time heartbeat tracking, candidate pairing, active section monitoring, and automatic offline detection.
 - **Master Lab Control**: Synchronized multi-PC mock exam broadcasts, live command dispatch (`START_TEST`, `PAUSE_EXAM`, `RESUME_EXAM`, `EXTEND_TIME`, `FORCE_SUBMIT`).
 - **Real-Time SSE Stream**: Server-Sent Events (`/api/consultancies/{cid}/stream`) for zero-latency browser push notifications.

@@ -54,7 +54,7 @@ export async function fetchMockTestsFromSupabase(): Promise<IELTSMockTest[] | nu
 
       if (error && (error.code === 'PGRST205' || error.message?.includes('schema cache'))) {
         mockTestsTableUnavailable = true;
-      } else if (!error && data && data.length >= 60) {
+      } else if (!error && data && data.length >= 72) {
         return data.map((row) => ({
           id: row.id,
           book: row.book,
@@ -71,13 +71,13 @@ export async function fetchMockTestsFromSupabase(): Promise<IELTSMockTest[] | nu
     }
   }
 
-  // 2. Fetch directly from Supabase Public Storage bucket (require all 60 Cambridge tests)
+  // 2. Fetch directly from Supabase Public Storage bucket (require all 72 Cambridge tests)
   try {
     const storageUrl = `${supabaseUrl}/storage/v1/object/public/ielts-mock-tests/all-tests.json`;
     const res = await fetch(storageUrl);
     if (res.ok) {
       const storageData = await res.json();
-      if (Array.isArray(storageData) && storageData.length >= 60) {
+      if (Array.isArray(storageData) && storageData.length >= 72) {
         return storageData as IELTSMockTest[];
       }
     }

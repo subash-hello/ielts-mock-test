@@ -8,6 +8,13 @@ import {
 } from './cambridge16';
 
 import {
+  cambridge17Test1Reading, cambridge17Test1Listening, cambridge17Test1Writing,
+  cambridge17Test2Reading, cambridge17Test2Listening, cambridge17Test2Writing,
+  cambridge17Test3Reading, cambridge17Test3Listening, cambridge17Test3Writing,
+  cambridge17Test4Reading, cambridge17Test4Listening, cambridge17Test4Writing,
+} from './cambridge17';
+
+import {
   cambridge18Test1Reading, cambridge18Test1Listening,
   cambridge18Test2Reading, cambridge18Test2Listening,
   cambridge18Test3Reading, cambridge18Test3Listening,
@@ -47,6 +54,10 @@ export {
   cambridge16Test2Reading, cambridge16Test2Listening, cambridge16Test2Writing,
   cambridge16Test3Reading, cambridge16Test3Listening, cambridge16Test3Writing,
   cambridge16Test4Reading, cambridge16Test4Listening, cambridge16Test4Writing,
+  cambridge17Test1Reading, cambridge17Test1Listening, cambridge17Test1Writing,
+  cambridge17Test2Reading, cambridge17Test2Listening, cambridge17Test2Writing,
+  cambridge17Test3Reading, cambridge17Test3Listening, cambridge17Test3Writing,
+  cambridge17Test4Reading, cambridge17Test4Listening, cambridge17Test4Writing,
   cambridge18Test1Reading, cambridge18Test1Listening, cambridge18Test1Writing,
   cambridge18Test2Reading, cambridge18Test2Listening, cambridge18Test2Writing,
   cambridge18Test3Reading, cambridge18Test3Listening, cambridge18Test3Writing,
@@ -65,13 +76,19 @@ export {
   cambridge21Test4Reading, cambridge21Test4Listening, cambridge21Test4Writing,
 };
 
-// All 60 authentic official Cambridge Academic tests (Books 16, 18, 19, 20, 21 — Reading, Listening & Writing)
+// All 72 authentic official Cambridge Academic tests (Books 16, 17, 18, 19, 20, 21 — Reading, Listening & Writing)
 export const allMockTests: IELTSMockTest[] = [
   // Cambridge 16 (Reading, Listening, Writing)
   cambridge16Test1Reading, cambridge16Test1Listening, cambridge16Test1Writing,
   cambridge16Test2Reading, cambridge16Test2Listening, cambridge16Test2Writing,
   cambridge16Test3Reading, cambridge16Test3Listening, cambridge16Test3Writing,
   cambridge16Test4Reading, cambridge16Test4Listening, cambridge16Test4Writing,
+
+  // Cambridge 17 (Reading, Listening, Writing)
+  cambridge17Test1Reading, cambridge17Test1Listening, cambridge17Test1Writing,
+  cambridge17Test2Reading, cambridge17Test2Listening, cambridge17Test2Writing,
+  cambridge17Test3Reading, cambridge17Test3Listening, cambridge17Test3Writing,
+  cambridge17Test4Reading, cambridge17Test4Listening, cambridge17Test4Writing,
 
   // Cambridge 18 (Reading, Listening, Writing)
   cambridge18Test1Reading, cambridge18Test1Listening, cambridge18Test1Writing,

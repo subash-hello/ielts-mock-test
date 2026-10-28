@@ -71,6 +71,7 @@ export const ReadingExamView: React.FC<ReadingExamViewProps> = ({
   // Persistent notes dictionary { [highlightId]: noteText }
   const [notesMap, setNotesMap] = useState<Record<string, string>>({});
   const [highlightCount, setHighlightCount] = useState<number>(0);
+  const [zoomImage, setZoomImage] = useState<{ url: string; title: string } | null>(null);
 
   const activeSection = test.sections[activePassageIndex] || test.sections[0];
   const [mobileReadingTab, setMobileReadingTab] = useState<'passage' | 'questions'>('passage');
@@ -1602,32 +1603,40 @@ export const ReadingExamView: React.FC<ReadingExamViewProps> = ({
                     );
                   })()}
 
-                  {/* DIAGRAM OR LABEL COMPLETION SVG SCHEMATIC */}
-                  {group.type === 'diagram_labelling' && (
+                  {/* DIAGRAM OR LABEL COMPLETION IMAGE / SVG SCHEMATIC */}
+                  {(group.type === 'diagram_labelling' || group.imageUrl || group.diagramSvg) && (
                     <div className="bg-slate-50 border border-slate-300 rounded-xl p-4 text-center space-y-3">
-                      <h4 className="font-bold text-slate-900 text-xs uppercase tracking-wide">
-                        {group.diagramTitle || 'Technical System Diagram'}
-                      </h4>
-                      {group.diagramSvg ? (
+                      <div className="flex items-center justify-between">
+                        <h4 className="font-bold text-slate-900 text-xs uppercase tracking-wide">
+                          {group.diagramTitle || 'Official Book Diagram'}
+                        </h4>
+                        {group.imageUrl && (
+                          <button
+                            type="button"
+                            onClick={() => setZoomImage({ url: group.imageUrl!, title: group.diagramTitle || group.title })}
+                            className="text-[11px] font-semibold text-indigo-700 hover:text-indigo-900 bg-white px-2.5 py-1 rounded border border-slate-300 shadow-2xs cursor-pointer"
+                          >
+                            Click to Enlarge
+                          </button>
+                        )}
+                      </div>
+                      {group.imageUrl ? (
+                        <div
+                          onClick={() => setZoomImage({ url: group.imageUrl!, title: group.diagramTitle || group.title })}
+                          className="max-w-2xl mx-auto overflow-hidden rounded-lg border border-slate-200 bg-white p-3 cursor-zoom-in"
+                        >
+                          <img
+                            src={group.imageUrl}
+                            alt={group.diagramTitle || group.title}
+                            className="w-full h-auto max-h-[460px] object-contain mx-auto"
+                          />
+                        </div>
+                      ) : group.diagramSvg ? (
                         <div
                           className="max-w-md mx-auto overflow-hidden rounded-lg border border-slate-200 bg-white p-2"
                           dangerouslySetInnerHTML={{ __html: group.diagramSvg }}
                         />
-                      ) : (
-                        <div className="max-w-md mx-auto p-4 bg-white border border-slate-200 rounded-lg text-xs font-mono text-slate-600">
-                          <svg viewBox="0 0 400 180" className="w-full h-auto">
-                            <rect x="20" y="20" width="360" height="140" rx="8" fill="#f8fafc" stroke="#94a3b8" strokeWidth="2" strokeDasharray="4 4" />
-                            <circle cx="80" cy="90" r="30" fill="#fee2e2" stroke="#dc2626" strokeWidth="2" />
-                            <text x="80" y="94" textAnchor="middle" fontSize="11" fontWeight="bold" fill="#991b1b">PUMP</text>
-                            <rect x="160" y="45" width="90" height="90" rx="6" fill="#e0f2fe" stroke="#0284c7" strokeWidth="2" />
-                            <text x="205" y="94" textAnchor="middle" fontSize="11" fontWeight="bold" fill="#0369a1">CHAMBER</text>
-                            <rect x="290" y="60" width="80" height="60" rx="6" fill="#fef9c3" stroke="#ca8a04" strokeWidth="2" />
-                            <text x="330" y="94" textAnchor="middle" fontSize="11" fontWeight="bold" fill="#854d0e">FILTER</text>
-                            <line x1="110" y1="90" x2="160" y2="90" stroke="#64748b" strokeWidth="2" />
-                            <line x1="250" y1="90" x2="290" y2="90" stroke="#64748b" strokeWidth="2" />
-                          </svg>
-                        </div>
-                      )}
+                      ) : null}
                     </div>
                   )}
 
@@ -2046,6 +2055,37 @@ export const ReadingExamView: React.FC<ReadingExamViewProps> = ({
           </div>
         </div>
       </div>
+
+      {/* Zoom Modal for Official Reading Diagrams */}
+      {zoomImage && (
+        <div
+          className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-xs flex items-center justify-center p-4"
+          onClick={() => setZoomImage(null)}
+        >
+          <div
+            className="bg-white rounded-2xl max-w-4xl w-full max-h-[90vh] flex flex-col overflow-hidden shadow-2xl border border-slate-200"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between px-5 py-3.5 border-b border-slate-200 bg-slate-50">
+              <h3 className="font-bold text-slate-900 text-sm">{zoomImage.title}</h3>
+              <button
+                type="button"
+                onClick={() => setZoomImage(null)}
+                className="p-1.5 rounded-lg bg-slate-200 hover:bg-slate-300 text-slate-700 cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+            <div className="p-6 overflow-auto flex-1 flex items-center justify-center bg-white">
+              <img
+                src={zoomImage.url}
+                alt={zoomImage.title}
+                className="max-w-full max-h-[75vh] object-contain"
+              />
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
