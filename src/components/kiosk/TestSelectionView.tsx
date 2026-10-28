@@ -100,7 +100,9 @@ export const TestSelectionView: React.FC<TestSelectionViewProps> = ({
       const savedCand = ConsultancyService.getCurrentCandidateSession();
       const stationAssigned = ConsultancyService.getStationAssignedTest(targetCid, stationName);
       const branchActive = ConsultancyService.getActiveLaunchedTest(targetCid);
-      const currentAssigned = stationAssigned || branchActive || activeLaunch;
+      // Only report an assignment that is currently authoritative. Never echo the component's own
+      // (possibly stale) React state back into the station record, or an old launch would keep itself alive.
+      const currentAssigned = stationAssigned || branchActive;
 
       ConsultancyService.updateStationHeartbeat(targetCid, stationName, {
         status: currentAssigned ? 'assigned' : 'idle',

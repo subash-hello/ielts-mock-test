@@ -16,15 +16,23 @@ const getEnv = (key: string): string | undefined => {
   return undefined;
 };
 
-const supabaseUrl =
-  getEnv('VITE_SUPABASE_URL') ||
-  getEnv('NEXT_PUBLIC_SUPABASE_URL') ||
-  'https://vdcaqvdgmliljyhcgdfj.supabase.co';
+// The original Supabase project (fqwdzxaprsefutccdqns) was retired and no longer resolves.
+// If a stale deployment env var still points at it, ignore it and use the current project,
+// otherwise launches / station updates silently never reach the other PCs.
+const LEGACY_SUPABASE_REF = 'fqwdzxaprsefutccdqns';
+const DEFAULT_SUPABASE_URL = 'https://vdcaqvdgmliljyhcgdfj.supabase.co';
+const DEFAULT_SUPABASE_ANON_KEY = 'sb_publishable_jy7lbhdYRYRekPgPsp60Vw_dqV6fGfP';
 
-const supabaseAnonKey =
-  getEnv('VITE_SUPABASE_ANON_KEY') ||
-  getEnv('NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY') ||
-  'sb_publishable_jy7lbhdYRYRekPgPsp60Vw_dqV6fGfP';
+const envSupabaseUrl = getEnv('VITE_SUPABASE_URL') || getEnv('NEXT_PUBLIC_SUPABASE_URL');
+const envUrlIsLegacy = Boolean(envSupabaseUrl && envSupabaseUrl.includes(LEGACY_SUPABASE_REF));
+
+const supabaseUrl = envSupabaseUrl && !envUrlIsLegacy ? envSupabaseUrl : DEFAULT_SUPABASE_URL;
+
+const supabaseAnonKey = envUrlIsLegacy
+  ? DEFAULT_SUPABASE_ANON_KEY
+  : getEnv('VITE_SUPABASE_ANON_KEY') ||
+    getEnv('NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY') ||
+    DEFAULT_SUPABASE_ANON_KEY;
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey);
 

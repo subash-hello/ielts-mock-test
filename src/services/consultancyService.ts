@@ -234,6 +234,12 @@ export class ConsultancyService {
           // Explicitly stopped after this launch (+ 5s skew leeway): do NOT resurrect
           return;
         }
+        // Never let an older launch overwrite a newer one already known on this PC
+        const known = this.getActiveLaunchedTest(p.consultancyId);
+        const knownTime = known?.launchedAt ? new Date(known.launchedAt).getTime() : 0;
+        if (known && knownTime > launchedAt) {
+          return;
+        }
         try {
           const aliases = this.getConsultancyAliases(p.consultancyId);
           for (const k of aliases) {
@@ -455,37 +461,72 @@ export class ConsultancyService {
     }
   }
 
+  /**
+   * True for a student workstation (kiosk). Student PCs only CONSUME launches; if they also
+   * published them to the shared presence channel, a stale launch (e.g. Cambridge 16 Test 3
+   * from a previous session) would be re-broadcast to every other PC for as long as that
+   * browser tab stays open, overriding the newly launched test.
+   */
+  private static isStudentKioskDevice(): boolean {
+    if (typeof window === 'undefined') return false;
+    try {
+      return localStorage.getItem('ielts_device_role') === 'student' && !this.getCurrentAdmin();
+    } catch {
+      return false;
+    }
+  }
+
   private static handlePresenceSync(state: Record<string, any[]>): void {
     if (!state) return;
+
+    // Presence can hold several (possibly stale) launches from different devices.
+    // Only the NEWEST valid launch per consultancy may be applied, and never over a newer local one.
+    const newestByCid = new Map<string, any>();
     for (const key of Object.keys(state)) {
       const presences = state[key];
-      if (Array.isArray(presences)) {
-        for (const item of presences) {
-          if (item?.type === 'BRANCH_TEST_LAUNCHED' && item.consultancyId && item.testId) {
-            const stoppedAt = this.getStoppedTimestamp(item.consultancyId);
-            const launchedAt = item.launchedAt ? new Date(item.launchedAt).getTime() : 0;
-            // CRITICAL: If the test was stopped AT OR AFTER this launchedAt, DO NOT resurrect!
-            if (stoppedAt && stoppedAt >= launchedAt) {
-              if (this.supabaseChannel) {
-                try {
-                  this.supabaseChannel.untrack();
-                } catch {}
-              }
-              continue;
-            }
-
+      if (!Array.isArray(presences)) continue;
+      for (const item of presences) {
+        if (item?.type !== 'BRANCH_TEST_LAUNCHED' || !item.consultancyId || !item.testId) continue;
+        const canonical = this.getCanonicalConsultancyId(item.consultancyId);
+        const stoppedAt = this.getStoppedTimestamp(item.consultancyId);
+        const launchedAt = item.launchedAt ? new Date(item.launchedAt).getTime() : 0;
+        // CRITICAL: If the test was stopped AT OR AFTER this launchedAt, DO NOT resurrect!
+        if (stoppedAt && stoppedAt >= launchedAt) {
+          if (this.supabaseChannel && !this.isStudentKioskDevice()) {
             try {
-              localStorage.setItem(`ielts_launched_test_${item.consultancyId}`, JSON.stringify(item));
-              localStorage.setItem('ielts_latest_launched_test', JSON.stringify(item));
+              this.supabaseChannel.untrack();
             } catch {}
-            this.localListeners.forEach((listener) => {
-              try {
-                listener({ type: 'BRANCH_TEST_LAUNCHED', payload: item });
-              } catch {}
-            });
           }
+          continue;
         }
+        // Ignore launches older than the 4h freshness window
+        if (!launchedAt || Date.now() - launchedAt > 4 * 60 * 60 * 1000) continue;
+
+        const best = newestByCid.get(canonical);
+        const bestTime = best?.launchedAt ? new Date(best.launchedAt).getTime() : 0;
+        if (!best || launchedAt > bestTime) newestByCid.set(canonical, item);
       }
+    }
+
+    for (const [canonical, item] of newestByCid.entries()) {
+      const launchedAt = new Date(item.launchedAt).getTime();
+      const local = this.getActiveLaunchedTest(canonical);
+      const localTime = local?.launchedAt ? new Date(local.launchedAt).getTime() : 0;
+      // Never replace what this PC already knows with an older / identical launch
+      if (local && localTime >= launchedAt) continue;
+
+      try {
+        for (const k of this.getConsultancyAliases(canonical)) {
+          localStorage.setItem(`ielts_launched_test_${k}`, JSON.stringify(item));
+          localStorage.setItem(`ielts_active_launch_${k}`, JSON.stringify(item));
+        }
+        localStorage.setItem('ielts_latest_launched_test', JSON.stringify(item));
+      } catch {}
+      this.localListeners.forEach((listener) => {
+        try {
+          listener({ type: 'BRANCH_TEST_LAUNCHED', payload: item });
+        } catch {}
+      });
     }
   }
 
@@ -499,6 +540,7 @@ export class ConsultancyService {
       )) {
         return;
       }
+      if (this.isStudentKioskDevice()) return;
 
       const latestRaw = localStorage.getItem('ielts_latest_launched_test');
       if (latestRaw) {
@@ -559,10 +601,13 @@ export class ConsultancyService {
         });
         if (type === 'BRANCH_TEST_LAUNCHED') {
           if (payload?.testId) {
-            sbCh.track({
-              type: 'BRANCH_TEST_LAUNCHED',
-              ...payload
-            });
+            // Only the admin / invigilator publishes launches; student kiosks must not echo them
+            if (!this.isStudentKioskDevice()) {
+              sbCh.track({
+                type: 'BRANCH_TEST_LAUNCHED',
+                ...payload
+              });
+            }
           } else {
             sbCh.untrack();
           }
@@ -1004,7 +1049,8 @@ export class ConsultancyService {
     if (!supabase) return;
     try {
       const row = this.mapStationToRow(station);
-      await supabase.from('consultancy_stations').upsert(row);
+      const { error } = await supabase.from('consultancy_stations').upsert(row);
+      if (error) console.warn('[ConsultancyService] Supabase station upsert failed:', error.message);
     } catch {}
   }
 
@@ -1610,7 +1656,8 @@ export class ConsultancyService {
         stopped_at: stoppedAt ? new Date(stoppedAt).toISOString() : (!testId ? now : null),
         updated_at: now
       };
-      await supabase.from('consultancy_active_launches').upsert(row);
+      const { error } = await supabase.from('consultancy_active_launches').upsert(row);
+      if (error) console.warn('[ConsultancyService] Supabase active-launch upsert failed:', error.message);
     } catch {}
   }
 
@@ -3886,6 +3933,7 @@ export class ConsultancyService {
         try {
           const stations = this.getStations(cid);
           let changed = false;
+          const clearedStations: LabStation[] = [];
           for (const st of stations) {
             if (st.assignedTestId || st.status === 'assigned' || st.status === 'in_progress' || st.status === 'paused') {
               st.status = 'idle';
@@ -3893,12 +3941,14 @@ export class ConsultancyService {
               delete st.testTitle;
               delete st.module;
               delete st.isFullMock;
+              delete st.assignedAt;
               delete st.currentQuestion;
               delete st.totalQuestions;
               delete st.answeredCount;
               delete st.remainingSeconds;
               st.lastHeartbeat = new Date().toISOString();
               changed = true;
+              clearedStations.push(st);
             }
           }
           if (changed) {
@@ -3906,6 +3956,12 @@ export class ConsultancyService {
             for (const key of targetCids) {
               localStorage.setItem(`ielts_stations_${key}`, serialized);
             }
+            // Push the cleared stations to the cloud too, otherwise the stale assignment
+            // (e.g. Cambridge 16 Test 3) is synced straight back to every PC.
+            clearedStations.forEach((st) => {
+              this.pushStationToBackend(st).catch(() => {});
+              this.pushStationToSupabase(st).catch(() => {});
+            });
           }
         } catch {}
       }
@@ -3964,7 +4020,7 @@ export class ConsultancyService {
         const stations = this.getStations(cid);
         let changed = false;
         for (const st of stations) {
-          if (st.status === 'idle' || st.status === 'assigned') {
+          if (st.status === 'idle' || st.status === 'assigned' || st.status === 'offline') {
             st.assignedTestId = testId;
             st.testTitle = title || testId;
             st.status = 'assigned';
