@@ -847,6 +847,102 @@ export class ConsultancyService {
     };
   }
 
+  public static normalizeTimestamp(ts?: string | null): string {
+    if (!ts) return '';
+    try {
+      const d = new Date(ts);
+      if (!isNaN(d.getTime())) {
+        return d.toISOString();
+      }
+    } catch {}
+    return String(ts).trim();
+  }
+
+  public static isSameTimestamp(t1?: string | null, t2?: string | null, toleranceMs: number = 10000): boolean {
+    if (!t1 || !t2) return true;
+    if (t1 === t2) return true;
+    const clean1 = String(t1).trim().replace(/\+00:00$/, 'Z');
+    const clean2 = String(t2).trim().replace(/\+00:00$/, 'Z');
+    if (clean1 === clean2) return true;
+    try {
+      const d1 = new Date(t1).getTime();
+      const d2 = new Date(t2).getTime();
+      if (!isNaN(d1) && !isNaN(d2)) {
+        return Math.abs(d1 - d2) <= toleranceMs;
+      }
+    } catch {}
+    return false;
+  }
+
+  public static getResultKey(r: any): string {
+    const tid = String(r.testId || r.test_id || '').trim().toLowerCase();
+    const cand = String(r.candidateId || r.candidateNumber || r.candidate_id || r.candidate_number || r.candidateName || r.candidate_name || 'cand').trim().toLowerCase().replace(/^#/, '');
+    const ts = r.completedAt || r.submittedAt || r.completed_at || r.submitted_at || '';
+    let bucket = 0;
+    try {
+      const d = new Date(ts).getTime();
+      if (!isNaN(d) && d > 0) {
+        bucket = Math.floor(d / 15000);
+      }
+    } catch {}
+    return `${tid}_${cand}_${bucket}`;
+  }
+
+  public static mergeTestResults(primary: TestResult, secondary: TestResult): TestResult {
+    const isPublished = Boolean(primary.isPublished || secondary.isPublished);
+    const publishedAt = primary.publishedAt || secondary.publishedAt;
+
+    const wsA = primary.writingSubmission;
+    const wsB = secondary.writingSubmission;
+    let mergedWs = undefined;
+    if (wsA || wsB) {
+      mergedWs = {
+        task1Essay: wsA?.task1Essay || wsB?.task1Essay || '',
+        task1WordCount: wsA?.task1WordCount || wsB?.task1WordCount || 0,
+        task2Essay: wsA?.task2Essay || wsB?.task2Essay || '',
+        task2WordCount: wsA?.task2WordCount || wsB?.task2WordCount || 0,
+        task1Band: wsA?.task1Band ?? wsB?.task1Band,
+        task2Band: wsA?.task2Band ?? wsB?.task2Band,
+        overallWritingBand: wsA?.overallWritingBand || wsB?.overallWritingBand,
+        adminFeedback: wsA?.adminFeedback || wsB?.adminFeedback || '',
+        reviewedBy: wsA?.reviewedBy || wsB?.reviewedBy,
+        reviewedAt: wsA?.reviewedAt || wsB?.reviewedAt
+      };
+    }
+
+    const bandScore = Math.max(
+      primary.bandScore || 0,
+      secondary.bandScore || 0,
+      mergedWs?.overallWritingBand || 0
+    );
+
+    const answersA = primary.answers || {};
+    const answersB = secondary.answers || {};
+    const bestAnswers = Object.keys(answersA).length >= Object.keys(answersB).length ? answersA : answersB;
+
+    const completedAt = this.normalizeTimestamp(primary.completedAt || secondary.completedAt);
+    const candidateName = primary.candidateName || secondary.candidateName;
+    const candidateId = primary.candidateId || secondary.candidateId;
+
+    const merged: TestResult = {
+      ...primary,
+      ...secondary,
+      candidateName,
+      candidateId,
+      bandScore,
+      completedAt,
+      isPublished,
+      publishedAt,
+      answers: bestAnswers,
+      writingSubmission: mergedWs,
+      totalQuestions: Math.max(primary.totalQuestions || 0, secondary.totalQuestions || 0, primary.module === 'writing' ? 2 : 40),
+      correctCount: Math.max(primary.correctCount || 0, secondary.correctCount || 0),
+      timeTakenSeconds: Math.max(primary.timeTakenSeconds || 0, secondary.timeTakenSeconds || 0)
+    };
+    (merged as any).id = (primary as any).id || (secondary as any).id || `${merged.testId}-${candidateId || 'cand'}-${completedAt}`;
+    return merged;
+  }
+
   private static mapRowToResult(row: any): TestResult {
     return {
       testId: row.test_id,
@@ -857,7 +953,7 @@ export class ConsultancyService {
       correctCount: row.correct_count ? Number(row.correct_count) : 0,
       bandScore: row.band_score ? Number(row.band_score) : 0,
       timeTakenSeconds: row.time_taken_seconds ? Number(row.time_taken_seconds) : 0,
-      completedAt: row.completed_at,
+      completedAt: this.normalizeTimestamp(row.completed_at),
       answers: row.answers || {},
       candidateName: row.candidate_name || undefined,
       candidateId: row.candidate_id || undefined,
@@ -872,7 +968,8 @@ export class ConsultancyService {
   }
 
   private static mapResultToRow(r: TestResult, consultancyId: string): any {
-    const uid = `${r.testId}-${r.candidateId || 'cand'}-${r.completedAt}`;
+    const normCompleted = this.normalizeTimestamp(r.completedAt);
+    const uid = `${r.testId}-${r.candidateId || 'cand'}-${normCompleted}`;
     return {
       id: uid,
       consultancy_id: consultancyId,
@@ -884,7 +981,7 @@ export class ConsultancyService {
       correct_count: r.correctCount,
       band_score: r.bandScore,
       time_taken_seconds: r.timeTakenSeconds,
-      completed_at: r.completedAt,
+      completed_at: normCompleted,
       answers: r.answers || {},
       candidate_name: r.candidateName || null,
       candidate_id: r.candidateId || null,
@@ -1404,7 +1501,7 @@ export class ConsultancyService {
                 ((loc as any).id && r.id && (loc as any).id === r.id) ||
                 (loc.testId === testId &&
                   loc.candidateId === candidateId &&
-                  (loc.completedAt === completedAt || loc.completedAt === r.submittedAt || (r.id && r.id.includes(loc.completedAt))))
+                  (this.isSameTimestamp(loc.completedAt, completedAt) || loc.completedAt === r.submittedAt || (r.id && r.id.includes(loc.completedAt))))
             );
 
             if (localMatch?.writingSubmission) {
@@ -1430,14 +1527,12 @@ export class ConsultancyService {
             const isUngradedWriting = isWriting && (!writingSub?.overallWritingBand || writingSub.overallWritingBand === 0) && (!finalBand || finalBand === 0);
 
             let isPublished = false;
-            if (typeof scores.isPublished === 'boolean') {
-              isPublished = scores.isPublished;
-            } else if (isUngradedWriting) {
+            const remotePub = scores.isPublished === true || r.isPublished === true;
+            const localPub = localMatch?.isPublished === true;
+            if (isUngradedWriting) {
               isPublished = false;
-            } else if (localMatch && typeof localMatch.isPublished === 'boolean') {
-              isPublished = localMatch.isPublished;
             } else {
-              isPublished = Boolean(r.isPublished ?? false);
+              isPublished = remotePub || localPub;
             }
 
             const bookMatch = testId.match(/cambridge-(\d+)-test-(\d+)/);
@@ -1478,15 +1573,26 @@ export class ConsultancyService {
             const alreadyInMapped = mapped.some(
               (m) =>
                 ((m as any).id && (loc as any).id && (m as any).id === (loc as any).id) ||
-                (m.testId === loc.testId && m.candidateId === loc.candidateId && m.completedAt === loc.completedAt)
+                (m.testId === loc.testId && m.candidateId === loc.candidateId && this.isSameTimestamp(m.completedAt, loc.completedAt))
             );
             if (isRecent && !alreadyInMapped) {
               mapped.unshift(loc);
             }
           }
 
+          const dedupMap = new Map<string, TestResult>();
+          for (const m of mapped) {
+            const k = this.getResultKey(m);
+            if (dedupMap.has(k)) {
+              dedupMap.set(k, this.mergeTestResults(dedupMap.get(k)!, m));
+            } else {
+              dedupMap.set(k, m);
+            }
+          }
+          const finalMapped = Array.from(dedupMap.values());
+
           const aliases = this.getConsultancyAliases(canonical);
-          const serialized = JSON.stringify(mapped);
+          const serialized = JSON.stringify(finalMapped);
           for (const k of aliases) {
             localStorage.setItem(`ielts_results_${k}`, serialized);
           }
@@ -1495,7 +1601,7 @@ export class ConsultancyService {
           try {
             const students = this.getStudents(canonical);
             let studentsChanged = false;
-            for (const m of mapped) {
+            for (const m of finalMapped) {
               if (
                 (m.candidateId || m.candidateName) &&
                 !this.isStudentDeleted(canonical, m.candidateId, m.candidateName)
@@ -1519,10 +1625,10 @@ export class ConsultancyService {
 
             const reports = this.getReports(canonical);
             let reportsChanged = false;
-            for (const m of mapped) {
+            for (const m of finalMapped) {
               if (this.isReportDeleted(canonical, m)) continue;
               const existsIdx = reports.findIndex(
-                (rep) => rep.testId === m.testId && rep.candidateId === m.candidateId && rep.completedAt === m.completedAt
+                (rep) => rep.testId === m.testId && rep.candidateId === m.candidateId && this.isSameTimestamp(rep.completedAt, m.completedAt)
               );
               const modLabel = m.module === 'reading' ? 'Reading' : m.module === 'writing' ? 'Writing' : 'Listening';
               const reportItem: SavedAIReport = {
@@ -1587,13 +1693,20 @@ export class ConsultancyService {
       let query = supabase.from('consultancy_results').delete().in('consultancy_id', aliases);
       if (testId) query = query.eq('test_id', testId);
       if (candidateId) query = query.or(`candidate_id.eq.${candidateId},candidate_number.eq.${candidateId}`);
-      if (completedAt) query = query.eq('completed_at', completedAt);
+      if (completedAt) {
+        const normTime = this.normalizeTimestamp(completedAt);
+        const cleanDate = completedAt.split('.')[0].replace(/Z$/, '');
+        query = query.or(`completed_at.eq.${completedAt},completed_at.eq.${normTime},id.like.%${cleanDate}%`);
+      }
       await query;
 
       let repQuery = supabase.from('consultancy_reports').delete().in('consultancy_id', aliases);
       if (testId) repQuery = repQuery.eq('test_id', testId);
       if (candidateId) repQuery = repQuery.eq('candidate_id', candidateId);
-      if (completedAt) repQuery = repQuery.eq('completed_at', completedAt);
+      if (completedAt) {
+        const normTime = this.normalizeTimestamp(completedAt);
+        repQuery = repQuery.or(`completed_at.eq.${completedAt},completed_at.eq.${normTime}`);
+      }
       await repQuery;
     } catch {}
   }
@@ -2093,13 +2206,27 @@ export class ConsultancyService {
                 continue;
               }
             }
-            resMap.set(`${r.testId}-${r.candidateId || ''}-${r.completedAt}`, r);
+            const key = this.getResultKey(r);
+            if (resMap.has(key)) {
+              resMap.set(key, this.mergeTestResults(resMap.get(key)!, r));
+            } else {
+              resMap.set(key, r);
+            }
           }
           for (const r of localRes) {
-            const key = `${r.testId}-${r.candidateId || ''}-${r.completedAt}`;
+            if (this.isResultDeleted(cid, r)) continue;
+            const key = this.getResultKey(r);
             if (!resMap.has(key)) {
               resMap.set(key, r);
               this.pushResultToSupabase(cid, r).catch(() => {});
+            } else {
+              const existing = resMap.get(key)!;
+              const merged = this.mergeTestResults(existing, r);
+              resMap.set(key, merged);
+              // If local had publish status or feedback that remote didn't have, persist merged back to Supabase
+              if ((r.isPublished && !existing.isPublished) || (r.writingSubmission?.adminFeedback && !existing.writingSubmission?.adminFeedback)) {
+                this.pushResultToSupabase(cid, merged).catch(() => {});
+              }
             }
           }
           const finalResults = Array.from(resMap.values()).sort(
@@ -4377,9 +4504,16 @@ export class ConsultancyService {
           if (Array.isArray(parsed)) {
             parsed.forEach((r) => {
               if (this.isResultDeleted(canonical, r)) return;
-              const uniqueKey = `${r.testId}-${r.candidateId || ''}-${r.completedAt || ''}`;
-              if (!resultMap.has(uniqueKey)) {
-                resultMap.set(uniqueKey, { ...r, consultancyId: canonical });
+              const cleanItem: TestResult = {
+                ...r,
+                consultancyId: canonical,
+                completedAt: this.normalizeTimestamp(r.completedAt)
+              };
+              const uniqueKey = this.getResultKey(cleanItem);
+              if (resultMap.has(uniqueKey)) {
+                resultMap.set(uniqueKey, this.mergeTestResults(resultMap.get(uniqueKey)!, cleanItem));
+              } else {
+                resultMap.set(uniqueKey, cleanItem);
               }
             });
           }
@@ -4479,15 +4613,16 @@ export class ConsultancyService {
     if (result.isPublished === undefined) {
       result.isPublished = false;
     }
-    const cleanRes = { ...result, consultancyId: canonical };
+    const normCompleted = this.normalizeTimestamp(result.completedAt || new Date().toISOString());
+    const cleanRes = { ...result, consultancyId: canonical, completedAt: normCompleted };
     const existingIdx = list.findIndex(
       (r) =>
         r.testId === cleanRes.testId &&
-        r.candidateId === cleanRes.candidateId &&
-        r.completedAt === cleanRes.completedAt
+        (!cleanRes.candidateId || r.candidateId === cleanRes.candidateId) &&
+        this.isSameTimestamp(r.completedAt, cleanRes.completedAt)
     );
     if (existingIdx >= 0) {
-      list[existingIdx] = cleanRes;
+      list[existingIdx] = this.mergeTestResults(list[existingIdx], cleanRes);
     } else {
       // Check if this candidate has an existing placeholder result from station recovery that should be upgraded
       const hasRealAnswers = cleanRes.answers && Object.keys(cleanRes.answers).length > 0;
@@ -4531,6 +4666,7 @@ export class ConsultancyService {
 
     this.broadcast('RESULT_ADDED', { consultancyId: canonical, result: cleanRes });
     this.pushResultToSupabase(canonical, cleanRes).catch(() => {});
+    this.pushResultToBackend(canonical, cleanRes).catch(() => {});
   }
 
   public static consumeCredit(consultancyId: string, count: number = 1): void {
@@ -4654,10 +4790,10 @@ export class ConsultancyService {
     for (const item of list) {
       const matchTest = item.testId === testId;
       const matchCand = !candidateId || item.candidateId === candidateId;
-      const matchTime = !completedAt || item.completedAt === completedAt;
+      const matchTime = !completedAt || this.isSameTimestamp(item.completedAt, completedAt);
       if (matchTest && matchCand && matchTime) {
         item.isPublished = true;
-        item.publishedAt = now;
+        item.publishedAt = item.publishedAt || now;
         updated = true;
         updatedItems.push(item);
       }
@@ -4671,6 +4807,7 @@ export class ConsultancyService {
       this.broadcast('RESULT_PUBLISHED', { consultancyId: canonical, testId, candidateId });
       for (const item of updatedItems) {
         this.pushResultToSupabase(canonical, item).catch(() => {});
+        this.pushResultToBackend(canonical, item).catch(() => {});
       }
     }
   }
@@ -4685,7 +4822,7 @@ export class ConsultancyService {
     for (const item of list) {
       const matchTest = item.testId === testId;
       const matchCand = !candidateId || item.candidateId === candidateId;
-      const matchTime = !completedAt || item.completedAt === completedAt;
+      const matchTime = !completedAt || this.isSameTimestamp(item.completedAt, completedAt);
       if (matchTest && matchCand && matchTime) {
         item.isPublished = false;
         item.publishedAt = undefined;
@@ -4702,6 +4839,7 @@ export class ConsultancyService {
       this.broadcast('RESULT_UNPUBLISHED', { consultancyId: canonical, testId, candidateId });
       for (const item of updatedItems) {
         this.pushResultToSupabase(canonical, item).catch(() => {});
+        this.pushResultToBackend(canonical, item).catch(() => {});
       }
     }
   }
@@ -4724,6 +4862,7 @@ export class ConsultancyService {
     this.broadcast('ALL_RESULTS_PUBLISHED', { consultancyId: canonical });
     for (const item of list) {
       this.pushResultToSupabase(canonical, item).catch(() => {});
+      this.pushResultToBackend(canonical, item).catch(() => {});
     }
   }
 
@@ -4748,7 +4887,7 @@ export class ConsultancyService {
       if (resultId && (r as any).id === resultId) return false;
       const matchTest = r.testId === testId;
       const matchCand = !candidateId || r.candidateId === candidateId;
-      const matchTime = !completedAt || r.completedAt === completedAt;
+      const matchTime = !completedAt || this.isSameTimestamp(r.completedAt, completedAt);
       if (matchTest && matchCand && matchTime) return false;
       return !this.isResultDeleted(canonical, r);
     });
@@ -5010,9 +5149,16 @@ export class ConsultancyService {
             if (Array.isArray(arr)) {
               arr.forEach((r: TestResult) => {
                 if (this.isResultDeleted(canonical, r)) return;
-                const uid = `${r.testId}-${r.candidateId || ''}-${r.completedAt || ''}`;
-                if (!resultMap.has(uid)) {
-                  resultMap.set(uid, { ...r, consultancyId: canonical });
+                const cleanItem: TestResult = {
+                  ...r,
+                  consultancyId: canonical,
+                  completedAt: this.normalizeTimestamp(r.completedAt)
+                };
+                const uid = this.getResultKey(cleanItem);
+                if (resultMap.has(uid)) {
+                  resultMap.set(uid, this.mergeTestResults(resultMap.get(uid)!, cleanItem));
+                } else {
+                  resultMap.set(uid, cleanItem);
                 }
               });
             }
@@ -5031,9 +5177,16 @@ export class ConsultancyService {
               localStorage.setItem('ielts_mock_past_results', JSON.stringify(filteredPast));
             }
             filteredPast.forEach((r: TestResult) => {
-              const uid = `${r.testId}-${r.candidateId || ''}-${r.completedAt || ''}`;
-              if (!resultMap.has(uid)) {
-                resultMap.set(uid, { ...r, consultancyId: canonical });
+              const cleanItem: TestResult = {
+                ...r,
+                consultancyId: canonical,
+                completedAt: this.normalizeTimestamp(r.completedAt)
+              };
+              const uid = this.getResultKey(cleanItem);
+              if (resultMap.has(uid)) {
+                resultMap.set(uid, this.mergeTestResults(resultMap.get(uid)!, cleanItem));
+              } else {
+                resultMap.set(uid, cleanItem);
               }
             });
           }
@@ -5235,7 +5388,7 @@ export class ConsultancyService {
     let targetItem = list.find((item) => {
       const matchTest = item.testId === testId;
       const matchCand = !candidateId || item.candidateId === candidateId;
-      const matchTime = !completedAt || item.completedAt === completedAt;
+      const matchTime = !completedAt || this.isSameTimestamp(item.completedAt, completedAt);
       return matchTest && matchCand && matchTime;
     });
 
@@ -5300,7 +5453,7 @@ export class ConsultancyService {
           const pIdx = pastList.findIndex((r) =>
             r.testId === testId &&
             (!candidateId || r.candidateId === candidateId) &&
-            (!completedAt || r.completedAt === completedAt)
+            (!completedAt || this.isSameTimestamp(r.completedAt, completedAt))
           );
           if (pIdx >= 0) {
             pastList[pIdx] = { ...pastList[pIdx], ...updatedResult };
@@ -5378,6 +5531,7 @@ export class ConsultancyService {
       }
 
       this.pushResultToSupabase(canonical, updatedResult).catch(() => {});
+      this.pushResultToBackend(canonical, updatedResult).catch(() => {});
     }
 
     return updatedResult;

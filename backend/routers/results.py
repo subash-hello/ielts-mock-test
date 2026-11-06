@@ -72,14 +72,16 @@ def submit_result(result: CandidateResultCreate):
     trf = result.trf_number or f"TRF-{datetime.now().year}-{str(uuid.uuid4())[:8].upper()}"
 
     # Check if an existing row matches by id or by (consultancy_id, test_id, candidate_number, submitted_at)
+    clean_date = completed_at.split(".")[0].rstrip("Z")
     cursor.execute(
         """
         SELECT id FROM candidate_results
         WHERE id = ?
-           OR (consultancy_id = ? AND test_id = ? AND candidate_number = ? AND submitted_at = ?)
+           OR id LIKE ?
+           OR (consultancy_id = ? AND test_id = ? AND candidate_number = ? AND (submitted_at = ? OR submitted_at LIKE ?))
         LIMIT 1
         """,
-        (rid, result.consultancy_id, result.test_id, result.candidate_number or "", completed_at)
+        (rid, f"%{clean_date}%", result.consultancy_id, result.test_id, result.candidate_number or "", completed_at, f"{clean_date}%")
     )
     existing = cursor.fetchone()
     if existing:
