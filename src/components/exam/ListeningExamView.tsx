@@ -18,6 +18,7 @@ interface ListeningExamViewProps {
   currentQuestion: number;
   answers: CandidateAnswers;
   onAnswerChange: (qNum: number, value: string | string[]) => void;
+  onMultipleAnswersChange?: (updates: Record<number, string | string[]>) => void;
   settings: ExamSettings;
   activePartIndex: number;
   onSelectPart: (index: number) => void;
@@ -30,6 +31,7 @@ export const ListeningExamView: React.FC<ListeningExamViewProps> = ({
   currentQuestion,
   answers,
   onAnswerChange,
+  onMultipleAnswersChange,
   settings,
   activePartIndex,
   onSelectPart: _onSelectPart,
@@ -178,11 +180,22 @@ export const ListeningExamView: React.FC<ListeningExamViewProps> = ({
     }
   };
 
-  // Auto-scroll to active question
+  // Auto-scroll to active question cleanly within mainPaneRef without outer window shifting
   useEffect(() => {
-    const el = document.getElementById(`listening-q-box-${currentQuestion}`);
-    if (el && mainPaneRef.current) {
-      el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    if (!mainPaneRef.current) return;
+    let el = document.getElementById(`listening-q-box-${currentQuestion}`);
+    if (!el) {
+      el = mainPaneRef.current.querySelector(`[data-question-numbers*="${currentQuestion}"]`);
+    }
+    if (el) {
+      const container = mainPaneRef.current;
+      const cRect = container.getBoundingClientRect();
+      const elRect = el.getBoundingClientRect();
+      // Only scroll if question card is out of visible bounds
+      if (elRect.top < cRect.top + 10 || elRect.bottom > cRect.bottom - 10) {
+        const targetTop = el.offsetTop - container.offsetTop - 20;
+        container.scrollTo({ top: Math.max(0, targetTop), behavior: 'smooth' });
+      }
     }
   }, [currentQuestion]);
 
@@ -548,8 +561,20 @@ export const ListeningExamView: React.FC<ListeningExamViewProps> = ({
   };
 
   // Helper to parse option text cleanly without duplicate letters or non-breaking spaces
-  const parseOptionItem = (opt: string, fallbackIdx: number = 0) => {
-    const clean = opt.replace(/\u00a0/g, ' ').trim();
+  const parseOptionItem = (opt: any, fallbackIdx: number = 0) => {
+    let clean = '';
+    if (typeof opt === 'string') {
+      clean = opt.replace(/\u00a0/g, ' ').trim();
+    } else if (opt && typeof opt === 'object') {
+      const optLetter = opt.letter || String.fromCharCode(65 + fallbackIdx);
+      const optText = opt.text || opt.label || '';
+      return {
+        letter: String(optLetter).toUpperCase(),
+        text: String(optText).replace(/\u00a0/g, ' ').trim()
+      };
+    } else {
+      clean = String(opt || '').trim();
+    }
     const match = clean.match(/^([A-Za-z])[.):\s-]+(.*)$/);
     if (match) {
       return {
@@ -565,10 +590,21 @@ export const ListeningExamView: React.FC<ListeningExamViewProps> = ({
 
   // Render Multiple Choice / Multi-Select
   const renderMultipleChoice = (group: IELTSQuestionGroup) => {
+    const gType = (group.type || '').toLowerCase();
+    const gInst = (group.instructions || '').toLowerCase();
+    const gTitle = (group.title || '').toLowerCase();
     const isMultiGroup =
-      group.type === 'multiple_choice_multi' ||
-      group.instructions.toLowerCase().includes('two letters') ||
-      group.instructions.toLowerCase().includes('three letters');
+      gType === 'multiple_choice_multi' ||
+      (group.questions.length > 1 && (
+        gInst.includes('two letter') ||
+        gInst.includes('three letter') ||
+        gInst.includes('choose two') ||
+        gInst.includes('choose three') ||
+        gInst.includes('which two') ||
+        gInst.includes('which three') ||
+        gTitle.includes('two letter') ||
+        gTitle.includes('three letter')
+      ));
 
     if (isMultiGroup) {
       const qNums = group.questions.map((q) => q.questionNumber);
@@ -584,7 +620,7 @@ export const ListeningExamView: React.FC<ListeningExamViewProps> = ({
           }
         } else if (Array.isArray(a)) {
           a.forEach((item) => {
-            if (item) {
+            if (item && typeof item === 'string') {
               const upper = item.trim().toUpperCase();
               if (!currentSelections.includes(upper)) {
                 currentSelections.push(upper);
@@ -593,6 +629,8 @@ export const ListeningExamView: React.FC<ListeningExamViewProps> = ({
           });
         }
       });
+      // Always sort selections alphabetically so state is completely stable and deterministic
+      currentSelections.sort();
 
       const rawPrompt = group.questions[0]?.prompt || group.instructions;
       const cleanPrompt = rawPrompt
@@ -615,12 +653,23 @@ export const ListeningExamView: React.FC<ListeningExamViewProps> = ({
           }
         }
 
-        qNums.forEach((qn, idx) => {
-          onAnswerChange(qn, newSelections[idx] || '');
-        });
+        // Always sort alphabetically: click order NEVER alters question number assignment
+        const sortedSelections = [...newSelections].sort();
 
-        if (newSelections.length > 0 && newSelections.length <= qNums.length) {
-          onSelectQuestion(qNums[newSelections.length - 1]);
+        if (onMultipleAnswersChange) {
+          const updates: Record<number, string> = {};
+          qNums.forEach((qn, idx) => {
+            updates[qn] = sortedSelections[idx] || '';
+          });
+          onMultipleAnswersChange(updates);
+        } else {
+          qNums.forEach((qn, idx) => {
+            onAnswerChange(qn, sortedSelections[idx] || '');
+          });
+        }
+
+        if (sortedSelections.length > 0 && sortedSelections.length <= qNums.length) {
+          onSelectQuestion(qNums[sortedSelections.length - 1]);
         } else {
           onSelectQuestion(qNums[0]);
         }
@@ -631,16 +680,13 @@ export const ListeningExamView: React.FC<ListeningExamViewProps> = ({
       return (
         <div
           id={`listening-q-box-${qNums[0]}`}
+          data-question-numbers={qNums.join(',')}
           className={`p-5 rounded-xl border transition ${
             isAnySelected
               ? 'border-red-500 bg-red-50/20 ring-2 ring-red-400/40 shadow-xs'
               : 'border-slate-200 bg-white'
           }`}
         >
-          {qNums.slice(1).map((qn) => (
-            <span key={qn} id={`listening-q-box-${qn}`} className="sr-only" />
-          ))}
-
           <div className="flex flex-wrap items-center justify-between gap-2.5 pb-3 border-b border-slate-200 mb-3.5">
             <div className="flex items-center gap-2">
               <span className="text-xs font-bold uppercase tracking-wider text-slate-500">
@@ -683,7 +729,13 @@ export const ListeningExamView: React.FC<ListeningExamViewProps> = ({
                 <button
                   type="button"
                   onClick={() => {
-                    qNums.forEach((qn) => onAnswerChange(qn, ''));
+                    if (onMultipleAnswersChange) {
+                      const clearUpdates: Record<number, string> = {};
+                      qNums.forEach((qn) => { clearUpdates[qn] = ''; });
+                      onMultipleAnswersChange(clearUpdates);
+                    } else {
+                      qNums.forEach((qn) => onAnswerChange(qn, ''));
+                    }
                     onSelectQuestion(qNums[0]);
                   }}
                   className="text-slate-400 hover:text-red-600 cursor-pointer text-xs ml-1 flex items-center gap-1"
@@ -741,8 +793,8 @@ export const ListeningExamView: React.FC<ListeningExamViewProps> = ({
                   </span>
 
                   {isChecked && slotIndex >= 0 && slotIndex < qNums.length && (
-                    <span className="text-[11px] font-bold px-2 py-0.5 rounded bg-slate-200 text-slate-800 shrink-0">
-                      Box {qNums[slotIndex]}
+                    <span className="text-[11px] font-bold px-2 py-0.5 rounded bg-slate-900 text-white shrink-0">
+                      Q{qNums[slotIndex]}
                     </span>
                   )}
                 </div>

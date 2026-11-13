@@ -31,6 +31,7 @@ import { ReadingExamView } from './components/exam/ReadingExamView';
 import { ListeningExamView } from './components/exam/ListeningExamView';
 import { WritingExamView } from './components/exam/WritingExamView';
 import { QuestionPalette } from './components/exam/QuestionPalette';
+import { ExamErrorBoundary } from './components/exam/ExamErrorBoundary';
 
 // Consultancy Portal Components (Blueprint Screen 6.6 - 6.10, Section 7)
 import { ConsultancyLayout, type ConsultancySubTab } from './components/consultancy/ConsultancyLayout';
@@ -487,6 +488,12 @@ export const App: React.FC = () => {
   const [, setGlobalSyncTick] = useState(0);
   useEffect(() => {
     const unsub = ConsultancyService.subscribe((event) => {
+      // Do not trigger full App re-renders on telemetry heartbeats while candidate is taking an active live exam
+      if (activeRouteRef.current === 'kiosk-exam') {
+        if (event.type === 'STATION_HEARTBEAT' || event.type === 'STATION_UPDATED') {
+          return;
+        }
+      }
       if (
         event.type === 'STORAGE_SYNC' ||
         event.type === 'CONSULTANCY_UPDATED' ||
@@ -913,10 +920,15 @@ export const App: React.FC = () => {
 
   // Answer handler
   const handleAnswerChange = (qNum: number, value: string | string[]) => {
+    handleMultipleAnswersChange({ [qNum]: value });
+  };
+
+  // Atomic batch answer handler for paired / multi-choice groups
+  const handleMultipleAnswersChange = (updates: Record<number, string | string[]>) => {
     setAnswers((prev) => {
       const next = {
         ...prev,
-        [qNum]: value
+        ...updates
       };
       syncExamSessionToStorage({ answers: next });
       return next;
@@ -936,19 +948,21 @@ export const App: React.FC = () => {
 
   const handleSelectQuestion = (qNum: number) => {
     setCurrentQuestion(qNum);
-    syncExamSessionToStorage({ currentQuestion: qNum });
-    if (!currentTest) return;
-
-    if (currentTest.module === 'reading') {
-      if (qNum <= 13) setActiveSectionIndex(0);
-      else if (qNum <= 26) setActiveSectionIndex(1);
-      else setActiveSectionIndex(2);
-    } else {
-      if (qNum <= 10) setActiveSectionIndex(0);
-      else if (qNum <= 20) setActiveSectionIndex(1);
-      else if (qNum <= 30) setActiveSectionIndex(2);
-      else setActiveSectionIndex(3);
+    let newSecIdx = activeSectionIndex;
+    if (currentTest) {
+      if (currentTest.module === 'reading') {
+        if (qNum <= 13) newSecIdx = 0;
+        else if (qNum <= 26) newSecIdx = 1;
+        else newSecIdx = 2;
+      } else {
+        if (qNum <= 10) newSecIdx = 0;
+        else if (qNum <= 20) newSecIdx = 1;
+        else if (qNum <= 30) newSecIdx = 2;
+        else newSecIdx = 3;
+      }
+      setActiveSectionIndex(newSecIdx);
     }
+    syncExamSessionToStorage({ currentQuestion: qNum, activeSectionIndex: newSecIdx });
   };
 
   const handleSelectSection = (index: number) => {
@@ -1460,61 +1474,65 @@ export const App: React.FC = () => {
             consultancyName={activeConsultancy.name}
           />
 
-          {/* Module-Specific Exam Views */}
-          {currentTest.module === 'writing' ? (
-            <WritingExamView
-              key={currentTest.id}
-              test={currentTest}
-              settings={settings}
-              initialTask1={writingDraftRef.current.task1Essay || String(answers[1] || '')}
-              initialTask2={writingDraftRef.current.task2Essay || String(answers[2] || '')}
-              onDraftChange={handleWritingDraftChange}
-              onSubmitWriting={handleWritingSubmit}
-            />
-          ) : (
-            <>
-              {currentTest.module === 'reading' ? (
-                <ReadingExamView
-                  key={currentTest.id}
-                  test={currentTest}
-                  currentQuestion={currentQuestion}
-                  answers={answers}
-                  onAnswerChange={handleAnswerChange}
-                  settings={settings}
-                  activePassageIndex={activeSectionIndex}
-                  onSelectPassage={handleSelectSection}
-                  onSelectQuestion={handleSelectQuestion}
-                />
-              ) : (
-                <ListeningExamView
-                  key={currentTest.id}
-                  test={currentTest}
-                  currentQuestion={currentQuestion}
-                  answers={answers}
-                  onAnswerChange={handleAnswerChange}
-                  settings={settings}
-                  activePartIndex={activeSectionIndex}
-                  onSelectPart={handleSelectSection}
-                  onSelectQuestion={handleSelectQuestion}
-                  volume={audioVolume}
-                />
-              )}
-
-              {/* 40 Question Palette */}
-              <QuestionPalette
-                currentQuestion={currentQuestion}
-                totalQuestions={40}
-                answers={answers}
-                reviewStatus={reviewStatus}
-                onSelectQuestion={handleSelectQuestion}
-                onToggleReview={handleToggleReview}
-                onFinishTest={() => finishExam()}
-                module={currentTest.module}
-                activeSectionIndex={activeSectionIndex}
-                onSelectSection={handleSelectSection}
+          {/* Module-Specific Exam Views wrapped in safety boundary */}
+          <ExamErrorBoundary fallbackKey={`${currentTest.id}-${activeSectionIndex}`}>
+            {currentTest.module === 'writing' ? (
+              <WritingExamView
+                key={currentTest.id}
+                test={currentTest}
+                settings={settings}
+                initialTask1={writingDraftRef.current.task1Essay || String(answers[1] || '')}
+                initialTask2={writingDraftRef.current.task2Essay || String(answers[2] || '')}
+                onDraftChange={handleWritingDraftChange}
+                onSubmitWriting={handleWritingSubmit}
               />
-            </>
-          )}
+            ) : (
+              <>
+                {currentTest.module === 'reading' ? (
+                  <ReadingExamView
+                    key={currentTest.id}
+                    test={currentTest}
+                    currentQuestion={currentQuestion}
+                    answers={answers}
+                    onAnswerChange={handleAnswerChange}
+                    onMultipleAnswersChange={handleMultipleAnswersChange}
+                    settings={settings}
+                    activePassageIndex={activeSectionIndex}
+                    onSelectPassage={handleSelectSection}
+                    onSelectQuestion={handleSelectQuestion}
+                  />
+                ) : (
+                  <ListeningExamView
+                    key={currentTest.id}
+                    test={currentTest}
+                    currentQuestion={currentQuestion}
+                    answers={answers}
+                    onAnswerChange={handleAnswerChange}
+                    onMultipleAnswersChange={handleMultipleAnswersChange}
+                    settings={settings}
+                    activePartIndex={activeSectionIndex}
+                    onSelectPart={handleSelectSection}
+                    onSelectQuestion={handleSelectQuestion}
+                    volume={audioVolume}
+                  />
+                )}
+
+                {/* 40 Question Palette */}
+                <QuestionPalette
+                  currentQuestion={currentQuestion}
+                  totalQuestions={40}
+                  answers={answers}
+                  reviewStatus={reviewStatus}
+                  onSelectQuestion={handleSelectQuestion}
+                  onToggleReview={handleToggleReview}
+                  onFinishTest={() => finishExam()}
+                  module={currentTest.module}
+                  activeSectionIndex={activeSectionIndex}
+                  onSelectSection={handleSelectSection}
+                />
+              </>
+            )}
+          </ExamErrorBoundary>
         </div>
       )}
 

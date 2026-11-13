@@ -154,7 +154,7 @@ export function isAnswerCorrect(
  * where questions in a group (e.g. Q20 & Q21) can match answers in any order without penalty.
  */
 export function evaluateTestAnswers(
-  test: { sections: Array<{ questionGroups: Array<{ type: string; questions: Array<{ questionNumber: number; correctAnswer: string | string[]; acceptedVariants?: string[] }> }> }> },
+  test: { sections: Array<{ questionGroups: Array<{ type: string; title?: string; instructions?: string; questions: Array<{ questionNumber: number; correctAnswer: string | string[]; acceptedVariants?: string[] }> }> }> },
   answers: Record<number, string | string[]>
 ): {
   correctCount: number;
@@ -165,7 +165,23 @@ export function evaluateTestAnswers(
 
   test.sections.forEach((section) => {
     section.questionGroups.forEach((group) => {
-      if (group.type === 'multiple_choice_multi') {
+      const gType = (group.type || '').toLowerCase();
+      const gInst = ((group as any).instructions || '').toLowerCase();
+      const gTitle = ((group as any).title || '').toLowerCase();
+      const isMultiGroup =
+        gType === 'multiple_choice_multi' ||
+        (group.questions.length > 1 && (
+          gInst.includes('two letter') ||
+          gInst.includes('three letter') ||
+          gInst.includes('choose two') ||
+          gInst.includes('choose three') ||
+          gInst.includes('which two') ||
+          gInst.includes('which three') ||
+          gTitle.includes('two letter') ||
+          gTitle.includes('three letter')
+        ));
+
+      if (isMultiGroup) {
         // Collect all acceptable answers across the multi-choice group
         const correctPool: string[] = [];
         group.questions.forEach((q) => {
@@ -184,8 +200,24 @@ export function evaluateTestAnswers(
           }
         });
 
+        // Collect all distinct user selected answers across the group questions
+        const userProvidedAnswers: { qNum: number; norm: string }[] = [];
+        group.questions.forEach((q) => {
+          const userVal = answers[q.questionNumber];
+          if (Array.isArray(userVal)) {
+            userVal.forEach((v) => {
+              const norm = normalizeAnswer(v);
+              if (norm) userProvidedAnswers.push({ qNum: q.questionNumber, norm });
+            });
+          } else if (userVal) {
+            const norm = normalizeAnswer(userVal);
+            if (norm) userProvidedAnswers.push({ qNum: q.questionNumber, norm });
+          }
+        });
+
         const usedAnswers = new Set<string>();
 
+        // First pass: match answers directly per question if possible
         group.questions.forEach((q) => {
           const userVal = answers[q.questionNumber];
           const normUser = normalizeAnswer(Array.isArray(userVal) ? userVal.join(' ') : userVal);
@@ -196,6 +228,18 @@ export function evaluateTestAnswers(
             correctCount += 1;
           } else {
             questionResults[q.questionNumber] = false;
+          }
+        });
+
+        // Second pass: if any question slot in this paired group is false, check if another distinct user choice from the group matches
+        group.questions.forEach((q) => {
+          if (!questionResults[q.questionNumber]) {
+            const match = userProvidedAnswers.find((u) => correctPool.includes(u.norm) && !usedAnswers.has(u.norm));
+            if (match) {
+              usedAnswers.add(match.norm);
+              questionResults[q.questionNumber] = true;
+              correctCount += 1;
+            }
           }
         });
       } else {

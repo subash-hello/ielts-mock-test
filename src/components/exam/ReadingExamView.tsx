@@ -16,6 +16,7 @@ interface ReadingExamViewProps {
   currentQuestion: number;
   answers: CandidateAnswers;
   onAnswerChange: (qNum: number, value: string | string[]) => void;
+  onMultipleAnswersChange?: (updates: Record<number, string | string[]>) => void;
   settings: ExamSettings;
   activePassageIndex: number;
   onSelectPassage: (index: number) => void;
@@ -27,6 +28,7 @@ export const ReadingExamView: React.FC<ReadingExamViewProps> = ({
   currentQuestion,
   answers,
   onAnswerChange,
+  onMultipleAnswersChange,
   settings,
   activePassageIndex,
   onSelectPassage,
@@ -87,14 +89,24 @@ export const ReadingExamView: React.FC<ReadingExamViewProps> = ({
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  // Auto-scroll to selected question in right pane
+  // Auto-scroll to selected question in right pane cleanly without viewport displacement
   useEffect(() => {
     if (isMobile) {
       setMobileReadingTab('questions');
     }
-    const el = document.getElementById(`q-box-${currentQuestion}`);
-    if (el && rightPaneRef.current) {
-      el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    if (!rightPaneRef.current) return;
+    let el = document.getElementById(`q-box-${currentQuestion}`);
+    if (!el) {
+      el = rightPaneRef.current.querySelector(`[data-question-numbers*="${currentQuestion}"]`);
+    }
+    if (el) {
+      const container = rightPaneRef.current;
+      const cRect = container.getBoundingClientRect();
+      const elRect = el.getBoundingClientRect();
+      if (elRect.top < cRect.top + 10 || elRect.bottom > cRect.bottom - 10) {
+        const targetTop = el.offsetTop - container.offsetTop - 20;
+        container.scrollTo({ top: Math.max(0, targetTop), behavior: 'smooth' });
+      }
     }
   }, [currentQuestion, isMobile]);
 
@@ -894,8 +906,20 @@ export const ReadingExamView: React.FC<ReadingExamViewProps> = ({
   };
 
   // Helper to parse option text cleanly without duplicate letters or non-breaking spaces
-  const parseOptionItem = (opt: string, fallbackIdx: number = 0) => {
-    const clean = opt.replace(/\u00a0/g, ' ').trim();
+  const parseOptionItem = (opt: any, fallbackIdx: number = 0) => {
+    let clean = '';
+    if (typeof opt === 'string') {
+      clean = opt.replace(/\u00a0/g, ' ').trim();
+    } else if (opt && typeof opt === 'object') {
+      const optLetter = opt.letter || String.fromCharCode(65 + fallbackIdx);
+      const optText = opt.text || opt.label || '';
+      return {
+        letter: String(optLetter).toUpperCase(),
+        text: String(optText).replace(/\u00a0/g, ' ').trim() || `Option ${optLetter}`
+      };
+    } else {
+      clean = String(opt || '').trim();
+    }
     if (/^[A-Za-z]$/.test(clean)) {
       const letter = clean.toUpperCase();
       return { letter, text: `Option ${letter}` };
@@ -979,7 +1003,7 @@ export const ReadingExamView: React.FC<ReadingExamViewProps> = ({
         }
       } else if (Array.isArray(a)) {
         a.forEach((item) => {
-          if (item) {
+          if (item && typeof item === 'string') {
             const upper = item.trim().toUpperCase();
             if (!currentSelections.includes(upper)) {
               currentSelections.push(upper);
@@ -988,6 +1012,8 @@ export const ReadingExamView: React.FC<ReadingExamViewProps> = ({
         });
       }
     });
+    // Always sort selections alphabetically so state is completely stable and deterministic
+    currentSelections.sort();
 
     // Extract clean stem prompt (strip "(First choice)", "(Second choice)", etc.)
     const rawPrompt = group.questions[0]?.prompt || group.instructions;
@@ -1012,13 +1038,23 @@ export const ReadingExamView: React.FC<ReadingExamViewProps> = ({
         }
       }
 
-      // Assign letters in order to questions in this group
-      qNums.forEach((qn, idx) => {
-        onAnswerChange(qn, newSelections[idx] || '');
-      });
+      // Always sort alphabetically: click order NEVER alters question number assignment
+      const sortedSelections = [...newSelections].sort();
 
-      if (newSelections.length > 0 && newSelections.length <= qNums.length) {
-        onSelectQuestion(qNums[newSelections.length - 1]);
+      if (onMultipleAnswersChange) {
+        const updates: Record<number, string> = {};
+        qNums.forEach((qn, idx) => {
+          updates[qn] = sortedSelections[idx] || '';
+        });
+        onMultipleAnswersChange(updates);
+      } else {
+        qNums.forEach((qn, idx) => {
+          onAnswerChange(qn, sortedSelections[idx] || '');
+        });
+      }
+
+      if (sortedSelections.length > 0 && sortedSelections.length <= qNums.length) {
+        onSelectQuestion(qNums[sortedSelections.length - 1]);
       } else {
         onSelectQuestion(qNums[0]);
       }
@@ -1029,17 +1065,13 @@ export const ReadingExamView: React.FC<ReadingExamViewProps> = ({
     return (
       <div
         id={`q-box-${qNums[0]}`}
+        data-question-numbers={qNums.join(',')}
         className={`p-5 rounded-xl border transition ${
           isAnySelected
             ? 'border-red-500 bg-red-50/20 ring-2 ring-red-400/40 shadow-xs'
             : 'border-slate-200 bg-white'
         }`}
       >
-        {/* Anchor spans for secondary questions in this group */}
-        {qNums.slice(1).map((qn) => (
-          <span key={qn} id={`q-box-${qn}`} className="sr-only" />
-        ))}
-
         {/* Target Question Number Badges */}
         <div className="flex flex-wrap items-center justify-between gap-2.5 pb-3 border-b border-slate-200 mb-3.5">
           <div className="flex items-center gap-2">
@@ -1083,7 +1115,13 @@ export const ReadingExamView: React.FC<ReadingExamViewProps> = ({
               <button
                 type="button"
                 onClick={() => {
-                  qNums.forEach((qn) => onAnswerChange(qn, ''));
+                  if (onMultipleAnswersChange) {
+                    const clearUpdates: Record<number, string> = {};
+                    qNums.forEach((qn) => { clearUpdates[qn] = ''; });
+                    onMultipleAnswersChange(clearUpdates);
+                  } else {
+                    qNums.forEach((qn) => onAnswerChange(qn, ''));
+                  }
                   onSelectQuestion(qNums[0]);
                 }}
                 className="text-slate-400 hover:text-red-600 cursor-pointer text-xs ml-1 flex items-center gap-1"
@@ -1147,8 +1185,8 @@ export const ReadingExamView: React.FC<ReadingExamViewProps> = ({
 
                 {/* Slot Indicator badge */}
                 {isChecked && slotIndex >= 0 && slotIndex < qNums.length && (
-                  <span className="text-[11px] font-bold px-2 py-0.5 rounded bg-slate-200 text-slate-800 shrink-0">
-                    Box {qNums[slotIndex]}
+                  <span className="text-[11px] font-bold px-2 py-0.5 rounded bg-slate-900 text-white shrink-0">
+                    Q{qNums[slotIndex]}
                   </span>
                 )}
               </div>
@@ -1653,7 +1691,7 @@ export const ReadingExamView: React.FC<ReadingExamViewProps> = ({
                   ) : isCompletionGroup ? (
                     /* 2. AUTHENTIC INLINE COMPLETION FOR SENTENCE, SUMMARY, NOTE, TABLE */
                     renderCompletionQuestions(group)
-                  ) : group.type === 'multiple_choice_multi' ? (
+                  ) : (group.type === 'multiple_choice_multi' || (group.questions.length > 1 && ((group.instructions || '').toLowerCase().includes('two letter') || (group.instructions || '').toLowerCase().includes('three letter') || (group.instructions || '').toLowerCase().includes('choose two') || (group.instructions || '').toLowerCase().includes('which two') || (group.title || '').toLowerCase().includes('two letter')))) ? (
                     /* 3. MULTIPLE CHOICE MULTI (e.g. Choose TWO letters) */
                     renderMultiChoiceQuestions(group)
                   ) : (

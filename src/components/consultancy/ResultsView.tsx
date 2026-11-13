@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   Search,
   CheckCircle2,
@@ -127,11 +127,27 @@ export const ResultsView: React.FC<ResultsViewProps> = ({
     return (!sub.overallWritingBand || sub.overallWritingBand === 0) && (!r.bandScore || r.bandScore === 0);
   };
 
-  const pendingWritingCount = results.filter(isUngradedWriting).length;
-  const publishedCount = results.filter((r) => r.isPublished === true).length;
-  const pendingReleaseCount = results.filter((r) => !r.isPublished).length;
+  // Deduplicate results by canonical candidate + test key so duplicates never display in the roster
+  const deduplicatedResults = useMemo(() => {
+    const map = new Map<string, TestResult>();
+    for (const r of results) {
+      const key = ConsultancyService.getResultKey(r);
+      if (map.has(key)) {
+        map.set(key, ConsultancyService.mergeTestResults(map.get(key)!, r));
+      } else {
+        map.set(key, r);
+      }
+    }
+    return Array.from(map.values()).sort(
+      (a, b) => new Date(b.completedAt || 0).getTime() - new Date(a.completedAt || 0).getTime()
+    );
+  }, [results]);
 
-  const filtered = results.filter((r) => {
+  const pendingWritingCount = deduplicatedResults.filter(isUngradedWriting).length;
+  const publishedCount = deduplicatedResults.filter((r) => r.isPublished === true).length;
+  const pendingReleaseCount = deduplicatedResults.filter((r) => !r.isPublished).length;
+
+  const filtered = deduplicatedResults.filter((r) => {
     const q = search.toLowerCase();
     const matchQ =
       (r.candidateName && r.candidateName.toLowerCase().includes(q)) ||

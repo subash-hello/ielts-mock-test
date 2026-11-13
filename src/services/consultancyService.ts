@@ -858,7 +858,7 @@ export class ConsultancyService {
     return String(ts).trim();
   }
 
-  public static isSameTimestamp(t1?: string | null, t2?: string | null, toleranceMs: number = 10000): boolean {
+  public static isSameTimestamp(t1?: string | null, t2?: string | null, toleranceMs: number = 60000): boolean {
     if (!t1 || !t2) return true;
     if (t1 === t2) return true;
     const clean1 = String(t1).trim().replace(/\+00:00$/, 'Z');
@@ -876,13 +876,18 @@ export class ConsultancyService {
 
   public static getResultKey(r: any): string {
     const tid = String(r.testId || r.test_id || '').trim().toLowerCase();
-    const cand = String(r.candidateId || r.candidateNumber || r.candidate_id || r.candidate_number || r.candidateName || r.candidate_name || 'cand').trim().toLowerCase().replace(/^#/, '');
+    const cand = String(r.candidateId || r.candidateNumber || r.candidate_id || r.candidate_number || r.candidateName || r.candidate_name || 'cand')
+      .trim()
+      .toLowerCase()
+      .replace(/^#/, '')
+      .replace(/[^a-z0-9]/g, '');
     const ts = r.completedAt || r.submittedAt || r.completed_at || r.submitted_at || '';
     let bucket = 0;
     try {
       const d = new Date(ts).getTime();
       if (!isNaN(d) && d > 0) {
-        bucket = Math.floor(d / 15000);
+        // Group attempts by candidate + test within a 2-hour window (7,200,000 ms)
+        bucket = Math.floor(d / 7200000);
       }
     } catch {}
     return `${tid}_${cand}_${bucket}`;
@@ -890,7 +895,11 @@ export class ConsultancyService {
 
   public static mergeTestResults(primary: TestResult, secondary: TestResult): TestResult {
     const isPublished = Boolean(primary.isPublished || secondary.isPublished);
-    const publishedAt = primary.publishedAt || secondary.publishedAt;
+    const publishedAt =
+      (primary.isPublished && primary.publishedAt) ||
+      (secondary.isPublished && secondary.publishedAt) ||
+      primary.publishedAt ||
+      secondary.publishedAt;
 
     const wsA = primary.writingSubmission;
     const wsB = secondary.writingSubmission;
@@ -923,6 +932,7 @@ export class ConsultancyService {
     const completedAt = this.normalizeTimestamp(primary.completedAt || secondary.completedAt);
     const candidateName = primary.candidateName || secondary.candidateName;
     const candidateId = primary.candidateId || secondary.candidateId;
+    const id = (primary as any).id || (secondary as any).id;
 
     const merged: TestResult = {
       ...primary,
@@ -939,7 +949,7 @@ export class ConsultancyService {
       correctCount: Math.max(primary.correctCount || 0, secondary.correctCount || 0),
       timeTakenSeconds: Math.max(primary.timeTakenSeconds || 0, secondary.timeTakenSeconds || 0)
     };
-    (merged as any).id = (primary as any).id || (secondary as any).id || `${merged.testId}-${candidateId || 'cand'}-${completedAt}`;
+    (merged as any).id = id || `${merged.testId}-${candidateId || 'cand'}-${completedAt}`;
     return merged;
   }
 
